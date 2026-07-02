@@ -280,6 +280,15 @@ contract RotatingVaultTest is Test {
         vm.expectRevert(IRotatingVault.InvalidRoundDuration.selector);
         vault.createCircle(address(usdc), AMOUNT, 0, 3);
 
+        // upper bound: a round longer than a year is rejected (defense-in-depth
+        // against a partial-round deposit lock with an effectively-permanent window).
+        // Hoist the view read so vm.expectRevert targets createCircle, not it.
+        uint32 maxDur = vault.MAX_ROUND_DURATION();
+        vm.expectRevert(IRotatingVault.InvalidRoundDuration.selector);
+        vault.createCircle(address(usdc), AMOUNT, maxDur + 1, 3);
+        // exactly the cap is allowed
+        vault.createCircle(address(usdc), AMOUNT, maxDur, 3);
+
         vm.expectRevert(IRotatingVault.InvalidMemberCount.selector);
         vault.createCircle(address(usdc), AMOUNT, WEEK, 1);
 
