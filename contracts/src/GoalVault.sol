@@ -114,6 +114,18 @@ contract GoalVault is ReentrancyGuard, Ownable {
     uint256 public cctpMaxFee; // 0 = standard (slow, free) transfer
     uint32 public cctpMinFinalityThreshold = 2000; // 2000 = standard finality
 
+    /// @notice Settlement grace window: a relayer may still attribute a CCTP mint
+    ///         that was in-flight across the deadline for this long afterwards, so
+    ///         a legitimately-burned-but-late contribution is never stranded.
+    ///         Standard L2 transfers attest in ~15-19 min; 1h covers them with room.
+    uint64 public constant SETTLEMENT_GRACE = 1 hours;
+
+    /// @notice Earliest time {rescueExcess} may run: the latest
+    ///         (campaign deadline + SETTLEMENT_GRACE) across all campaigns. Until
+    ///         then a stray-looking balance could still be a legitimately-arrived
+    ///         CCTP mint awaiting attribution, so it must not be sweepable.
+    uint256 public rescueUnlockTime;
+
     /// @notice Total USDC currently held on behalf of all campaigns (not yet paid out).
     uint256 public totalEscrowed;
 
@@ -187,6 +199,8 @@ contract GoalVault is ReentrancyGuard, Ownable {
     error NothingToRefund();
     error CrossChainRefundDisabled();
     error LocalDomainNotCrossChain();
+    error NotBackerOrRelayer(); // cross-chain refund may only be triggered by the backer or relayer
+    error RescueLocked(); // rescueExcess called before all campaigns have settled
 
     // ---------------------------------------------------------------------
     // Modifiers
@@ -246,9 +260,14 @@ contract GoalVault is ReentrancyGuard, Ownable {
      * @notice Recover USDC that landed in the vault but was never attributed to a
      *         campaign (e.g. a stray transfer). Can never touch escrowed funds:
      *         only the slack `balance - totalEscrowed` is movable.
+     * @dev    Gated by {rescueUnlockTime}: it may only run once every campaign's
+     *         settlement grace window has elapsed. Before that, an unattributed
+     *         balance could still be a legitimate CCTP mint awaiting
+     *         {recordContribution}, so sweeping it would strand a backer's funds.
      */
     function rescueExcess(address to) external onlyOwner returns (uint256 amount) {
         if (to == address(0)) revert ZeroAddress();
+        if (block.timestamp < rescueUnlockTime) revert RescueLocked();
         uint256 bal = token.balanceOf(address(this));
         amount = bal - totalEscrowed; // reverts on underflow if invariant ever broke
         if (amount == 0) revert ZeroAmount();
@@ -285,6 +304,11 @@ contract GoalVault is ReentrancyGuard, Ownable {
             withdrawn: false,
             contributionCount: 0
         });
+
+        // Push out the rescue lock so a stray-looking balance can never be swept
+        // while this campaign could still receive an in-flight CCTP mint.
+        uint256 unlock = uint256(deadline) + SETTLEMENT_GRACE;
+        if (unlock > rescueUnlockTime) rescueUnlockTime = unlock;
 
         emit CampaignCreated(campaignId, msg.sender, beneficiary, goal, deadline);
     }
@@ -326,7 +350,10 @@ contract GoalVault is ReentrancyGuard, Ownable {
     {
         if (backer == address(0)) revert ZeroAddress();
         if (amount == 0) revert ZeroAmount();
-        _requireOpen(campaignId);
+        // A CCTP mint may have been burned before the deadline but only landed
+        // (and been attested) shortly after it. Allow the relayer to attribute it
+        // within the settlement grace window so those funds are never stranded.
+        _requireCreditable(campaignId);
 
         // The mint must have physically arrived and not already be spoken for.
         if (token.balanceOf(address(this)) < totalEscrowed + amount) revert UnattributedFunds();
@@ -390,6 +417,11 @@ contract GoalVault is ReentrancyGuard, Ownable {
         nonReentrant
         campaignExists(campaignId)
     {
+        // Access control: only the backer themselves or the trusted relayer may
+        // trigger a cross-chain refund. mintRecipient is hard-coded to `backer`,
+        // but a backer may not control that address on the origin chain, so a
+        // stranger must not be able to force the irreversible cross-chain burn.
+        if (msg.sender != backer && msg.sender != relayer) revert NotBackerOrRelayer();
         _requireFailed(campaignId);
         uint256 total = _contributedTotal[campaignId][backer];
         if (total == 0) revert NothingToRefund();
@@ -478,6 +510,17 @@ contract GoalVault is ReentrancyGuard, Ownable {
     function _requireOpen(uint256 campaignId) private view {
         Campaign storage c = _campaigns[campaignId];
         if (c.withdrawn || block.timestamp >= c.deadline) revert CampaignClosed();
+    }
+
+    /// @dev Reverts unless the relayer may still attribute an arriving CCTP mint:
+    ///      not yet withdrawn, and within `deadline + SETTLEMENT_GRACE`. This is
+    ///      strictly looser than {_requireOpen} and is ONLY used by the
+    ///      relayer-gated {recordContribution} path — same-chain {contribute}
+    ///      keeps the strict pre-deadline check.
+    function _requireCreditable(uint256 campaignId) private view {
+        Campaign storage c = _campaigns[campaignId];
+        if (c.withdrawn) revert CampaignClosed();
+        if (block.timestamp >= uint256(c.deadline) + SETTLEMENT_GRACE) revert CampaignClosed();
     }
 
     /// @dev Reverts unless the campaign has failed (deadline passed, goal missed, not withdrawn).

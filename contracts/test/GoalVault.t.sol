@@ -660,7 +660,8 @@ contract GoalVaultTest is Test {
         // OP is a remote domain -> expect a burn event; assert one of them.
         vm.expectEmit(true, true, true, true);
         emit CrossChainRefundInitiated(id, bob, OP, 100e6);
-        vault.refundCrossChain(id, bob); // anyone can trigger; funds only go to bob
+        vm.prank(bob); // backer triggers their own refund; funds only go to bob
+        vault.refundCrossChain(id, bob);
 
         // Local ARB portion returned directly to bob.
         assertEq(usdc.balanceOf(bob) - bobBefore, 60e6);
@@ -687,7 +688,30 @@ contract GoalVaultTest is Test {
         vault.recordContribution(id, bob, 100e6, OP); // remote domain, no messenger set
         vm.warp(block.timestamp + 1 days);
         vm.expectRevert(GoalVault.CrossChainRefundDisabled.selector);
+        vm.prank(bob);
         vault.refundCrossChain(id, bob);
+    }
+
+    function test_refundCrossChain_revertsForStranger() public {
+        MockTokenMessenger messenger = new MockTokenMessenger(IERC20(address(usdc)));
+        vm.prank(owner);
+        vault.setTokenMessenger(ITokenMessengerV2(address(messenger)));
+
+        uint256 id = _newCampaign(GOAL, 1 days);
+        usdc.mint(address(vault), 100e6);
+        vm.prank(relayer);
+        vault.recordContribution(id, bob, 100e6, OP);
+        vm.warp(block.timestamp + 1 days); // miss
+
+        // carol is neither the backer nor the relayer -> cannot force bob's refund.
+        vm.prank(carol);
+        vm.expectRevert(GoalVault.NotBackerOrRelayer.selector);
+        vault.refundCrossChain(id, bob);
+
+        // relayer is allowed (app-triggered refund path).
+        vm.prank(relayer);
+        vault.refundCrossChain(id, bob);
+        assertEq(vault.contributionOf(id, bob), 0);
     }
 
     function test_refundCrossChain_localOnlyNeedsNoMessenger() public {
@@ -697,6 +721,7 @@ contract GoalVaultTest is Test {
         vm.warp(block.timestamp + 1 days);
 
         uint256 bobBefore = usdc.balanceOf(bob);
+        vm.prank(bob);
         vault.refundCrossChain(id, bob); // no messenger needed for local funds
         assertEq(usdc.balanceOf(bob) - bobBefore, 100e6);
         assertEq(vault.contributionOf(id, bob), 0);
@@ -711,6 +736,7 @@ contract GoalVaultTest is Test {
         vm.prank(bob);
         vault.contribute(id, 100e6);
         vm.expectRevert(GoalVault.NotFailed.selector); // still active
+        vm.prank(bob);
         vault.refundCrossChain(id, bob);
     }
 
@@ -797,6 +823,8 @@ contract GoalVaultTest is Test {
 
         usdc.mint(address(vault), 30e6); // stray transfer, unattributed slack
 
+        // Rescue is locked until every campaign has settled (deadline + grace).
+        vm.warp(block.timestamp + 1 days + 1 hours + 1);
         vm.prank(owner);
         uint256 rescued = vault.rescueExcess(carol);
         assertEq(rescued, 30e6);
@@ -811,9 +839,66 @@ contract GoalVaultTest is Test {
         uint256 id = _newCampaign(GOAL, 1 days);
         vm.prank(alice);
         vault.contribute(id, 100e6);
+        vm.warp(block.timestamp + 1 days + 1 hours + 1); // past settlement lock
         vm.prank(owner);
         vm.expectRevert(GoalVault.ZeroAmount.selector);
         vault.rescueExcess(carol);
+    }
+
+    function test_rescueExcess_lockedUntilSettlement() public {
+        uint256 id = _newCampaign(GOAL, 1 days);
+        vm.prank(alice);
+        vault.contribute(id, 100e6);
+        usdc.mint(address(vault), 30e6); // stray slack, but a mint could still be in-flight
+
+        // Before deadline + grace: rescue is locked even though slack exists.
+        vm.prank(owner);
+        vm.expectRevert(GoalVault.RescueLocked.selector);
+        vault.rescueExcess(carol);
+
+        // At deadline but still inside the grace window: still locked.
+        vm.warp(block.timestamp + 1 days);
+        vm.prank(owner);
+        vm.expectRevert(GoalVault.RescueLocked.selector);
+        vault.rescueExcess(carol);
+
+        // After deadline + grace: unlocked.
+        vm.warp(block.timestamp + 1 hours + 1);
+        vm.prank(owner);
+        assertEq(vault.rescueExcess(carol), 30e6);
+    }
+
+    // ------------------------------------------------------------------
+    // recordContribution settlement grace (late-landing CCTP mints)
+    // ------------------------------------------------------------------
+
+    function test_recordContribution_allowedInGraceWindowAfterDeadline() public {
+        uint256 id = _newCampaign(GOAL, 1 days);
+        usdc.mint(address(vault), 400e6); // CCTP mint that landed just after the deadline
+        vm.warp(block.timestamp + 1 days + 30 minutes); // past deadline, inside grace
+
+        vm.prank(relayer);
+        vault.recordContribution(id, bob, 400e6, BASE);
+        assertEq(vault.contributionOf(id, bob), 400e6);
+        _assertSolvent();
+    }
+
+    function test_recordContribution_revertsAfterGraceWindow() public {
+        uint256 id = _newCampaign(GOAL, 1 days);
+        usdc.mint(address(vault), 400e6);
+        vm.warp(block.timestamp + 1 days + 1 hours + 1); // past grace
+
+        vm.prank(relayer);
+        vm.expectRevert(GoalVault.CampaignClosed.selector);
+        vault.recordContribution(id, bob, 400e6, BASE);
+    }
+
+    function test_contribute_stillStrictAtDeadlineDespiteGrace() public {
+        uint256 id = _newCampaign(GOAL, 1 days);
+        vm.warp(block.timestamp + 1 days + 30 minutes); // inside relayer grace, but same-chain is strict
+        vm.prank(alice);
+        vm.expectRevert(GoalVault.CampaignClosed.selector);
+        vault.contribute(id, 100e6);
     }
 
     function test_rescueExcess_onlyOwner() public {
