@@ -112,7 +112,7 @@ export function ContributeSheet({
               Paying from
               <span className="inline-flex items-center gap-1.5 font-medium capitalize text-muted">
                 <span className="h-2 w-2 rounded-full" style={{ background: chain.to }} />
-                {chain.name ?? fromChain}
+                {chain.label ?? fromChain}
               </span>
             </div>
           </div>

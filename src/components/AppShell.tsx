@@ -25,7 +25,7 @@ export function AppShell({ children, cta, header, className }: AppShellProps) {
           the liquid itself — the hero casts its own glow. Pure dusk canvas. */}
       <div className="relative z-10 flex w-full max-w-[480px] flex-col px-safe">
         {header && (
-          <header className="pt-safe sticky top-0 z-20">
+          <header className="pt-safe sticky top-0 z-20 bg-ink-950/72 backdrop-blur-xl">
             <div className="flex items-center gap-3 px-5 py-3">{header}</div>
           </header>
         )}
@@ -44,10 +44,10 @@ export function AppShell({ children, cta, header, className }: AppShellProps) {
           <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center">
             <div className="pointer-events-auto w-full max-w-[480px] px-safe">
               <div
-                className="pb-safe-cta px-5 pt-4"
+                className="pb-safe-cta px-5 pt-8"
                 style={{
                   background:
-                    'linear-gradient(180deg, transparent 0%, var(--color-ink-950) 55%)',
+                    'linear-gradient(180deg, transparent 0%, var(--color-ink-950) 42%)',
                 }}
               >
                 {cta}
