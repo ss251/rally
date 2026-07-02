@@ -1,0 +1,9 @@
+# Rally · Echidna config for the GoalVault stateful fuzz harness.
+#   echidna . --contract GoalVaultFuzz --config echidna.yaml
+testMode: assertion          # catch inline assert() (refund-completeness) too
+testLimit: 100000
+seqLen: 100
+shrinkLimit: 5000
+corpusDir: fizz_data/corpus_echidna
+coverage: true
+# The harness deploys everything in its constructor; no deploy wiring needed.
