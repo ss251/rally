@@ -145,10 +145,15 @@ export function ContributorFeed({
                 fresh ? 'animate-slide-in' : ''
               }`}
               style={{
-                borderColor: isTop ? `${accent.solid}66` : 'var(--color-line)',
+                borderColor: isTop ? 'rgba(255,255,255,0.14)' : 'var(--color-line)',
                 background: isTop
-                  ? `linear-gradient(90deg, ${accent.solid}14, transparent 65%)`
+                  ? `linear-gradient(90deg, ${accent.solid}1a, var(--color-surface) 58%)`
                   : 'var(--color-surface)',
+                // A coral left-rail that hugs the rounded corners (not a full
+                // ring) + a hairline top highlight — marks the newest row.
+                boxShadow: isTop
+                  ? `inset 3px 0 0 ${accent.solid}, inset 0 1px 0 rgba(255,255,255,0.05)`
+                  : undefined,
               }}
             >
               <Avatar c={c} />

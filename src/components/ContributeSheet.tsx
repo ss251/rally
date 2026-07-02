@@ -159,7 +159,12 @@ export function ContributeSheet({
                     className="relative rounded-xl py-3 text-base font-semibold transition-colors disabled:opacity-60"
                     style={
                       active
-                        ? { background: 'var(--color-rally-500)', color: 'var(--color-ink-950)' }
+                        ? {
+                            background:
+                              'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 60%, var(--color-rally-600))',
+                            color: 'var(--color-ink-950)',
+                            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45)',
+                          }
                         : { background: 'rgba(255,255,255,0.04)', color: 'var(--color-paper)', border: '1px solid rgba(255,255,255,0.08)' }
                     }
                   >
@@ -168,7 +173,7 @@ export function ContributeSheet({
                         layoutId="amount-pill-glow"
                         aria-hidden
                         className="pointer-events-none absolute inset-0 rounded-xl"
-                        style={{ boxShadow: '0 8px 26px -8px var(--color-rally-glow)' }}
+                        style={{ boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.4)' }}
                       />
                     )}
                     ${a}
@@ -194,17 +199,26 @@ export function ContributeSheet({
           <button
             onClick={send}
             disabled={!canSend}
-            className="relative mt-1 flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-all duration-150 ease-[var(--ease-spring)] active:scale-[0.97] disabled:opacity-45"
+            className="relative mt-1 flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-all duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
             style={{
-              background: 'var(--color-rally-500)',
-              boxShadow: '0 1px 0 0 rgba(255,255,255,0.35) inset, 0 10px 34px -10px var(--color-rally-glow)',
+              background:
+                canSend || inFlight
+                  ? 'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))'
+                  : 'rgba(255,255,255,0.05)',
+              color: canSend || inFlight ? 'var(--color-ink-950)' : 'rgba(255,255,255,0.4)',
+              boxShadow:
+                canSend || inFlight
+                  ? 'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)'
+                  : 'inset 0 0 0 1px rgba(255,255,255,0.08)',
             }}
           >
-            <span
-              aria-hidden
-              className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
-              style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
-            />
+            {(canSend || inFlight) && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+                style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
+              />
+            )}
             {status === 'authing' ? (
               <>
                 <Loader2 size={18} className="animate-spin" /> Check your email…
