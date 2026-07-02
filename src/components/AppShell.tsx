@@ -21,16 +21,8 @@ interface AppShellProps {
 export function AppShell({ children, cta, header, className }: AppShellProps) {
   return (
     <div className="relative flex min-h-[100dvh] justify-center">
-      {/* Ambient dusk bloom behind everything — the page is dusk. */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-x-0 top-0 h-[60vh] opacity-40 blur-[120px]"
-        style={{
-          background:
-            'radial-gradient(60% 100% at 50% 0%, var(--color-rally-glow) 0%, transparent 70%)',
-        }}
-      />
-
+      {/* No decorative background gradient. The only light in Rally comes from
+          the liquid itself — the hero casts its own glow. Pure dusk canvas. */}
       <div className="relative z-10 flex w-full max-w-[480px] flex-col px-safe">
         {header && (
           <header className="pt-safe sticky top-0 z-20">
