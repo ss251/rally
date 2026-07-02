@@ -52,12 +52,19 @@ import { EVM_CHAINS, CctpDomain } from '#/lib/cctp/addresses'
 export const GOAL_VAULT: Address = '0x914e4682aD2FeBb3e00a21dB29B93c16fc080AB4'
 const DEFAULT_CAMPAIGN_ID = 1n
 
-// Guardrail: this is TESTNET with a small, finite USDC treasury (~15 USDC on
-// Base Sepolia). Every "Chip in" is a REAL burn — clamp hard so a fat-fingered
-// tier or a hostile client can never drain the relayer. Default a $1 fill.
+// Guardrail: the RELAYER fallback spends from a small, finite testnet treasury
+// (~10–15 USDC on Base Sepolia). Every relayer "Chip in" is a REAL burn of the
+// relayer's own USDC — so we clamp to a hard ceiling AND to the relayer's live
+// balance. This is ONLY the fallback for fresh email wallets that hold no USDC;
+// a FUNDED backer burns their own money gaslessly (see ../backer-gasless.ts +
+// ./complete-fill.ts) with NO such cap. The selected tier ($10/$25/$100) is
+// honored in full on the backer-funded path; here it degrades to what the
+// relayer can safely afford, and the result flags `cappedByRelayerBalance`.
 const DEFAULT_AMOUNT_USD = 1
-const MAX_AMOUNT_USD = 5
+const MAX_AMOUNT_USD = 10 // hard ceiling for the shared demo relayer
 const MIN_AMOUNT_USD = 0.1
+/** Keep this much USDC in the relayer as headroom for the refund demo. */
+const RELAYER_RESERVE_USD = 1
 
 export interface FillContributionInput {
   /** The backer's Magic email-wallet address — recorded on-chain as the funder. */
@@ -71,6 +78,12 @@ export interface FillContributionInput {
 export interface FillContributionResult {
   campaignId: string
   backer: Address
+  /** Who paid for the burned USDC: the backer's own wallet, or the demo relayer. */
+  fundedBy: 'backer' | 'relayer'
+  /** What the backer asked to contribute (before any relayer-balance cap). */
+  requestedUsd: number
+  /** True when the relayer fallback moved LESS than requested (finite treasury). */
+  cappedByRelayerBalance: boolean
   /** Actual USDC minted into the vault (burn amount minus the CCTP fee). */
   movedUsd: number
   burnTx: Hex
@@ -87,7 +100,7 @@ export interface FillContributionResult {
   }
 }
 
-const GOAL_VAULT_ABI = [
+export const GOAL_VAULT_ABI = [
   {
     type: 'function',
     name: 'recordContribution',
@@ -117,7 +130,7 @@ const GOAL_VAULT_ABI = [
   },
 ] as const
 
-const ERC20 = [
+export const ERC20 = [
   {
     type: 'function',
     name: 'balanceOf',
@@ -137,7 +150,7 @@ const ERC20 = [
 ] as const
 
 /** Read the funded relayer key from env, else the local ~/.rally-keys deployer file. */
-async function loadRelayerKey(): Promise<Hex> {
+export async function loadRelayerKey(): Promise<Hex> {
   const fromEnv = (process.env.RELAYER_KEY ?? process.env.BACKER_KEY) as Hex | undefined
   if (fromEnv) return fromEnv
   const { readFileSync } = await import('node:fs')
@@ -162,11 +175,7 @@ export async function fillContribution(
   }
   const backerAddr = input.backer as Address
 
-  const amountUsd = Math.min(
-    MAX_AMOUNT_USD,
-    Math.max(MIN_AMOUNT_USD, input.amountUsd ?? DEFAULT_AMOUNT_USD),
-  )
-  const AMOUNT = usdc(amountUsd.toString())
+  const requestedUsd = Math.max(MIN_AMOUNT_USD, input.amountUsd ?? DEFAULT_AMOUNT_USD)
   const campaignId = BigInt(input.campaignId ?? Number(DEFAULT_CAMPAIGN_ID))
 
   const alchemy = process.env.ALCHEMY_API_KEY ?? process.env.VITE_ALCHEMY_API_KEY
@@ -197,6 +206,23 @@ export async function fillContribution(
     chain: arbitrumSepolia,
     transport: http(rpc('arb-sepolia', 'https://sepolia-rollup.arbitrum.io/rpc')),
   })
+
+  // Clamp the requested amount to what the relayer can safely afford: the hard
+  // ceiling AND (live balance − reserve). This is the fallback treasury; a
+  // funded backer burning their own USDC is not subject to this cap.
+  const relayerUsdc = (await basePublic.readContract({
+    address: base.usdc,
+    abi: ERC20,
+    functionName: 'balanceOf',
+    args: [relayer.address],
+  })) as bigint
+  const affordableUsd = Math.max(0, Number(formatUnits(relayerUsdc, 6)) - RELAYER_RESERVE_USD)
+  const amountUsd = Math.min(MAX_AMOUNT_USD, requestedUsd, affordableUsd)
+  if (amountUsd < MIN_AMOUNT_USD) {
+    throw new Error('relayer treasury is exhausted — please try a funded wallet')
+  }
+  const cappedByRelayerBalance = amountUsd < requestedUsd - 1e-9
+  const AMOUNT = usdc(amountUsd.toFixed(6))
 
   const readCampaign = () =>
     arbPublic.readContract({
@@ -316,6 +342,9 @@ export async function fillContribution(
   return {
     campaignId: campaignId.toString(),
     backer: backerAddr,
+    fundedBy: 'relayer',
+    requestedUsd,
+    cappedByRelayerBalance,
     movedUsd: Number(formatUnits(attributed, 6)),
     burnTx: burn.transactionHash,
     mintTx,
