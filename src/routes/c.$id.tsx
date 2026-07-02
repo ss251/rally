@@ -1,15 +1,24 @@
 import { useEffect, useState } from 'react'
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Gift } from 'lucide-react'
 import { AppShell } from '#/components/AppShell'
 import { ContributeSheet } from '#/components/ContributeSheet'
 import { Thermometer } from '#/components/Thermometer'
 import { ContributorFeed } from '#/components/ContributorFeed'
 import { ShareLink } from '#/components/ShareLink'
-import { CHAIN_META, countdown, formatUsd, pct } from '#/design/chains'
-import { fetchLiveCampaign, mockCampaign, type CampaignView } from '#/lib/campaign'
+import { ACCENT, CHAIN_META, countdown, formatUsd, pct, type Skin } from '#/design/chains'
+import {
+  fetchLiveCampaign,
+  mockCampaign,
+  mockPotluckCampaign,
+  type CampaignView,
+} from '#/lib/campaign'
 
 export const Route = createFileRoute('/c/$id')({
+  // `?skin=potluck` re-themes the SAME screen as a group gift (festive accent +
+  // gift-note feed). It's a preview skin, so it renders representative data.
+  validateSearch: (search: Record<string, unknown>): { skin?: 'potluck' } =>
+    search.skin === 'potluck' ? { skin: 'potluck' } : {},
   // Read live from Arbitrum Sepolia; fall back to representative mock so a
   // shared link NEVER lands on a broken screen. Never throws to the boundary.
   loader: async ({ params }): Promise<CampaignView> => {
@@ -31,7 +40,13 @@ function useNow(intervalMs = 30_000): number | null {
 }
 
 function CampaignDetail() {
-  const c = Route.useLoaderData()
+  const loaded = Route.useLoaderData()
+  const { skin: skinParam } = Route.useSearch()
+  const skin: Skin = skinParam === 'potluck' ? 'potluck' : 'rally'
+  const isPotluck = skin === 'potluck'
+  // Potluck is a preview theme over representative data; Rally reads live.
+  const c = isPotluck ? mockPotluckCampaign(loaded.id) : loaded
+  const accent = ACCENT[skin]
   const router = useRouter()
   const [sheetOpen, setSheetOpen] = useState(false)
   const now = useNow()
@@ -41,6 +56,13 @@ function CampaignDetail() {
   const topChain = c.segments[c.segments.length - 1]?.chain ?? 'base'
   const hasBackers = c.contributors.length > 0
   const funded = c.status === 'funded'
+  const ctaLabel = isPotluck
+    ? funded
+      ? 'Share the joy'
+      : 'Add to the gift'
+    : funded
+      ? 'Share the win'
+      : 'Chip in $25'
 
   return (
     <>
@@ -63,8 +85,11 @@ function CampaignDetail() {
               </span>
             </div>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-faint">
-              <span className="h-1.5 w-1.5 rounded-full bg-rally-500 animate-pulse-dot" />
-              {c.live ? 'Live on Arbitrum' : 'Arbitrum testnet'}
+              <span
+                className="h-1.5 w-1.5 rounded-full animate-pulse-dot"
+                style={{ background: accent.solid, color: accent.solid }}
+              />
+              {isPotluck ? 'Potluck · testnet' : c.live ? 'Live on Arbitrum' : 'Arbitrum testnet'}
             </span>
           </div>
         }
@@ -74,9 +99,10 @@ function CampaignDetail() {
               onClick={() => setSheetOpen(true)}
               className="relative w-full overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
               style={{
-                background: 'var(--color-rally-500)',
-                boxShadow:
-                  '0 1px 0 0 rgba(255,255,255,0.35) inset, 0 10px 34px -10px var(--color-rally-glow)',
+                background: accent.solid,
+                boxShadow: `0 1px 0 0 rgba(255,255,255,0.35) inset, 0 10px 34px -10px ${
+                  isPotluck ? 'var(--color-potluck-glow)' : 'var(--color-rally-glow)'
+                }`,
               }}
             >
               <span
@@ -84,7 +110,7 @@ function CampaignDetail() {
                 className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
                 style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
               />
-              {funded ? 'Share the win' : 'Chip in $25'}
+              {ctaLabel}
             </button>
             <ShareLink variant="ghost" label="Copy the link" />
           </div>
@@ -92,7 +118,17 @@ function CampaignDetail() {
       >
         <div className="flex flex-col gap-6 pt-4">
           <div>
-            <p className="text-sm text-faint">{c.organizer} is rallying for</p>
+            {isPotluck && (
+              <span
+                className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold text-ink-950"
+                style={{ background: `linear-gradient(90deg, ${accent.from}, ${accent.to})` }}
+              >
+                <Gift size={12} strokeWidth={2.5} /> Group gift
+              </span>
+            )}
+            <p className="text-sm text-faint">
+              {c.organizer} {isPotluck ? 'is collecting for' : 'is rallying for'}
+            </p>
             <h1
               className="mt-1.5 text-[2.15rem] font-semibold leading-[1.04] tracking-tight text-paper"
               style={{ fontFamily: 'var(--font-display)' }}
@@ -107,6 +143,7 @@ function CampaignDetail() {
               raised={c.raised}
               goal={c.goal}
               segments={c.segments}
+              skin={skin}
               orientation="vertical"
               height={248}
               width={52}
@@ -116,10 +153,16 @@ function CampaignDetail() {
             <div className="flex flex-1 flex-col justify-center gap-4">
               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
                 <span
-                  className="h-1.5 w-1.5 rounded-full bg-rally-500 animate-pulse-dot"
-                  style={{ color: 'var(--color-rally-500)' }}
+                  className="h-1.5 w-1.5 rounded-full animate-pulse-dot"
+                  style={{ background: accent.solid, color: accent.solid }}
                 />
-                {funded ? 'Goal met' : 'Raising now'}
+                {isPotluck
+                  ? funded
+                    ? 'Fully funded'
+                    : 'Collecting gifts'
+                  : funded
+                    ? 'Goal met'
+                    : 'Raising now'}
               </span>
               <div>
                 <div className="flex items-end gap-2.5">
@@ -132,8 +175,7 @@ function CampaignDetail() {
                   <span
                     className="tnum font-display text-2xl font-semibold leading-none"
                     style={{
-                      background:
-                        'linear-gradient(90deg, var(--color-rally-600), var(--color-rally-300))',
+                      background: `linear-gradient(90deg, ${accent.from}, ${accent.to})`,
                       WebkitBackgroundClip: 'text',
                       backgroundClip: 'text',
                       color: 'transparent',
@@ -175,7 +217,7 @@ function CampaignDetail() {
           </div>
 
           {hasBackers ? (
-            <ContributorFeed contributors={c.contributors} maxVisible={5} />
+            <ContributorFeed contributors={c.contributors} skin={skin} maxVisible={5} />
           ) : (
             <EmptyFeed />
           )}

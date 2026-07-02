@@ -228,3 +228,33 @@ export function mockCampaign(id: string): CampaignView {
     live: false,
   }
 }
+
+// ── Potluck (group-gift) preview ─────────────────────────────────────────────
+// The same CampaignView shape, re-skinned festive: gift NOTES carry the feed
+// (surfaced by ContributorFeed's potluck branch). Used by /c/$id?skin=potluck.
+export function mockPotluckCampaign(id: string): CampaignView {
+  const now = Date.now()
+  return {
+    id,
+    title: 'Aisha’s surprise send-off',
+    organizer: 'The design team',
+    raised: 620,
+    goal: 800,
+    deadline: now + 3 * 24 * 60 * 60 * 1000,
+    backerCount: 14,
+    segments: [
+      { chain: 'base', amount: 300 },
+      { chain: 'arbitrum', amount: 140 },
+      { chain: 'optimism', amount: 80 },
+      { chain: 'solana', amount: 100 },
+    ],
+    contributors: [
+      { id: 'p1', name: 'Diego', amount: 50, chain: 'base', note: 'Go get ’em in Lisbon 🇵🇹', timestamp: now - 60_000 },
+      { id: 'p2', name: 'Hannah', amount: 25, chain: 'solana', note: 'We’ll miss you at standup!', timestamp: now - 320_000 },
+      { id: 'p3', name: 'Marcus', amount: 40, chain: 'arbitrum', note: 'For the fancy espresso machine ☕️', timestamp: now - 900_000 },
+      { id: 'p4', name: 'Yuki', amount: 30, chain: 'optimism', note: 'One more for the road ✨', timestamp: now - 1_800_000 },
+    ],
+    status: 'live',
+    live: false,
+  }
+}
