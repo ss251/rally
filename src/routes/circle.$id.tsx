@@ -186,6 +186,13 @@ function CircleDetail() {
     if (!roundFunded && youMember?.fundedThisRound) {
       return <StatusPill>You’re in this round ✓ — waiting on the others</StatusPill>
     }
+    if (potTaken) {
+      return (
+        <StatusPill>
+          Round {(c.round ?? 0) + 1}’s pot went to {payee?.name ?? 'its payee'} ✓
+        </StatusPill>
+      )
+    }
     return (
       <StatusPill>
         Round funded ✓ — pot ready for {payee?.name ?? 'its payee'}

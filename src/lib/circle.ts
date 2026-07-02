@@ -275,6 +275,13 @@ const KNOWN: Record<string, { title: string; organizer: string; seatNames: strin
     organizer: 'The Rally crew',
     seatNames: ['Sam', 'Maya', 'Tomás', 'Priya'],
   },
+  // Broken on purpose (round 2 left unfunded) so the safety rail — everyone
+  // refunded, automatically — is demonstrable live, not just promised.
+  '2': {
+    title: 'The circle that broke (on purpose)',
+    organizer: 'Rally',
+    seatNames: ['Ana', 'Ben'],
+  },
 }
 
 const ZERO_ADDR = '0x0000000000000000000000000000000000000000'
