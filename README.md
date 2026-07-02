@@ -6,6 +6,12 @@ Rally is a live cross-chain fundraising thermometer. An organizer creates a camp
 
 > Testnet only. No real money is ever involved.
 
+## Live deployment
+
+**GoalVault (Arbitrum Sepolia, chainId 421614):** [`0x914e4682aD2FeBb3e00a21dB29B93c16fc080AB4`](https://sepolia.arbiscan.io/address/0x914e4682ad2febb3e00a21db29b93c16fc080ab4#code) — verified on Arbiscan.
+
+A real Circle CCTP v2 cross-chain USDC transfer (Base Sepolia → Arbitrum Sepolia) has landed in this contract live, moving a campaign's thermometer from 0 → 4.99935 USDC with a **measured ~9.8 s Iris attestation latency** (fast transfer). Full explorer-linked proof: [`deployments/phase1-live-proof.md`](./deployments/phase1-live-proof.md).
+
 ## Stack
 
 - **Frontend:** [TanStack Start](https://tanstack.com/start) (React 19 + Vite) + Tailwind CSS v4
