@@ -4,6 +4,8 @@ import { motion } from 'motion/react'
 import { BottomSheet } from './BottomSheet'
 import { Confetti } from './Confetti'
 import { CHAIN_META, formatUsd, type Chain } from '#/design/chains'
+import { loginWithEmail } from '#/lib/auth/magic'
+import { contributeServerFn } from '#/lib/contribute'
 
 interface ContributeSheetProps {
   open: boolean
@@ -11,25 +13,33 @@ interface ContributeSheetProps {
   campaignTitle?: string
   /** The chain the backer's money is auto-detected on (the CCTP source). */
   fromChain?: Chain
+  /** Fired after a real contribution lands on-chain — refresh the live bar. */
+  onContributed?: () => void
 }
 
-const AMOUNTS = [10, 25, 100]
-type Status = 'idle' | 'sending' | 'done'
+// Small tiers only: every "Chip in" is a REAL testnet USDC burn from a finite
+// treasury (~15 USDC on Base Sepolia). The server clamps to ≤ $5 regardless.
+const AMOUNTS = [1, 2, 5]
+type Status = 'idle' | 'authing' | 'sending' | 'done' | 'error'
 
 /**
- * The money moment. Email + amount → gasless cross-chain contribution. The CCTP
- * hop, the wallet, the gas — all invisible. Never says wallet / seed / gas.
- * CTA states: "Chip in $25" → "Sending…" → "You're in ✦" + a confetti burst.
+ * The money moment. Email login (real Magic OTP) + amount → REAL gasless
+ * cross-chain CCTP contribution into the live GoalVault. The CCTP hop, the
+ * wallet, the gas — all invisible. Never says wallet / seed / gas.
+ * CTA states: "Chip in $1" → "Check your email…" → "Sending…" → "You're in ✦".
  */
 export function ContributeSheet({
   open,
   onClose,
   campaignTitle = 'the Tokyo fund',
   fromChain = 'base',
+  onContributed,
 }: ContributeSheetProps) {
   const [email, setEmail] = useState('')
-  const [amount, setAmount] = useState(25)
+  const [amount, setAmount] = useState(1)
   const [status, setStatus] = useState<Status>('idle')
+  const [movedUsd, setMovedUsd] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const chain = CHAIN_META[fromChain]
 
   // Reset the flow whenever the sheet closes.
@@ -38,25 +48,52 @@ export function ContributeSheet({
       const t = setTimeout(() => {
         setStatus('idle')
         setEmail('')
-        setAmount(25)
+        setAmount(1)
+        setMovedUsd(null)
+        setError(null)
       }, 250)
       return () => clearTimeout(t)
     }
   }, [open])
 
-  const canSend = /.+@.+\..+/.test(email) && amount > 0 && status === 'idle'
+  const inFlight = status === 'authing' || status === 'sending'
+  const canSend =
+    /.+@.+\..+/.test(email) && amount > 0 && (status === 'idle' || status === 'error')
 
-  const send = () => {
+  const send = async () => {
     if (!canSend) return
-    setStatus('sending')
-    // (Wired to Magic + CCTP in the integration pass; mocked timing here.)
-    setTimeout(() => setStatus('done'), 1600)
+    setError(null)
+    try {
+      // 1. Real Magic email login — pops Magic's OTP overlay; a human types the
+      //    code from their inbox. Resolves to the backer's embedded-wallet EOA.
+      setStatus('authing')
+      const user = await loginWithEmail(email)
+
+      // 2. Real CCTP v2 fill into the live campaign, server-side (relayer fronts
+      //    the source USDC since a fresh email wallet holds none — demo pattern).
+      setStatus('sending')
+      const res = await contributeServerFn({
+        data: { backer: user.address, amountUsd: amount },
+      })
+
+      setMovedUsd(res.movedUsd)
+      setStatus('done')
+      // 3. Bar rises for real — re-read the live GoalVault.
+      onContributed?.()
+    } catch (e) {
+      setError(
+        e instanceof Error && e.message
+          ? e.message
+          : 'Something went wrong. Please try again.',
+      )
+      setStatus('error')
+    }
   }
 
   return (
     <BottomSheet open={open} onClose={onClose} title={status === 'done' ? undefined : 'Chip in'}>
       {status === 'done' ? (
-        <SuccessView amount={amount} campaignTitle={campaignTitle} onDone={onClose} />
+        <SuccessView amount={movedUsd ?? amount} campaignTitle={campaignTitle} onDone={onClose} />
       ) : (
         <div className="flex flex-col gap-5 pb-2">
           <p className="-mt-1 text-[15px] leading-relaxed text-muted">
@@ -73,8 +110,9 @@ export function ContributeSheet({
               autoComplete="email"
               placeholder="you@email.com"
               value={email}
+              disabled={inFlight}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-rally-500/70 focus:bg-white/[0.06]"
+              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-rally-500/70 focus:bg-white/[0.06] disabled:opacity-60"
             />
           </label>
 
@@ -88,7 +126,8 @@ export function ContributeSheet({
                   <button
                     key={a}
                     onClick={() => setAmount(a)}
-                    className="relative rounded-xl py-3 text-base font-semibold transition-colors"
+                    disabled={inFlight}
+                    className="relative rounded-xl py-3 text-base font-semibold transition-colors disabled:opacity-60"
                     style={
                       active
                         ? { background: 'var(--color-rally-500)', color: 'var(--color-ink-950)' }
@@ -117,10 +156,15 @@ export function ContributeSheet({
             </div>
           </div>
 
+          {/* Error line — honest, quiet. */}
+          {status === 'error' && error && (
+            <p className="-mb-1 text-[13px] leading-relaxed text-warn">{error}</p>
+          )}
+
           {/* CTA */}
           <button
             onClick={send}
-            disabled={!canSend && status === 'idle' ? true : status !== 'idle'}
+            disabled={!canSend}
             className="relative mt-1 flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-all duration-150 ease-[var(--ease-spring)] active:scale-[0.97] disabled:opacity-45"
             style={{
               background: 'var(--color-rally-500)',
@@ -132,10 +176,16 @@ export function ContributeSheet({
               className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
               style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
             />
-            {status === 'sending' ? (
+            {status === 'authing' ? (
+              <>
+                <Loader2 size={18} className="animate-spin" /> Check your email…
+              </>
+            ) : status === 'sending' ? (
               <>
                 <Loader2 size={18} className="animate-spin" /> Sending…
               </>
+            ) : status === 'error' ? (
+              <>Try again</>
             ) : (
               <>Chip in {formatUsd(amount)}</>
             )}
