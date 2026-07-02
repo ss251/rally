@@ -45,9 +45,10 @@ export function ShareLink({ url, variant = 'ghost', label = 'Copy link', classNa
       style={
         primary
           ? {
-              background: 'var(--color-rally-500)',
+              background:
+                'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
               boxShadow:
-                '0 1px 0 0 rgba(255,255,255,0.35) inset, 0 10px 34px -10px var(--color-rally-glow)',
+                'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
             }
           : undefined
       }
