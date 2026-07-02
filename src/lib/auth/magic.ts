@@ -140,7 +140,10 @@ export async function loginWithEmail(email: string): Promise<MagicUser> {
 
   const didToken = await magic.auth.loginWithEmailOTP({ email });
   const info = await magic.user.getInfo();
-  const address = info.publicAddress as Address | undefined;
+  // magic-sdk v33: address is nested under wallets.ethereum; older builds
+  // surfaced it as a top-level `publicAddress`. Support both.
+  const address = (info.wallets?.ethereum?.publicAddress ??
+    (info as any).publicAddress) as Address | undefined;
   if (!address) throw new Error('Magic login returned no public address.');
   return { address, email: info.email ?? email, didToken };
 }
@@ -156,7 +159,8 @@ export async function getMagicUser(): Promise<MagicUser | null> {
   if (!magic) return null;
   if (!(await magic.user.isLoggedIn())) return null;
   const info = await magic.user.getInfo();
-  const address = info.publicAddress as Address | undefined;
+  const address = (info.wallets?.ethereum?.publicAddress ??
+    (info as any).publicAddress) as Address | undefined;
   if (!address) return null;
   return { address, email: info.email ?? undefined, didToken: null };
 }

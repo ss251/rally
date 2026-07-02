@@ -230,7 +230,7 @@ export async function burnOnSource(params: BurnParams): Promise<BurnResult> {
 export interface IrisMessage {
   status: "pending_confirmations" | "complete";
   message: Hex; // raw bytes to feed to receiveMessage
-  attestation: Hex; // Circle's signature, or "PENDING"
+  attestation: Hex | "PENDING"; // Circle's signature, or the literal "PENDING"
   eventNonce: string;
   decodedMessage?: Record<string, unknown>;
   cctpVersion?: number;
