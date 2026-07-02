@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { AppShell } from '#/components/AppShell'
-import { BottomSheet } from '#/components/BottomSheet'
+import { ContributeSheet } from '#/components/ContributeSheet'
 import { Thermometer } from '#/components/Thermometer'
 import { ContributorFeed, type Contributor } from '#/components/ContributorFeed'
 import { CHAIN_META, formatUsd, type ChainSegment } from '#/design/chains'
@@ -150,12 +150,12 @@ function Home() {
         </div>
       </AppShell>
 
-      <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="Chip in">
-        <p className="pb-4 text-muted">
-          Enter your email, pick an amount, and you're in — from whatever chain your
-          money's on. No wallet, no gas, no seed phrase.
-        </p>
-      </BottomSheet>
+      <ContributeSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        campaignTitle="the Tokyo fund"
+        fromChain="base"
+      />
     </>
   )
 }
