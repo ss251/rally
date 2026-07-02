@@ -1,0 +1,38 @@
+# --- dependencies / build output ---
+node_modules
+dist
+dist-ssr
+.output
+.nitro
+.vinxi
+.tanstack
+.wrangler
+out
+.next
+__unconfig*
+todos.json
+
+# --- env & secrets (NEVER commit) ---
+.env
+.env.local
+.env*.local
+.env*
+*.local
+.rally-keys
+.secrets
+*.key
+
+# --- OS / editor ---
+.DS_Store
+
+# --- Foundry (contracts) ---
+contracts/out
+contracts/cache
+contracts/broadcast/*/dry-run
+
+# --- internal strategy / working docs (keep private, do not publish) ---
+AGENT_STATE.md
+RALLY_HUMAN_SETUP.md
+.lavish/
+*decision-memo*
+*transcript*
