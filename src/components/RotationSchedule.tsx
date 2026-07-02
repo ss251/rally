@@ -19,7 +19,16 @@ export function RotationSchedule({ rounds, className }: RotationScheduleProps) {
         <h3 className="text-sm font-semibold text-paper">The rotation</h3>
         <span className="text-xs text-faint">one pot each round</span>
       </header>
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+      <div
+        className="flex items-center gap-1.5 overflow-x-auto pb-1"
+        style={{
+          scrollbarWidth: 'none',
+          // Fade the right edge so a long rotation reads as "scroll for more"
+          // instead of getting hard-cropped by the viewport.
+          WebkitMaskImage: 'linear-gradient(90deg, #000 88%, transparent)',
+          maskImage: 'linear-gradient(90deg, #000 88%, transparent)',
+        }}
+      >
         {rounds.map((r, i) => {
           const current = r.state === 'current'
           const claimed = r.state === 'claimed'

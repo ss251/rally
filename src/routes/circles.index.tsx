@@ -87,7 +87,7 @@ function CirclesHome() {
             potUsd={DEMO.potUsd}
             memberTarget={DEMO.memberTarget}
             fundedCount={DEMO.fundedCount}
-            height={248}
+            height={200}
             width={52}
           />
           <div className="flex flex-1 flex-col justify-center gap-4">
