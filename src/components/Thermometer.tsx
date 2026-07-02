@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Check } from 'lucide-react'
 import {
   ACCENT,
@@ -115,85 +115,6 @@ export function Thermometer({
     prevPct.current = realPct
   }, [raised, realPct, onGoalReached])
 
-  // Shared fill (the stacked liquid + wave surface + shimmer).
-  const fill = (
-    <div
-      className={`absolute overflow-hidden ${
-        vertical ? 'inset-x-0 bottom-0 origin-bottom' : 'inset-y-0 left-0 origin-left'
-      } ${bumping ? 'animate-bump' : ''}`}
-      style={{
-        [vertical ? 'height' : 'width']: `${fillPct}%`,
-        transition: `${vertical ? 'height' : 'width'} 900ms var(--ease-rally)`,
-        borderRadius: 'inherit',
-      } as CSSProperties}
-    >
-      {/* Stacked per-chain bands */}
-      <div className={`absolute inset-0 flex ${vertical ? 'flex-col-reverse' : 'flex-row'}`}>
-        {bands.map((b, i) => (
-          <div
-            key={b.key}
-            className="relative"
-            style={{
-              flexGrow: b.grow,
-              flexBasis: 0,
-              background: `linear-gradient(${vertical ? '180deg' : '90deg'}, ${b.to}, ${b.from})`,
-              transition: 'flex-grow 900ms var(--ease-rally)',
-            }}
-          >
-            {/* Hairline meniscus between adjacent bands — keeps the two brand
-                blues (Base/Arbitrum) legible where they stack. */}
-            {i < bands.length - 1 && (
-              <div
-                aria-hidden
-                className="pointer-events-none absolute"
-                style={
-                  vertical
-                    ? { top: -1, left: 0, right: 0, height: 2, background: 'var(--band-sep)' }
-                    : {
-                        right: -1,
-                        top: 0,
-                        bottom: 0,
-                        width: 2,
-                        background: 'var(--band-sep)',
-                        // rotate the highlight/shadow to run along the vertical edge
-                        ['--band-sep-angle' as string]: '90deg',
-                      }
-                }
-              />
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Moving shimmer sweep */}
-      <div
-        className="absolute inset-0 animate-shimmer mix-blend-overlay"
-        style={{
-          background:
-            'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%)',
-          backgroundSize: '200% 100%',
-        }}
-      />
-
-      {/* Surface: wave crest (vertical) or leading meniscus (horizontal) */}
-      {vertical ? (
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-4 -translate-y-1/2">
-          <div
-            className="absolute inset-x-[-60%] top-0 h-8 animate-wave rounded-[45%] bg-white/25"
-            style={{ boxShadow: `0 0 22px 2px ${topColor}` }}
-          />
-          <div className="absolute inset-x-[-60%] top-0.5 h-8 animate-wave-slow rounded-[45%] bg-white/15" />
-          <div className="absolute inset-x-2 top-0 h-px bg-white/80" />
-        </div>
-      ) : (
-        <div
-          className="pointer-events-none absolute inset-y-0 right-0 w-2 translate-x-1/2"
-          style={{ boxShadow: `0 0 18px 3px ${topColor}`, background: 'rgba(255,255,255,0.7)' }}
-        />
-      )}
-    </div>
-  )
-
   // The glass tube itself.
   const tube = (
     <div
@@ -202,7 +123,7 @@ export function Thermometer({
         borderRadius: 'var(--radius-tube)',
         ...(vertical
           ? { width, height, minHeight: 120 }
-          : { width: '100%', height: 16 }),
+          : { width: '100%', height: 22 }),
       }}
       role="progressbar"
       aria-valuenow={realPct}
@@ -217,20 +138,32 @@ export function Thermometer({
           background: `radial-gradient(120% 60% at 50% ${vertical ? 100 : 50}%, ${topColor}55, transparent 70%)`,
         }}
       />
-      {vertical ? (
-        <div className="absolute inset-0">
-          <LiquidColumn
-            width={width}
-            height={height}
-            fillPct={fillPct}
-            bands={liquidBands}
-            topColor={topColor}
-            bumpKey={Math.round(raised)}
-            reducedMotion={reducedMotion}
-          />
-        </div>
-      ) : (
-        fill
+      <div className={`absolute inset-0 ${bumping ? 'animate-bump' : ''}`}>
+        <LiquidColumn
+          width={vertical ? width : 320}
+          height={vertical ? height : 22}
+          fillPct={fillPct}
+          bands={liquidBands}
+          topColor={topColor}
+          bumpKey={Math.round(raised)}
+          reducedMotion={reducedMotion}
+          orientation={vertical ? 'vertical' : 'horizontal'}
+        />
+      </div>
+
+      {/* Continuous cylindrical glass over the WHOLE horizontal capsule (filled
+          AND empty) — a top specular sheen + curved lower shade so it reads as
+          one glass tube containing liquid, not liquid poured into a flat track. */}
+      {!vertical && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            borderRadius: 'inherit',
+            background:
+              'linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.03) 24%, rgba(255,255,255,0) 52%, rgba(0,0,0,0.10) 78%, rgba(0,0,0,0.22) 100%)',
+          }}
+        />
       )}
 
       {/* Ticks */}
@@ -281,7 +214,7 @@ export function Thermometer({
                 className="animate-pulse-dot h-1.5 w-1.5 rounded-full"
                 style={{ background: accent.solid, color: accent.solid }}
               />
-              Raising now
+              {skin === 'potluck' ? 'Collecting now' : 'Raising now'}
             </span>
           )}
         </div>
