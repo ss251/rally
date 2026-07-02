@@ -279,12 +279,18 @@ export async function fetchAttestation(
 
   const url = `${baseUrl}/v2/messages/${sourceDomain}?transactionHash=${transactionHash}`;
   const deadline = Date.now() + timeoutMs;
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  // Exponential backoff (capped) for transient server-side failures. The normal
+  // "not indexed yet" 404 case polls at the base cadence and does NOT back off.
+  const MAX_BACKOFF_MS = 60_000;
+  let backoffMs = pollIntervalMs;
 
   while (Date.now() < deadline) {
     const res = await fetch(url, { headers: { accept: "application/json" } });
 
-    // 404 = Circle hasn't indexed the burn yet; keep polling.
-    if (res.status !== 404 && res.ok) {
+    if (res.ok) {
+      backoffMs = pollIntervalMs; // healthy response — reset backoff
       const body = (await res.json()) as { messages?: IrisMessage[] };
       const msg = body.messages?.[0];
       if (msg) {
@@ -297,9 +303,30 @@ export async function fetchAttestation(
           };
         }
       }
+      await sleep(pollIntervalMs);
+      continue;
     }
 
-    await new Promise((r) => setTimeout(r, pollIntervalMs));
+    // 404 = Circle hasn't indexed the burn yet — expected early on; keep polling.
+    if (res.status === 404) {
+      await sleep(pollIntervalMs);
+      continue;
+    }
+
+    // 429 (rate limit) or 5xx (upstream error) = transient — retry with backoff.
+    if (res.status === 429 || res.status >= 500) {
+      await sleep(backoffMs);
+      backoffMs = Math.min(backoffMs * 2, MAX_BACKOFF_MS);
+      continue;
+    }
+
+    // Any other 4xx (400/401/403/422 …) is a client error that will NOT self-heal
+    // by retrying — fail immediately and surface the response body for debugging.
+    const errBody = await res.text().catch(() => "");
+    throw new Error(
+      `CCTP attestation query failed (${res.status} ${res.statusText}) for tx ${transactionHash} ` +
+        `on domain ${sourceDomain}: ${errBody}`,
+    );
   }
 
   throw new Error(
