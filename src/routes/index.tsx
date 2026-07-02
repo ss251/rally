@@ -4,7 +4,8 @@ import { AppShell } from '#/components/AppShell'
 import { ContributeSheet } from '#/components/ContributeSheet'
 import { Thermometer } from '#/components/Thermometer'
 import { ContributorFeed, type Contributor } from '#/components/ContributorFeed'
-import { CHAIN_META, formatUsd, type ChainSegment } from '#/design/chains'
+import { ChainIcon } from '#/components/ChainIcon'
+import { formatUsd, type ChainSegment } from '#/design/chains'
 
 export const Route = createFileRoute('/')({ component: Home })
 
@@ -129,10 +130,7 @@ function Home() {
               <div className="flex flex-col gap-1.5">
                 {SEGMENTS.map((s) => (
                   <span key={s.chain} className="flex items-center gap-2 text-[13px] text-muted">
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ background: CHAIN_META[s.chain].to }}
-                    />
+                    <ChainIcon chain={s.chain} size={16} />
                     <span className="capitalize text-paper/80">{s.chain}</span>
                     <span className="tnum ml-auto text-faint">{formatUsd(s.amount)}</span>
                   </span>

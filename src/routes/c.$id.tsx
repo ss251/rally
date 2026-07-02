@@ -6,7 +6,8 @@ import { ContributeSheet } from '#/components/ContributeSheet'
 import { Thermometer } from '#/components/Thermometer'
 import { ContributorFeed } from '#/components/ContributorFeed'
 import { ShareLink } from '#/components/ShareLink'
-import { ACCENT, CHAIN_META, countdown, formatUsd, pct, type Skin } from '#/design/chains'
+import { ChainIcon } from '#/components/ChainIcon'
+import { ACCENT, countdown, formatUsd, pct, type Skin } from '#/design/chains'
 import {
   fetchLiveCampaign,
   mockCampaign,
@@ -193,10 +194,7 @@ function CampaignDetail() {
                 <div className="flex flex-col gap-1.5">
                   {c.segments.map((s) => (
                     <span key={s.chain} className="flex items-center gap-2 text-[13px] text-muted">
-                      <span
-                        className="h-2 w-2 rounded-full"
-                        style={{ background: CHAIN_META[s.chain].to }}
-                      />
+                      <ChainIcon chain={s.chain} size={16} />
                       <span className="capitalize text-paper/80">{s.chain}</span>
                       <span className="tnum ml-auto text-faint">{formatUsd(s.amount)}</span>
                     </span>

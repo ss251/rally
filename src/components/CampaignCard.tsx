@@ -14,6 +14,7 @@ import {
   type Skin,
 } from '#/design/chains'
 import { Thermometer } from './Thermometer'
+import { ChainIcon } from './ChainIcon'
 
 export interface Backer {
   name: string
@@ -200,12 +201,9 @@ export function CampaignCard({ campaign, href, onOpen, compact, className }: Cam
             <span className="mr-1 text-[10px] uppercase tracking-wide text-faint">from</span>
             {activeChains.length ? (
               activeChains.map((ch) => (
-                <span
-                  key={ch}
-                  title={CHAIN_META[ch].label}
-                  className="h-2.5 w-2.5 rounded-full ring-2 ring-ink-900"
-                  style={{ background: CHAIN_META[ch].color }}
-                />
+                <span key={ch} title={CHAIN_META[ch].label} className="flex">
+                  <ChainIcon chain={ch} size={15} />
+                </span>
               ))
             ) : (
               <span className="text-[10px] text-faint">any chain</span>
