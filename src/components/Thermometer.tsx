@@ -7,6 +7,7 @@ import {
   formatUsd,
   pct as pctOf,
   type CampaignStatus,
+  type Chain,
   type ChainSegment,
   type Skin,
 } from '#/design/chains'
@@ -66,7 +67,10 @@ export function Thermometer({
   const funded = status === 'funded' || realPct >= 100
   const accent = ACCENT[skin]
   const vertical = orientation === 'vertical'
-  const ticks = showTicks ?? vertical
+  // Interior scale ticks are opt-in only — full-width lines compete with the
+  // crisp chain seams and can be misread as band boundaries. The etched goal
+  // line at 100% is the reference the instrument actually needs.
+  const ticks = showTicks === true
 
   // Normalize + order segments; fall back to a single accent band.
   const bands = useMemo(() => {
@@ -85,35 +89,52 @@ export function Thermometer({
       }))
   }, [segments, accent.from, accent.to])
 
-  const topColor = bands[bands.length - 1]?.to ?? accent.to
-  const liquidBands = bands.map((b) => ({ color: b.to, grow: b.grow }))
+  const liquidBands = bands.map((b) => ({ from: b.from, to: b.to, grow: b.grow }))
+  // Surface color = the band riding the meniscus. Vertical stacks band[0] (Base)
+  // at the top so it maps to the legend; horizontal fills to the last band.
+  const surfaceColor = vertical
+    ? (bands[0]?.to ?? accent.to)
+    : (bands[bands.length - 1]?.to ?? accent.to)
   const reducedMotion =
     typeof window !== 'undefined' &&
     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
 
-  // Bump the liquid when new money lands.
+  // Pour the liquid when new money lands: bump `pourKey` (drives the settle-and-
+  // overshoot rise in LiquidColumn) and remember the exact color of the chain
+  // that grew, so the entering slug pours in that chain's color.
   const prevRaised = useRef(raised)
   const prevPct = useRef(realPct)
-  const [bumping, setBumping] = useState(false)
+  const prevSeg = useRef(segments)
+  const pourColor = useRef(surfaceColor)
+  const [pourKey, setPourKey] = useState(0)
   const [burst, setBurst] = useState(false)
 
   useEffect(() => {
     const grew = raised > prevRaised.current
     const crossed = prevPct.current < 100 && realPct >= 100
     if (grew) {
-      setBumping(true)
-      const t = setTimeout(() => setBumping(false), 620)
+      // Which chain contributed the most new money since last render?
+      const before = new Map((prevSeg.current ?? []).map((s) => [s.chain, s.amount]))
+      let grewChain: Chain | null = null
+      let bestDelta = 0
+      for (const s of segments ?? []) {
+        const d = s.amount - (before.get(s.chain) ?? 0)
+        if (d > bestDelta) {
+          bestDelta = d
+          grewChain = s.chain
+        }
+      }
+      pourColor.current = grewChain ? CHAIN_META[grewChain].to : surfaceColor
+      setPourKey((k) => k + 1)
       if (crossed) {
         setBurst(true)
         onGoalReached?.()
       }
-      prevRaised.current = raised
-      prevPct.current = realPct
-      return () => clearTimeout(t)
     }
     prevRaised.current = raised
     prevPct.current = realPct
-  }, [raised, realPct, onGoalReached])
+    prevSeg.current = segments
+  }, [raised, realPct, segments, surfaceColor, onGoalReached])
 
   // The glass tube itself.
   const tube = (
@@ -131,63 +152,56 @@ export function Thermometer({
       aria-valuemax={100}
       aria-label={`${formatUsd(raised)} of ${formatUsd(goal)} ${currency} raised, ${realPct}%`}
     >
-      {/* Bloom behind the liquid */}
-      <div
-        className="pointer-events-none absolute inset-0 animate-sheen"
-        style={{
-          background: `radial-gradient(120% 60% at 50% ${vertical ? 100 : 50}%, ${topColor}55, transparent 70%)`,
-        }}
-      />
-      <div className={`absolute inset-0 ${bumping ? 'animate-bump' : ''}`}>
+      <div className="absolute inset-0">
         <LiquidColumn
           width={vertical ? width : 320}
           height={vertical ? height : 22}
           fillPct={fillPct}
           bands={liquidBands}
-          topColor={topColor}
-          bumpKey={Math.round(raised)}
+          topColor={surfaceColor}
+          pourColor={pourColor.current}
+          pourKey={pourKey}
           reducedMotion={reducedMotion}
           orientation={vertical ? 'vertical' : 'horizontal'}
         />
       </div>
 
-      {/* Continuous cylindrical glass over the WHOLE horizontal capsule (filled
-          AND empty) — a top specular sheen + curved lower shade so it reads as
-          one glass tube containing liquid, not liquid poured into a flat track. */}
-      {!vertical && (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            borderRadius: 'inherit',
-            background:
-              'linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.03) 24%, rgba(255,255,255,0) 52%, rgba(0,0,0,0.10) 78%, rgba(0,0,0,0.22) 100%)',
-          }}
-        />
-      )}
-
-      {/* Ticks */}
+      {/* Ticks — a quiet measurement scale on the glass. */}
       {ticks &&
         [25, 50, 75].map((t) => (
           <div
             key={t}
-            className="pointer-events-none absolute left-0 right-0 h-px bg-white/10"
+            className="pointer-events-none absolute left-0 right-0 h-px bg-white/[0.07]"
             style={{ bottom: `${t}%` }}
           />
         ))}
+
+      {/* Etched goal line: a hairline tick at 100% with the goal figure, so the
+          fill has a verifiable destination. Vertical only (the tube's top). */}
+      {vertical && (
+        <>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute left-1.5 right-1.5 top-[9px] h-px bg-white/25"
+          />
+          <span
+            aria-hidden
+            className="tnum pointer-events-none absolute inset-x-0 top-[13px] text-center text-[8.5px] font-semibold leading-none tracking-wide text-white/45"
+            style={{ fontFamily: 'var(--font-mono)' }}
+          >
+            {formatUsd(goal)}
+          </span>
+        </>
+      )}
     </div>
   )
 
   if (!showReadout) {
+    // No outer bloom: glass refracts light inward, it doesn't emit a halo. The
+    // tube reads as a solid machined object, lit from within by the crisp liquid
+    // + a single specular streak — not floating in coral fog.
     return (
       <div className={`relative ${className ?? ''}`}>
-        {/* The liquid is the light source — a tight, motivated bloom keyed to
-            the surface color (NOT a decorative background gradient). */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -inset-6 opacity-45 blur-[38px]"
-          style={{ background: `radial-gradient(46% 40% at 50% 62%, ${topColor}, transparent 72%)` }}
-        />
         <div className="relative">{tube}</div>
         <Confetti active={burst} skin={skin} onDone={() => setBurst(false)} />
       </div>
