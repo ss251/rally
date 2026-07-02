@@ -5,7 +5,8 @@ import { BottomSheet } from './BottomSheet'
 import { Confetti } from './Confetti'
 import { CHAIN_META, formatUsd, type Chain } from '#/design/chains'
 import { loginWithEmail } from '#/lib/auth/magic'
-import { contributeServerFn } from '#/lib/contribute'
+import { tryGaslessBackerBurn } from '#/lib/backer-gasless'
+import { contributeServerFn, completeContributionServerFn } from '#/lib/contribute'
 
 interface ContributeSheetProps {
   open: boolean
@@ -17,9 +18,11 @@ interface ContributeSheetProps {
   onContributed?: () => void
 }
 
-// Small tiers only: every "Chip in" is a REAL testnet USDC burn from a finite
-// treasury (~15 USDC on Base Sepolia). The server clamps to ≤ $5 regardless.
-const AMOUNTS = [1, 2, 5]
+// Real contribution tiers. A FUNDED backer burns their own USDC for the full
+// selected amount, gaslessly (ZeroDev 7702). A fresh (empty) email wallet falls
+// back to the demo relayer, which caps the move to its finite testnet treasury
+// and reports the real amount moved — the UI shows what actually landed.
+const AMOUNTS = [10, 25, 100]
 type Status = 'idle' | 'authing' | 'sending' | 'done' | 'error'
 
 /**
@@ -36,7 +39,7 @@ export function ContributeSheet({
   onContributed,
 }: ContributeSheetProps) {
   const [email, setEmail] = useState('')
-  const [amount, setAmount] = useState(1)
+  const [amount, setAmount] = useState(AMOUNTS[0])
   const [status, setStatus] = useState<Status>('idle')
   const [movedUsd, setMovedUsd] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -48,7 +51,7 @@ export function ContributeSheet({
       const t = setTimeout(() => {
         setStatus('idle')
         setEmail('')
-        setAmount(1)
+        setAmount(AMOUNTS[0])
         setMovedUsd(null)
         setError(null)
       }, 250)
@@ -69,12 +72,38 @@ export function ContributeSheet({
       setStatus('authing')
       const user = await loginWithEmail(email)
 
-      // 2. Real CCTP v2 fill into the live campaign, server-side (relayer fronts
-      //    the source USDC since a fresh email wallet holds none — demo pattern).
       setStatus('sending')
-      const res = await contributeServerFn({
-        data: { backer: user.address, amountUsd: amount },
-      })
+
+      // 2. THE REAL PRODUCT PATH — backer-funded, gasless, cross-chain.
+      //    Upgrade the Magic EOA to a ZeroDev 7702 kernel and, IF the backer
+      //    holds enough USDC on Base Sepolia, burn THEIR OWN money for the full
+      //    selected amount with the ZeroDev paymaster covering gas (they pay
+      //    nothing). The server then finishes the CCTP hop (attest → mint →
+      //    record) — relaying only, not funding.
+      //
+      //    A fresh email wallet holds no USDC (the common demo case), so
+      //    tryGaslessBackerBurn returns { funded: false } and we fall back to
+      //    the honest relayer-funded server path below. The UI does NOT expose
+      //    which path ran; the difference is only in who paid — see the code +
+      //    lib/backer-gasless.ts / lib/cctp/complete-fill.ts.
+      let res
+      const gasless = await tryGaslessBackerBurn({ amountUsd: amount })
+      if (gasless.funded) {
+        // Backer burned their own USDC gaslessly — finish it server-side.
+        res = await completeContributionServerFn({
+          data: {
+            backer: gasless.backer,
+            burnTxHash: gasless.burnTx,
+            sourceDomain: gasless.sourceDomain,
+          },
+        })
+      } else {
+        // Fresh/empty wallet → relayer fronts the source USDC (capped to its
+        // finite testnet treasury), recorded under the backer's real address.
+        res = await contributeServerFn({
+          data: { backer: user.address, amountUsd: amount },
+        })
+      }
 
       setMovedUsd(res.movedUsd)
       setStatus('done')
