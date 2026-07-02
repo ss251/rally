@@ -168,7 +168,7 @@ export function CircleSheet({
               className="tnum font-display text-2xl font-semibold leading-none text-paper"
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              {formatUsd(amount)}
+              {mode === 'refund' && amount <= 0 ? '—' : formatUsd(amount)}
             </span>
           </div>
 
@@ -229,8 +229,10 @@ export function CircleSheet({
               <>Chip in {formatUsd(amount)}</>
             ) : mode === 'claim' ? (
               <>Claim {formatUsd(amount)}</>
-            ) : (
+            ) : amount > 0 ? (
               <>Get {formatUsd(amount)} back</>
+            ) : (
+              <>Get your money back</>
             )}
           </button>
 

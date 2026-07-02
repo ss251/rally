@@ -163,7 +163,7 @@ export async function createCircleOnchain(input: CreateCircleInput): Promise<Cre
   const depositUsd = Math.min(MAX_DEPOSIT_USD, Math.max(MIN_DEPOSIT_USD, input.depositUsd))
   const roundSeconds = Math.min(MAX_ROUND_S, Math.max(MIN_ROUND_S, Math.floor(input.roundSeconds)))
   const seats = Math.min(MAX_SEATS, Math.max(MIN_SEATS, Math.floor(input.seats)))
-  const { relayer, pk, publicClient, walletClient } = await clients()
+  const { pk, publicClient, walletClient } = await clients()
 
   // 1. createCircle — the relayer is the organizer (see file header).
   const createTx = await walletClient.writeContract({

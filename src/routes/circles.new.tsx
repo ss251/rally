@@ -13,7 +13,7 @@ export const Route = createFileRoute('/circles/new')({ component: CreateCircle }
 
 const AMOUNTS = [1, 2, 5]
 const CADENCES: { label: string; seconds: number }[] = [
-  { label: '5 min · demo', seconds: 300 },
+  { label: '5 min', seconds: 300 },
   { label: '1 day', seconds: 86_400 },
   { label: '1 week', seconds: 604_800 },
   { label: '1 month', seconds: 30 * 86_400 },
@@ -296,6 +296,11 @@ function CreateCircle() {
               )
             })}
           </div>
+          {cadence === 300 && (
+            <p className="text-[12.5px] leading-relaxed text-faint">
+              5-minute rounds are perfect for a demo rotation.
+            </p>
+          )}
         </div>
 
         {/* Seats */}
