@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { RotateCw } from 'lucide-react'
 import { AppShell } from '#/components/AppShell'
 import { ContributeSheet } from '#/components/ContributeSheet'
 import { Thermometer } from '#/components/Thermometer'
@@ -150,6 +151,35 @@ function Home() {
             <span className="flex items-center gap-2 text-muted">
               <span className="h-1.5 w-1.5 rounded-full animate-pulse-dot" style={{ background: 'rgba(255,241,232,0.82)' }} />
               See a real rally, filling live on Arbitrum
+            </span>
+            <span className="font-semibold text-paper">→</span>
+          </Link>
+
+          {/* The second shape of group money: Pools fill toward a goal;
+              Circles rotate a pot through the crew. Same promise underneath —
+              it pays out in full, or everyone's made whole. */}
+          <Link
+            to="/circles"
+            className="flex items-center justify-between rounded-2xl border border-white/[0.07] bg-white/[0.02] px-4 py-3.5 transition-colors hover:border-white/15"
+          >
+            <span className="flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.03]">
+                <RotateCw size={16} strokeWidth={2.25} style={{ color: 'var(--color-rally-500)' }} />
+              </span>
+              <span>
+                <span className="flex items-center gap-2 text-sm font-semibold text-paper">
+                  Circles
+                  <span
+                    className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                    style={{ color: 'var(--color-rally-500)', background: 'rgba(255,122,80,0.12)' }}
+                  >
+                    New
+                  </span>
+                </span>
+                <span className="mt-0.5 block text-[12.5px] leading-snug text-faint">
+                  A savings pot that rotates through the crew, round by round
+                </span>
+              </span>
             </span>
             <span className="font-semibold text-paper">→</span>
           </Link>

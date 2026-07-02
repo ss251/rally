@@ -9,11 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as InviteRouteImport } from './routes/invite'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CirclesIndexRouteImport } from './routes/circles.index'
+import { Route as CirclesNewRouteImport } from './routes/circles.new'
+import { Route as CircleIdRouteImport } from './routes/circle.$id'
 import { Route as CIdRouteImport } from './routes/c.$id'
 
+const InviteRoute = InviteRouteImport.update({
+  id: '/invite',
+  path: '/invite',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemoRoute = DemoRouteImport.update({
   id: '/demo',
   path: '/demo',
@@ -29,6 +38,21 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CirclesIndexRoute = CirclesIndexRouteImport.update({
+  id: '/circles/',
+  path: '/circles/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CirclesNewRoute = CirclesNewRouteImport.update({
+  id: '/circles/new',
+  path: '/circles/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CircleIdRoute = CircleIdRouteImport.update({
+  id: '/circle/$id',
+  path: '/circle/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CIdRoute = CIdRouteImport.update({
   id: '/c/$id',
   path: '/c/$id',
@@ -39,38 +63,86 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
   '/demo': typeof DemoRoute
+  '/invite': typeof InviteRoute
   '/c/$id': typeof CIdRoute
+  '/circle/$id': typeof CircleIdRoute
+  '/circles/new': typeof CirclesNewRoute
+  '/circles/': typeof CirclesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
   '/demo': typeof DemoRoute
+  '/invite': typeof InviteRoute
   '/c/$id': typeof CIdRoute
+  '/circle/$id': typeof CircleIdRoute
+  '/circles/new': typeof CirclesNewRoute
+  '/circles': typeof CirclesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
   '/demo': typeof DemoRoute
+  '/invite': typeof InviteRoute
   '/c/$id': typeof CIdRoute
+  '/circle/$id': typeof CircleIdRoute
+  '/circles/new': typeof CirclesNewRoute
+  '/circles/': typeof CirclesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/create' | '/demo' | '/c/$id'
+  fullPaths:
+    | '/'
+    | '/create'
+    | '/demo'
+    | '/invite'
+    | '/c/$id'
+    | '/circle/$id'
+    | '/circles/new'
+    | '/circles/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/create' | '/demo' | '/c/$id'
-  id: '__root__' | '/' | '/create' | '/demo' | '/c/$id'
+  to:
+    | '/'
+    | '/create'
+    | '/demo'
+    | '/invite'
+    | '/c/$id'
+    | '/circle/$id'
+    | '/circles/new'
+    | '/circles'
+  id:
+    | '__root__'
+    | '/'
+    | '/create'
+    | '/demo'
+    | '/invite'
+    | '/c/$id'
+    | '/circle/$id'
+    | '/circles/new'
+    | '/circles/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CreateRoute: typeof CreateRoute
   DemoRoute: typeof DemoRoute
+  InviteRoute: typeof InviteRoute
   CIdRoute: typeof CIdRoute
+  CircleIdRoute: typeof CircleIdRoute
+  CirclesNewRoute: typeof CirclesNewRoute
+  CirclesIndexRoute: typeof CirclesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/invite': {
+      id: '/invite'
+      path: '/invite'
+      fullPath: '/invite'
+      preLoaderRoute: typeof InviteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/demo': {
       id: '/demo'
       path: '/demo'
@@ -92,6 +164,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/circles/': {
+      id: '/circles/'
+      path: '/circles'
+      fullPath: '/circles/'
+      preLoaderRoute: typeof CirclesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/circles/new': {
+      id: '/circles/new'
+      path: '/circles/new'
+      fullPath: '/circles/new'
+      preLoaderRoute: typeof CirclesNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/circle/$id': {
+      id: '/circle/$id'
+      path: '/circle/$id'
+      fullPath: '/circle/$id'
+      preLoaderRoute: typeof CircleIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/c/$id': {
       id: '/c/$id'
       path: '/c/$id'
@@ -106,7 +199,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CreateRoute: CreateRoute,
   DemoRoute: DemoRoute,
+  InviteRoute: InviteRoute,
   CIdRoute: CIdRoute,
+  CircleIdRoute: CircleIdRoute,
+  CirclesNewRoute: CirclesNewRoute,
+  CirclesIndexRoute: CirclesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
