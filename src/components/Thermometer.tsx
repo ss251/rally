@@ -25,6 +25,8 @@ interface ThermometerProps {
   status?: CampaignStatus
   /** Tube height in px (vertical only). */
   height?: number
+  /** Tube width in px (vertical only). */
+  width?: number
   showReadout?: boolean
   showTicks?: boolean
   /** Force the funded/celebration visuals without a live crossing. */
@@ -51,6 +53,7 @@ export function Thermometer({
   orientation = 'vertical',
   status,
   height = 340,
+  width = 44,
   showReadout = true,
   showTicks,
   celebrate = false,
@@ -193,7 +196,7 @@ export function Thermometer({
       style={{
         borderRadius: 'var(--radius-tube)',
         ...(vertical
-          ? { width: 40, height, minHeight: 120 }
+          ? { width, height, minHeight: 120 }
           : { width: '100%', height: 16 }),
       }}
       role="progressbar"

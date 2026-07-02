@@ -2,8 +2,28 @@ import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { AppShell } from '#/components/AppShell'
 import { BottomSheet } from '#/components/BottomSheet'
+import { Thermometer } from '#/components/Thermometer'
+import { ContributorFeed, type Contributor } from '#/components/ContributorFeed'
+import { CHAIN_META, formatUsd, type ChainSegment } from '#/design/chains'
 
 export const Route = createFileRoute('/')({ component: Home })
+
+// —— Demo campaign (real, human — the product shown live on the landing) ——
+const RAISED = 3120
+const GOAL = 4000
+const SEGMENTS: ChainSegment[] = [
+  { chain: 'base', amount: 1400 },
+  { chain: 'arbitrum', amount: 720 },
+  { chain: 'optimism', amount: 400 },
+  { chain: 'solana', amount: 600 },
+]
+const now = Date.now()
+const CONTRIBUTORS: Contributor[] = [
+  { id: 'a', name: 'Maya', amount: 250, chain: 'base', timestamp: now - 90_000 },
+  { id: 'b', name: 'Tomás', amount: 40, chain: 'solana', timestamp: now - 240_000 },
+  { id: 'c', name: 'Priya', amount: 120, chain: 'arbitrum', timestamp: now - 600_000 },
+  { id: 'd', name: 'Wei', amount: 60, chain: 'optimism', timestamp: now - 1_500_000 },
+]
 
 function Home() {
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -11,52 +31,130 @@ function Home() {
   return (
     <>
       <AppShell
+        header={
+          <div className="flex w-full items-center justify-between">
+            <span
+              className="text-lg font-semibold tracking-tight text-paper"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              Rally
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-faint">
+              <span className="h-1.5 w-1.5 rounded-full bg-rally-500 animate-pulse-dot" />
+              Arbitrum testnet
+            </span>
+          </div>
+        }
         cta={
-          <button
-            onClick={() => setSheetOpen(true)}
-            className="w-full rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
-            style={{
-              background:
-                'linear-gradient(90deg, var(--color-rally-600), var(--color-rally-300))',
-              boxShadow: '0 8px 30px -8px var(--color-rally-glow)',
-            }}
-          >
-            Start a Rally
-          </button>
+          <div className="flex flex-col items-center gap-3">
+            <button
+              onClick={() => setSheetOpen(true)}
+              className="relative w-full overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
+              style={{
+                background: 'var(--color-rally-500)',
+                boxShadow:
+                  '0 1px 0 0 rgba(255,255,255,0.35) inset, 0 10px 34px -10px var(--color-rally-glow)',
+              }}
+            >
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+                style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
+              />
+              Chip in $25
+            </button>
+            <button
+              onClick={() => setSheetOpen(true)}
+              className="text-sm font-medium text-muted transition-colors hover:text-paper"
+            >
+              or start your own rally →
+            </button>
+          </div>
         }
       >
-        <div className="flex min-h-[70dvh] flex-col justify-center py-10">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-faint">
-            Live cross-chain fundraising
-          </p>
-          <h1
-            className="vt-hero mt-4 text-6xl font-semibold leading-[0.95] tracking-tight text-paper"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Rally
-          </h1>
-          <p className="mt-6 text-lg leading-relaxed text-muted">
-            One link. A bar that fills itself from every chain. Hit the goal, or
-            everyone gets their money back.
-          </p>
-          <p className="mt-4 text-sm text-faint">
-            Deployed on Arbitrum Sepolia · testnet only
-          </p>
+        {/* —— The hero IS the product: a live campaign, filling —— */}
+        <div className="flex flex-col gap-6 pt-4">
+          <div>
+            <p className="text-sm text-faint">Maya is rallying for</p>
+            <h1
+              className="mt-1.5 text-[2.15rem] font-semibold leading-[1.04] tracking-tight text-paper"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              Send the crew to Tokyo
+            </h1>
+          </div>
+
+          {/* Hero row: the liquid column + a vertically-centered readout (no void) */}
+          <div className="flex items-center gap-6">
+            <Thermometer
+              raised={RAISED}
+              goal={GOAL}
+              segments={SEGMENTS}
+              orientation="vertical"
+              height={248}
+              width={52}
+              status="live"
+              showReadout={false}
+            />
+            <div className="flex flex-1 flex-col justify-center gap-4">
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
+                <span className="h-1.5 w-1.5 rounded-full bg-rally-500 animate-pulse-dot" />
+                Raising now
+              </span>
+              <div>
+                <div className="flex items-end gap-2.5">
+                  <span
+                    className="tnum font-display text-figure font-semibold leading-none text-paper"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                  >
+                    {formatUsd(RAISED)}
+                  </span>
+                  <span
+                    className="tnum font-display text-2xl font-semibold leading-none"
+                    style={{
+                      background:
+                        'linear-gradient(90deg, var(--color-rally-600), var(--color-rally-300))',
+                      WebkitBackgroundClip: 'text',
+                      backgroundClip: 'text',
+                      color: 'transparent',
+                    }}
+                  >
+                    78%
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-muted">
+                  of <span className="font-medium text-paper/90">{formatUsd(GOAL)}</span> USDC goal
+                </p>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {SEGMENTS.map((s) => (
+                  <span key={s.chain} className="flex items-center gap-2 text-[13px] text-muted">
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ background: CHAIN_META[s.chain].to }}
+                    />
+                    <span className="capitalize text-paper/80">{s.chain}</span>
+                    <span className="tnum ml-auto text-faint">{formatUsd(s.amount)}</span>
+                  </span>
+                ))}
+              </div>
+              <div className="mt-1 flex items-center gap-2 text-[13px] text-muted">
+                <span className="font-medium text-paper">23 backers</span>
+                <span className="text-faint">·</span>
+                <span>2 days left</span>
+              </div>
+            </div>
+          </div>
+
+          <ContributorFeed contributors={CONTRIBUTORS} maxVisible={4} />
         </div>
       </AppShell>
 
-      <BottomSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        title="Start a Rally"
-      >
+      <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="Chip in">
         <p className="pb-4 text-muted">
-          Name it, set a goal and a deadline, and share one link. The bar fills
-          itself as friends chip in from any chain.
+          Enter your email, pick an amount, and you're in — from whatever chain your
+          money's on. No wallet, no gas, no seed phrase.
         </p>
-        <div className="grid gap-2 pb-2 text-sm text-faint">
-          <span>Drag this sheet down, tap outside, or press Esc to close.</span>
-        </div>
       </BottomSheet>
     </>
   )
