@@ -9,6 +9,7 @@ import {
   type Chain,
   type Skin,
 } from '#/design/chains'
+import { ChainIcon } from './ChainIcon'
 
 export interface Contributor {
   id: string
@@ -47,10 +48,10 @@ function ChainBadge({ chain }: { chain: Chain }) {
   const m = CHAIN_META[chain]
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+      className="inline-flex items-center gap-1 rounded-full py-0.5 pl-1 pr-1.5 text-[10px] font-semibold uppercase tracking-wide"
       style={{ color: m.color, background: `${m.color}1f` }}
     >
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: m.color }} />
+      <ChainIcon chain={chain} size={13} />
       {m.short}
     </span>
   )
