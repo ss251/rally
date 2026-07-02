@@ -52,6 +52,7 @@
   --color-potluck-300: #ffc24b;
   --color-potluck-500: #ff5c9a;
   --color-potluck-600: #ff4d8d;
+  --color-potluck-glow: #ff6fa8;
 
   /* ── Chain hues — REAL brand hex (prefixed `chain-` to avoid clobbering
         Tailwind's own text-base / bg-base size utilities). Mirror chains.ts.
