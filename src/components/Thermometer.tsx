@@ -11,6 +11,7 @@ import {
   type Skin,
 } from '#/design/chains'
 import { Confetti } from './Confetti'
+import { LiquidColumn } from './LiquidColumn'
 
 interface ThermometerProps {
   /** Total raised so far, whole USDC units. */
@@ -85,6 +86,10 @@ export function Thermometer({
   }, [segments, accent.from, accent.to])
 
   const topColor = bands[bands.length - 1]?.to ?? accent.to
+  const liquidBands = bands.map((b) => ({ color: b.to, grow: b.grow }))
+  const reducedMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
 
   // Bump the liquid when new money lands.
   const prevRaised = useRef(raised)
@@ -212,7 +217,21 @@ export function Thermometer({
           background: `radial-gradient(120% 60% at 50% ${vertical ? 100 : 50}%, ${topColor}55, transparent 70%)`,
         }}
       />
-      {fill}
+      {vertical ? (
+        <div className="absolute inset-0">
+          <LiquidColumn
+            width={width}
+            height={height}
+            fillPct={fillPct}
+            bands={liquidBands}
+            topColor={topColor}
+            bumpKey={Math.round(raised)}
+            reducedMotion={reducedMotion}
+          />
+        </div>
+      ) : (
+        fill
+      )}
 
       {/* Ticks */}
       {ticks &&
@@ -229,7 +248,14 @@ export function Thermometer({
   if (!showReadout) {
     return (
       <div className={`relative ${className ?? ''}`}>
-        {tube}
+        {/* The liquid is the light source — a tight, motivated bloom keyed to
+            the surface color (NOT a decorative background gradient). */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -inset-6 opacity-45 blur-[38px]"
+          style={{ background: `radial-gradient(46% 40% at 50% 62%, ${topColor}, transparent 72%)` }}
+        />
+        <div className="relative">{tube}</div>
         <Confetti active={burst} skin={skin} onDone={() => setBurst(false)} />
       </div>
     )
