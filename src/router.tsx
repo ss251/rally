@@ -7,6 +7,10 @@ export function getRouter() {
     scrollRestoration: true,
     defaultPreload: 'intent',
     defaultPreloadStaleTime: 0,
+    // View Transitions API — shared-element route morphs. Browsers without
+    // document.startViewTransition() fall back to an instant navigation
+    // (graceful degradation, no error).
+    defaultViewTransition: true,
   })
 
   return router

@@ -13,13 +13,14 @@
    The chain hex values below mirror src/design/chains.ts — keep them in sync.
    ============================================================================ */
 
-@import "tailwindcss";
-
 /* Web fonts (graceful fallback to system stacks if offline). Clash Display is
    the characterful display face; Inter carries UI/body; JetBrains Mono renders
-   the money tickers with true tabular figures. */
+   the money tickers with true tabular figures. @import rules must precede all
+   other rules, so these sit above Tailwind's (which expands into rules). */
 @import url("https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap");
+
+@import "tailwindcss";
 
 @theme {
   /* ── Canvas: warm plum-charcoal, NOT crypto-black. The page is dusk; the
@@ -187,6 +188,18 @@ body {
 /* Tabular figures everywhere money is shown. */
 .tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 
+/* ── View Transitions API — route morphs (graceful cross-fade) ───────────── */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 320ms;
+  animation-timing-function: var(--ease-rally);
+}
+/* Reserve a name so a card can morph into its detail hero across routes.
+   Apply `view-transition-name: rally-hero` to the shared element on both
+   screens (must be unique + present on only one element at a time). */
+.vt-hero { view-transition-name: rally-hero; }
+.vt-card { view-transition-name: rally-card; }
+
 /* Accessibility floor: honor reduced-motion — kill ambient loops, keep the
    fill height transition (it's information, not decoration). */
 @media (prefers-reduced-motion: reduce) {
@@ -196,5 +209,9 @@ body {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
   }
 }
