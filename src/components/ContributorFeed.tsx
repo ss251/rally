@@ -128,7 +128,9 @@ export function ContributorFeed({
           />
           {isPotluck ? 'Gifts landing' : 'Live from the group'}
         </h3>
-        <span className="tnum text-xs text-faint">{sorted.length} backers</span>
+        <span className="tnum text-xs text-faint">
+          {sorted.length} {sorted.length === 1 ? 'backer' : 'backers'}
+        </span>
       </header>
 
       <ul className="flex flex-col gap-2">

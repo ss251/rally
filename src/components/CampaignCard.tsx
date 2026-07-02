@@ -45,6 +45,8 @@ interface CampaignCardProps {
   href?: string
   /** Called on card / CTA activation (wire to router). */
   onOpen?: (id: string) => void
+  /** Shorter cover — for tight spaces like the create-flow live preview. */
+  compact?: boolean
   className?: string
 }
 
@@ -99,7 +101,7 @@ function BackerStack({ backers, count }: { backers?: Backer[]; count: number }) 
  *
  * Presentational only — pass a `campaign` and wire `onOpen`/`href`.
  */
-export function CampaignCard({ campaign, href, onOpen, className }: CampaignCardProps) {
+export function CampaignCard({ campaign, href, onOpen, compact, className }: CampaignCardProps) {
   const now = useNow()
   const skin: Skin = campaign.mode ?? 'rally'
   const accent = ACCENT[skin]
@@ -126,7 +128,7 @@ export function CampaignCard({ campaign, href, onOpen, className }: CampaignCard
       style={{ borderRadius: 'var(--radius-card)', outlineColor: accent.solid }}
     >
       {/* Cover */}
-      <div className="relative h-28 overflow-hidden">
+      <div className={`relative overflow-hidden ${compact ? 'h-16' : 'h-28'}`}>
         {campaign.coverUrl ? (
           <img src={campaign.coverUrl} alt="" className="h-full w-full object-cover" />
         ) : (
