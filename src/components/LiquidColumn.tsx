@@ -105,7 +105,11 @@ export function LiquidColumn({
       let cum = 0
       for (const b of bands) {
         const frac = b.grow / total
-        add(cum + frac / 2, b.color)
+        const c = cum + frac / 2
+        // A plateau per chain (color holds across the zone middle) with feathered
+        // edges — each chain stays readable, boundaries still blend like liquid.
+        add(c - frac * 0.3, b.color)
+        add(c + frac * 0.3, b.color)
         cum += frac
       }
       add(1, bands[bands.length - 1]?.color ?? topColor)
