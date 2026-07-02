@@ -108,6 +108,15 @@ contract RotatingVault is IRotatingVault, ReentrancyGuard {
     /// @notice Bounds the O(N) first-failed-round scan and keeps pots sane.
     uint16 public constant MAX_MEMBERS = 256;
 
+    /// @notice Upper bound on a round's length (defense-in-depth). A member's
+    ///         deposit into a partially-funded round has no refund exit until
+    ///         that round's window closes (a healthy circle can't break, so no
+    ///         refund path opens mid-round); `roundDuration` is a uint32 whose
+    ///         raw max (~136 years) would make that lock effectively permanent.
+    ///         One year is already far beyond any real savings-circle cadence
+    ///         (weekly/monthly) and bounds the worst-case stall.
+    uint32 public constant MAX_ROUND_DURATION = 365 days;
+
     /// @dev EIP-712 typed struct for an organizer-signed invite. The domain
     ///      (name, version, chainId, verifyingContract) prevents cross-chain
     ///      and cross-contract replay; the per-circle nonce prevents reuse.
@@ -185,7 +194,7 @@ contract RotatingVault is IRotatingVault, ReentrancyGuard {
     {
         if (token == address(0)) revert ZeroAddress();
         if (depositAmount == 0) revert InvalidDepositAmount();
-        if (roundDuration == 0) revert InvalidRoundDuration();
+        if (roundDuration == 0 || roundDuration > MAX_ROUND_DURATION) revert InvalidRoundDuration();
         if (memberTarget < MIN_MEMBERS || memberTarget > MAX_MEMBERS) revert InvalidMemberCount();
         // The pot (depositAmount * N) must be computable without overflow —
         // validated here so no claim can ever be stranded by checked math.
