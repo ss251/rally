@@ -88,7 +88,7 @@ function CampaignDetail() {
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-faint">
               <span
                 className="h-1.5 w-1.5 rounded-full animate-pulse-dot"
-                style={{ background: accent.solid, color: accent.solid }}
+                style={{ background: 'rgba(255,241,232,0.82)', color: 'rgba(255,241,232,0.82)' }}
               />
               {isPotluck ? 'Potluck · testnet' : c.live ? 'Live on Arbitrum' : 'Arbitrum testnet'}
             </span>
@@ -100,10 +100,11 @@ function CampaignDetail() {
               onClick={() => setSheetOpen(true)}
               className="relative w-full overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
               style={{
-                background: accent.solid,
-                boxShadow: `0 1px 0 0 rgba(255,255,255,0.35) inset, 0 10px 34px -10px ${
-                  isPotluck ? 'var(--color-potluck-glow)' : 'var(--color-rally-glow)'
-                }`,
+                background: isPotluck
+                  ? 'linear-gradient(180deg, #ff7db0, #ff5c9a 58%, #f0457f)'
+                  : 'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
+                boxShadow:
+                  'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
               }}
             >
               <span
@@ -131,8 +132,8 @@ function CampaignDetail() {
               {c.organizer} {isPotluck ? 'is collecting for' : 'is rallying for'}
             </p>
             <h1
-              className="mt-1.5 text-[2.15rem] font-semibold leading-[1.04] tracking-tight text-paper"
-              style={{ fontFamily: 'var(--font-display)' }}
+              className="mt-1.5 text-[2.15rem] font-semibold leading-[1.04] tracking-[-0.01em] text-paper"
+              style={{ fontFamily: 'var(--font-display)', wordSpacing: '0.08em' }}
             >
               {c.title}
             </h1>
@@ -155,7 +156,7 @@ function CampaignDetail() {
               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
                 <span
                   className="h-1.5 w-1.5 rounded-full animate-pulse-dot"
-                  style={{ background: accent.solid, color: accent.solid }}
+                  style={{ background: 'rgba(255,241,232,0.82)', color: 'rgba(255,241,232,0.82)' }}
                 />
                 {isPotluck
                   ? funded
@@ -175,12 +176,7 @@ function CampaignDetail() {
                   </span>
                   <span
                     className="tnum font-display text-2xl font-semibold leading-none"
-                    style={{
-                      background: `linear-gradient(90deg, ${accent.from}, ${accent.to})`,
-                      WebkitBackgroundClip: 'text',
-                      backgroundClip: 'text',
-                      color: 'transparent',
-                    }}
+                    style={{ color: 'rgba(255,240,233,0.72)' }}
                   >
                     {realPct}%
                   </span>
@@ -243,6 +239,7 @@ function CampaignDetail() {
         onClose={() => setSheetOpen(false)}
         campaignTitle={c.title}
         fromChain={topChain}
+        initialAmount={25}
         // A real contribution just landed on-chain — re-run the loader so the
         // GoalVault read refreshes and the thermometer rises for real.
         onContributed={() => router.invalidate()}

@@ -41,7 +41,7 @@ function Home() {
               Rally
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-faint">
-              <span className="h-1.5 w-1.5 rounded-full bg-rally-500 animate-pulse-dot" />
+              <span className="h-1.5 w-1.5 rounded-full animate-pulse-dot" style={{ background: 'rgba(255,241,232,0.82)' }} />
               Arbitrum testnet
             </span>
           </div>
@@ -79,8 +79,8 @@ function Home() {
           <div>
             <p className="text-sm text-faint">Maya is rallying for</p>
             <h1
-              className="mt-1.5 text-[2.15rem] font-semibold leading-[1.04] tracking-tight text-paper"
-              style={{ fontFamily: 'var(--font-display)' }}
+              className="mt-1.5 text-[2.15rem] font-semibold leading-[1.04] tracking-[-0.01em] text-paper"
+              style={{ fontFamily: 'var(--font-display)', wordSpacing: '0.08em' }}
             >
               Send the crew to Tokyo
             </h1>
@@ -100,7 +100,7 @@ function Home() {
             />
             <div className="flex flex-1 flex-col justify-center gap-4">
               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
-                <span className="h-1.5 w-1.5 rounded-full bg-rally-500 animate-pulse-dot" />
+                <span className="h-1.5 w-1.5 rounded-full animate-pulse-dot" style={{ background: 'rgba(255,241,232,0.82)' }} />
                 Raising now
               </span>
               <div>
@@ -113,13 +113,7 @@ function Home() {
                   </span>
                   <span
                     className="tnum font-display text-2xl font-semibold leading-none"
-                    style={{
-                      background:
-                        'linear-gradient(90deg, var(--color-rally-600), var(--color-rally-300))',
-                      WebkitBackgroundClip: 'text',
-                      backgroundClip: 'text',
-                      color: 'transparent',
-                    }}
+                    style={{ color: 'rgba(255,240,233,0.72)' }}
                   >
                     78%
                   </span>
@@ -154,7 +148,7 @@ function Home() {
             className="flex items-center justify-between rounded-2xl border border-white/[0.07] bg-white/[0.02] px-4 py-3.5 text-sm transition-colors hover:border-white/15"
           >
             <span className="flex items-center gap-2 text-muted">
-              <span className="h-1.5 w-1.5 rounded-full bg-rally-500 animate-pulse-dot" />
+              <span className="h-1.5 w-1.5 rounded-full animate-pulse-dot" style={{ background: 'rgba(255,241,232,0.82)' }} />
               See a real rally, filling live on Arbitrum
             </span>
             <span className="font-semibold text-paper">→</span>
@@ -167,6 +161,7 @@ function Home() {
         onClose={() => setSheetOpen(false)}
         campaignTitle="the Tokyo fund"
         fromChain="base"
+        initialAmount={25}
       />
     </>
   )

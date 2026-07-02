@@ -89,11 +89,11 @@ export interface ChainSegment {
 
 // ── Formatting ──────────────────────────────────────────────────────────────
 
-const usd = (max: number) =>
+const usd = (min: number, max: number) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 0,
+    minimumFractionDigits: min,
     maximumFractionDigits: max,
   })
 
@@ -107,8 +107,10 @@ const usdCompact = new Intl.NumberFormat('en-US', {
 /** `$1,240` or `$1.2k` (compact). Cents shown only when present. */
 export function formatUsd(n: number, opts?: { compact?: boolean }): string {
   if (opts?.compact) return usdCompact.format(n)
+  // Money is written with two decimals or none at all — "$6.50" or "$4,000",
+  // NEVER "$6.5" (a machine leaking through a product that custodies funds).
   const hasCents = Math.round(n * 100) % 100 !== 0
-  return usd(hasCents ? 2 : 0).format(n)
+  return (hasCents ? usd(2, 2) : usd(0, 0)).format(n)
 }
 
 /** Whole-number percent, clamped to [0, cap]. */
@@ -134,8 +136,11 @@ export function countdown(deadline: number, now: number): { label: string; urgen
   const days = Math.floor(mins / 1440)
   const hours = Math.floor((mins % 1440) / 60)
   const m = mins % 60
-  if (days >= 1) return { label: `${days}d ${hours}h left`, urgent: false, ended: false }
-  if (hours >= 1) return { label: `${hours}h ${m}m left`, urgent: hours < 6, ended: false }
+  // Suppress zero units — "3d left", not "3d 0h left".
+  if (days >= 1)
+    return { label: hours > 0 ? `${days}d ${hours}h left` : `${days}d left`, urgent: false, ended: false }
+  if (hours >= 1)
+    return { label: m > 0 ? `${hours}h ${m}m left` : `${hours}h left`, urgent: hours < 6, ended: false }
   return { label: `${m}m left`, urgent: true, ended: false }
 }
 
