@@ -61,7 +61,7 @@ function readEnv(name: string): string | undefined {
   return viteEnv?.[name] ?? (typeof process !== 'undefined' ? process.env?.[name] : undefined);
 }
 
-export const ZERODEV_PROJECT_ID = readEnv('NEXT_PUBLIC_ZERODEV_PROJECT_ID');
+export const ZERODEV_PROJECT_ID = readEnv('VITE_ZERODEV_PROJECT_ID');
 
 /**
  * The ZeroDev RPC for a chain. Same URL is used as bundlerTransport AND as the
@@ -70,9 +70,9 @@ export const ZERODEV_PROJECT_ID = readEnv('NEXT_PUBLIC_ZERODEV_PROJECT_ID');
  */
 export function zerodevRpcUrl(chainId: RallyChainId): string {
   if (!ZERODEV_PROJECT_ID) {
-    // TODO(live-key): set NEXT_PUBLIC_ZERODEV_PROJECT_ID in .env.local
+    // TODO(live-key): set VITE_ZERODEV_PROJECT_ID in .env.local
     // (dashboard.zerodev.app -> project for Arbitrum/Base/OP Sepolia -> Project ID).
-    throw new Error('NEXT_PUBLIC_ZERODEV_PROJECT_ID is not set.');
+    throw new Error('VITE_ZERODEV_PROJECT_ID is not set.');
   }
   return `https://rpc.zerodev.app/api/v3/${ZERODEV_PROJECT_ID}/chain/${chainId}`;
 }

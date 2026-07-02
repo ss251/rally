@@ -50,9 +50,9 @@ export type RallyChainId =
 export const HOME_CHAIN = arbitrumSepolia;
 
 // -----------------------------------------------------------------------------
-// Env — the template uses NEXT_PUBLIC_* names. NOTE: Vite only exposes vars
+// Env — the template uses VITE_* names. NOTE: Vite only exposes vars
 // prefixed with VITE_ to the client by default. Read the README: add
-// `envPrefix: ['VITE_', 'NEXT_PUBLIC_']` to vite.config.ts so the key below
+// `envPrefix: ['VITE_', 'VITE_']` to vite.config.ts so the key below
 // reaches the browser. We also fall back to process.env for SSR/server fns.
 // -----------------------------------------------------------------------------
 function readEnv(name: string): string | undefined {
@@ -67,13 +67,13 @@ function readEnv(name: string): string | undefined {
   return fromVite ?? fromNode;
 }
 
-export const MAGIC_PUBLISHABLE_KEY = readEnv('NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY');
-const ALCHEMY_API_KEY = readEnv('NEXT_PUBLIC_ALCHEMY_API_KEY') ?? readEnv('ALCHEMY_API_KEY');
+export const MAGIC_PUBLISHABLE_KEY = readEnv('VITE_MAGIC_PUBLISHABLE_KEY');
+const ALCHEMY_API_KEY = readEnv('VITE_ALCHEMY_API_KEY') ?? readEnv('ALCHEMY_API_KEY');
 
 /**
  * RPC per chain. Prefer Alchemy if a key is present; otherwise fall back to the
  * chain's public RPC so the demo still boots without a key. For production
- * client use, front Alchemy with a NEXT_PUBLIC_ key or a server proxy.
+ * client use, front Alchemy with a VITE_ key or a server proxy.
  */
 function rpcUrlFor(chain: Chain): string {
   if (ALCHEMY_API_KEY) {
@@ -103,9 +103,9 @@ export function getMagic(): Magic | null {
   if (typeof window === 'undefined') return null;
   if (_magic) return _magic;
   if (!MAGIC_PUBLISHABLE_KEY) {
-    // TODO(live-key): set NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY in .env.local
+    // TODO(live-key): set VITE_MAGIC_PUBLISHABLE_KEY in .env.local
     // (dashboard.magic.link -> your app -> Publishable API Key, pk_live_...).
-    console.warn('[magic] NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY is not set — login disabled.');
+    console.warn('[magic] VITE_MAGIC_PUBLISHABLE_KEY is not set — login disabled.');
     return null;
   }
 
