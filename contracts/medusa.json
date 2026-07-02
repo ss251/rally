@@ -1,0 +1,33 @@
+{
+  "fuzzing": {
+    "workers": 8,
+    "callSequenceLength": 100,
+    "corpusDirectory": "fizz_data/corpus_medusa",
+    "coverageEnabled": true,
+    "targetContracts": ["GoalVaultFuzz"],
+    "testLimit": 0,
+    "timeout": 0,
+    "shrinkLimit": 5000,
+    "deploymentOrder": ["GoalVaultFuzz"]
+  },
+  "testing": {
+    "stopOnFailedTest": false,
+    "testAllContracts": false,
+    "assertionTesting": {
+      "enabled": true
+    },
+    "propertyTesting": {
+      "enabled": true,
+      "testPrefixes": ["echidna_"]
+    }
+  },
+  "compilation": {
+    "platform": "crytic-compile",
+    "platformConfig": {
+      "target": ".",
+      "solcVersion": "",
+      "buildDirectory": "",
+      "args": []
+    }
+  }
+}
