@@ -24,15 +24,24 @@ export interface ChainMeta {
   to: string
 }
 
-// REAL chain brand hex (from each project's brand kit — no ballparks):
-//   Base     #0052FF  (Base brand blue)
-//   Arbitrum #12AAFF  (Arbitrum brand blue)
-//   Optimism #FF0420  (Optimism red)
-//   Solana   #9945FF → #14F195  (the signature purple→green gradient)
-// Base and Arbitrum are BOTH blue on purpose (they're the real brand colors) —
-// a hairline separator is drawn between mercury bands (see Thermometer) so the
-// two blues stay legible when they stack. `from` = lighter/top edge tint,
-// `to` = saturated base; Solana carries its full gradient across the band.
+// The `color` field keeps each project's REAL brand hex (chips, dots, confetti,
+// official legend marks) — Base #0052FF, Arbitrum #12AAFF, Optimism #FF0420,
+// Solana #9945FF. The mercury-band gradient (`from`/`to`) is LUMINANCE-NORMALIZED
+// so all four bands sit in one perceptual band (OKLCH L≈0.61–0.73) — otherwise
+// Base (raw L≈0.53) reads as a dark navy and Optimism, once feathered into its
+// neighbours, muddied into brown "sediment". Normalized (hue preserved, only
+// L/chroma shifted): the two blues stay DISTINCT (Base = deeper royal H≈264,
+// Arbitrum = brighter cyan H≈233), Optimism reads as a confident vermillion, and
+// Solana keeps its purple→green identity across the band. `from` = lighter top
+// edge, `to` = saturated base; a hairline meniscus seam (drawn in LiquidColumn)
+// keeps adjacent bands crisp so nothing bleeds.
+//
+//   band 'to'  before → after (normalized):
+//     Base      #0052FF → #4A7BE9   (L 0.53 → 0.61)
+//     Arbitrum  #12AAFF → #0AA7E2   (L 0.71 → 0.69)
+//     Optimism  #FF0420 → #EF4841   (L 0.63 → 0.64, vermillion)
+//     Solana    #14F195 → #00C582   (green terminus, L 0.84 → 0.73)
+//   Solana 'from' (purple top) #9945FF → #A161E0 (L 0.60 → 0.62)
 export const CHAIN_META: Record<Chain, ChainMeta> = {
   base: {
     id: 'base',
@@ -40,8 +49,8 @@ export const CHAIN_META: Record<Chain, ChainMeta> = {
     short: 'BASE',
     domain: 6,
     color: '#0052FF',
-    from: '#4C82FF',
-    to: '#0052FF',
+    from: '#6490EF',
+    to: '#4A7BE9',
   },
   arbitrum: {
     id: 'arbitrum',
@@ -49,8 +58,8 @@ export const CHAIN_META: Record<Chain, ChainMeta> = {
     short: 'ARB',
     domain: 3,
     color: '#12AAFF',
-    from: '#5CC6FF',
-    to: '#12AAFF',
+    from: '#57B8E9',
+    to: '#0AA7E2',
   },
   optimism: {
     id: 'optimism',
@@ -58,8 +67,8 @@ export const CHAIN_META: Record<Chain, ChainMeta> = {
     short: 'OP',
     domain: 2,
     color: '#FF0420',
-    from: '#FF4D63',
-    to: '#FF0420',
+    from: '#FC675C',
+    to: '#EF4841',
   },
   solana: {
     id: 'solana',
@@ -67,8 +76,9 @@ export const CHAIN_META: Record<Chain, ChainMeta> = {
     short: 'SOL',
     domain: 5,
     color: '#9945FF',
-    from: '#9945FF',
-    to: '#14F195',
+    // Band runs purple (top) → green (bottom); both normalized into the band.
+    from: '#A161E0',
+    to: '#00C582',
   },
 }
 
