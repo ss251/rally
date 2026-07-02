@@ -42,3 +42,41 @@ export const contributeServerFn = createServerFn({ method: 'POST' })
     const { fillContribution } = await import('#/lib/cctp/contribute-fill')
     return fillContribution({ backer: data.backer as Address, amountUsd: data.amountUsd })
   })
+
+// ---------------------------------------------------------------------------
+// COMPLETE a backer-funded gasless contribution (the REAL product path).
+// The backer already burned THEIR OWN USDC gaslessly in the browser (ZeroDev
+// 7702) — we receive the burn tx hash and finish the CCTP hop server-side
+// (attest → mint → record). The relayer only relays; it does not front funds.
+// ---------------------------------------------------------------------------
+export interface CompleteInput {
+  /** The backer's Magic email-wallet / 7702 kernel address (0x…40 hex). */
+  backer: string
+  /** The gasless burn tx hash from the backer's kernel account (0x…64 hex). */
+  burnTxHash: string
+  /** CCTP source domain of the burn (defaults to Base Sepolia = 6). */
+  sourceDomain?: number
+}
+
+export const completeContributionServerFn = createServerFn({ method: 'POST' })
+  .validator((data: CompleteInput): CompleteInput => {
+    if (!data || typeof data.backer !== 'string' || !/^0x[0-9a-fA-F]{40}$/.test(data.backer)) {
+      throw new Error('a valid backer address is required')
+    }
+    if (typeof data.burnTxHash !== 'string' || !/^0x[0-9a-fA-F]{64}$/.test(data.burnTxHash)) {
+      throw new Error('a valid burn tx hash is required')
+    }
+    const sourceDomain =
+      typeof data.sourceDomain === 'number' && Number.isFinite(data.sourceDomain)
+        ? data.sourceDomain
+        : undefined
+    return { backer: data.backer, burnTxHash: data.burnTxHash, sourceDomain }
+  })
+  .handler(async ({ data }): Promise<FillContributionResult> => {
+    const { completeContribution } = await import('#/lib/cctp/complete-fill')
+    return completeContribution({
+      backer: data.backer as Address,
+      burnTxHash: data.burnTxHash as `0x${string}`,
+      sourceDomain: data.sourceDomain,
+    })
+  })
