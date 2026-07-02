@@ -3,7 +3,7 @@
    - navigations: network-first, fall back to cached page, then /offline.html
    - static assets (same-origin GET): stale-while-revalidate
    Bump CACHE to invalidate on shell changes. */
-const CACHE = 'rally-shell-v1'
+const CACHE = 'rally-shell-v2'
 const PRECACHE = [
   '/',
   '/offline.html',

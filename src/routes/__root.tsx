@@ -5,6 +5,24 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import appCss from '../design/tokens.css?url'
 
+// iOS PWA launch images. iOS only honors a startup image whose media query
+// exactly matches the device (pt size × DPR × orientation), so we ship one per
+// modern iPhone. Portrait only — the app is portrait-locked.
+const SPLASH: { w: number; h: number; pw: number; ph: number; r: number }[] = [
+  { w: 1179, h: 2556, pw: 393, ph: 852, r: 3 },
+  { w: 1290, h: 2796, pw: 430, ph: 932, r: 3 },
+  { w: 1170, h: 2532, pw: 390, ph: 844, r: 3 },
+  { w: 1284, h: 2778, pw: 428, ph: 926, r: 3 },
+  { w: 1125, h: 2436, pw: 375, ph: 812, r: 3 },
+  { w: 828, h: 1792, pw: 414, ph: 896, r: 2 },
+  { w: 750, h: 1334, pw: 375, ph: 667, r: 2 },
+]
+const splashLinks = SPLASH.map((s) => ({
+  rel: 'apple-touch-startup-image',
+  href: `/splash/splash-${s.w}x${s.h}.png`,
+  media: `(device-width: ${s.pw}px) and (device-height: ${s.ph}px) and (-webkit-device-pixel-ratio: ${s.r}) and (orientation: portrait)`,
+}))
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -37,6 +55,7 @@ export const Route = createRootRoute({
       { rel: 'icon', href: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
       { rel: 'icon', href: '/icons/icon-192.png', sizes: '192x192' },
       { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png' },
+      ...splashLinks,
     ],
   }),
   shellComponent: RootDocument,
