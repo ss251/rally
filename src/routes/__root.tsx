@@ -32,7 +32,7 @@ export const Route = createRootRoute({
         content:
           'width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1',
       },
-      { title: 'Rally — live cross-chain fundraising thermometer' },
+      { title: 'Rally — pool money together, from any chain' },
       {
         name: 'description',
         content:
