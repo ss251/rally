@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { AppShell } from '#/components/AppShell'
 import { ContributeSheet } from '#/components/ContributeSheet'
 import { Thermometer } from '#/components/Thermometer'
@@ -63,12 +63,12 @@ function Home() {
               />
               Chip in $25
             </button>
-            <button
-              onClick={() => setSheetOpen(true)}
+            <Link
+              to="/create"
               className="text-sm font-medium text-muted transition-colors hover:text-paper"
             >
               or start your own rally →
-            </button>
+            </Link>
           </div>
         }
       >
@@ -147,6 +147,19 @@ function Home() {
           </div>
 
           <ContributorFeed contributors={CONTRIBUTORS} maxVisible={4} />
+
+          {/* This hero is a demo. The real thing is live on-chain — go see it. */}
+          <Link
+            to="/c/$id"
+            params={{ id: '1' }}
+            className="flex items-center justify-between rounded-2xl border border-white/[0.07] bg-white/[0.02] px-4 py-3.5 text-sm transition-colors hover:border-white/15"
+          >
+            <span className="flex items-center gap-2 text-muted">
+              <span className="h-1.5 w-1.5 rounded-full bg-rally-500 animate-pulse-dot" />
+              See a real rally, filling live on Arbitrum
+            </span>
+            <span className="font-semibold text-paper">→</span>
+          </Link>
         </div>
       </AppShell>
 
