@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
 import { AppShell } from '#/components/AppShell'
 import { ContributeSheet } from '#/components/ContributeSheet'
@@ -32,6 +32,7 @@ function useNow(intervalMs = 30_000): number | null {
 
 function CampaignDetail() {
   const c = Route.useLoaderData()
+  const router = useRouter()
   const [sheetOpen, setSheetOpen] = useState(false)
   const now = useNow()
 
@@ -202,6 +203,9 @@ function CampaignDetail() {
         onClose={() => setSheetOpen(false)}
         campaignTitle={c.title}
         fromChain={topChain}
+        // A real contribution just landed on-chain — re-run the loader so the
+        // GoalVault read refreshes and the thermometer rises for real.
+        onContributed={() => router.invalidate()}
       />
     </>
   )
