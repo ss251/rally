@@ -1,0 +1,169 @@
+/* ============================================================================
+   RALLY — design tokens (Tailwind v4 theme extension)
+   ----------------------------------------------------------------------------
+   Drop-in stylesheet. It imports Tailwind, extends the theme with Rally's
+   color / type / motion tokens, and defines the keyframes the presentational
+   components rely on (wave, shimmer, bump, slideIn, …).
+
+   WIRING (eng): make this the app stylesheet. Either
+     (a) in src/routes/__root.tsx swap the import to
+         `import appCss from '../design/tokens.css?url'`, or
+     (b) add `@import "./design/tokens.css";` to the top of src/styles.css
+         and remove its own `@import "tailwindcss";` (avoid importing twice).
+   The chain hex values below mirror src/design/chains.ts — keep them in sync.
+   ============================================================================ */
+
+@import "tailwindcss";
+
+/* Web fonts (graceful fallback to system stacks if offline). Clash Display is
+   the characterful display face; Inter carries UI/body; JetBrains Mono renders
+   the money tickers with true tabular figures. */
+@import url("https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap");
+
+@theme {
+  /* ── Canvas: warm plum-charcoal, NOT crypto-black. The page is dusk; the
+        thermometer is the light source. ────────────────────────────────── */
+  --color-ink-950: #130d1a;
+  --color-ink-900: #191122;
+  --color-ink-850: #20172b;
+  --color-ink-800: #281d34;
+  --color-ink-700: #342740;
+
+  /* Text on the dark canvas. */
+  --color-paper: #f6f1f9;      /* warm white — primary text */
+  --color-muted: #a89fb4;      /* secondary text */
+  --color-faint: #6f6579;      /* tertiary / captions */
+
+  /* Hairlines & surfaces (used via arbitrary values w/ alpha too). */
+  --color-line: #ffffff1a;     /* 10% white border */
+  --color-surface: #ffffff0a;  /* 4% white fill */
+
+  /* ── Brand accent: warm sunrise coral→amber. Signals human + celebration,
+        the opposite of crypto blue/green. ──────────────────────────────── */
+  --color-rally-300: #ffc36b;
+  --color-rally-400: #ff9a5b;
+  --color-rally-500: #ff7a50;
+  --color-rally-600: #ff6b4a;
+  --color-rally-glow: #ff8a5b;
+
+  /* Potluck (gift) skin accent — festive magenta→gold. */
+  --color-potluck-300: #ffc24b;
+  --color-potluck-500: #ff5c9a;
+  --color-potluck-600: #ff4d8d;
+
+  /* ── Chain hues (prefixed `chain-` to avoid clobbering Tailwind's own
+        text-base / bg-base size utilities). Mirror chains.ts. ──────────── */
+  --color-chain-base: #3b82f6;
+  --color-chain-arbitrum: #22d3ee;
+  --color-chain-optimism: #fb7185;
+  --color-chain-solana: #a855f7;
+
+  --color-ok: #34d399;
+  --color-warn: #fbbf24;
+
+  /* ── Type ─────────────────────────────────────────────────────────────── */
+  --font-display: "Clash Display", "General Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Display sizes for the money-shot readouts. */
+  --text-mega: 4.5rem;         /* hero raised amount */
+  --text-mega--line-height: 1;
+  --text-mega--letter-spacing: -0.03em;
+  --text-figure: 2.75rem;      /* card / section amounts */
+  --text-figure--line-height: 1.05;
+  --text-figure--letter-spacing: -0.02em;
+
+  /* ── Radii ────────────────────────────────────────────────────────────── */
+  --radius-tube: 999px;
+  --radius-card: 1.5rem;
+
+  /* ── Motion ───────────────────────────────────────────────────────────── */
+  --ease-rally: cubic-bezier(0.22, 1, 0.36, 1);      /* expo-out: the fill rise */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);  /* overshoot: chips + bump */
+
+  --animate-wave: wave 3.2s ease-in-out infinite;
+  --animate-wave-slow: wave 5s ease-in-out infinite reverse;
+  --animate-shimmer: shimmer 2.6s linear infinite;
+  --animate-rise: rise 0.7s var(--ease-rally) both;
+  --animate-slide-in: slideIn 0.5s var(--ease-spring) both;
+  --animate-pulse-dot: pulseDot 1.8s ease-in-out infinite;
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-bump: bump 0.6s var(--ease-spring);
+  --animate-ribbon: ribbon 0.8s var(--ease-spring) both;
+  --animate-sheen: sheen 3.5s ease-in-out infinite;
+}
+
+/* ── Keyframes ─────────────────────────────────────────────────────────── */
+@keyframes wave {
+  0%,
+  100% { transform: translateX(-25%) translateY(0); }
+  50% { transform: translateX(-30%) translateY(-3px); }
+}
+@keyframes shimmer {
+  0% { background-position: -150% 0; }
+  100% { background-position: 250% 0; }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes pulseDot {
+  0%,
+  100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+  70% { opacity: 0.7; box-shadow: 0 0 0 6px transparent; }
+}
+@keyframes float {
+  0%,
+  100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes bump {
+  0% { transform: scaleY(1) scaleX(1); }
+  35% { transform: scaleY(1.035) scaleX(0.99); }
+  70% { transform: scaleY(0.99) scaleX(1.005); }
+  100% { transform: scaleY(1) scaleX(1); }
+}
+@keyframes ribbon {
+  from { opacity: 0; transform: translateY(6px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes sheen {
+  0%,
+  100% { opacity: 0.35; }
+  50% { opacity: 0.7; }
+}
+
+/* ── Base ──────────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+html,
+body,
+#app { min-height: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-ink-950);
+  color: var(--color-paper);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Tabular figures everywhere money is shown. */
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+/* Accessibility floor: honor reduced-motion — kill ambient loops, keep the
+   fill height transition (it's information, not decoration). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
