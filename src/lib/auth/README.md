@@ -41,25 +41,25 @@ counterfactual smart-account fallback.
 Names match `.env.local.TEMPLATE`:
 
 ```
-NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY=pk_live_...   # dashboard.magic.link → app → Publishable API Key
-NEXT_PUBLIC_ZERODEV_PROJECT_ID=...              # dashboard.zerodev.app → project (Arb/Base/OP Sepolia)
+VITE_MAGIC_PUBLISHABLE_KEY=pk_live_...   # dashboard.magic.link → app → Publishable API Key
+VITE_ZERODEV_PROJECT_ID=...              # dashboard.zerodev.app → project (Arb/Base/OP Sepolia)
 ALCHEMY_API_KEY=...                             # optional RPC upgrade; public RPC used if absent
 ```
 
 ### ⚠️ Vite env prefix (one-line config change, required)
 
 The project is **TanStack Start / Vite**, and Vite only exposes vars prefixed
-with `VITE_` to the browser by default. The env names above use `NEXT_PUBLIC_`.
+with `VITE_` to the browser by default. The env names above use `VITE_`.
 So the config owner must widen the prefix in `vite.config.ts`:
 
 ```ts
 export default defineConfig({
-  envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
+  envPrefix: ['VITE_', 'VITE_'],
   // ...existing config
 })
 ```
 
-Without this, `import.meta.env.NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY` is `undefined`
+Without this, `import.meta.env.VITE_MAGIC_PUBLISHABLE_KEY` is `undefined`
 in the browser and login silently no-ops. The code also reads `process.env` as a
 fallback for SSR / server functions.
 
@@ -67,7 +67,7 @@ fallback for SSR / server functions.
 - The **ZeroDev project ID** is public by design (gas policies are enforced
   server-side by ZeroDev — set a policy or nothing gets sponsored).
 - Do **not** ship a raw `ALCHEMY_API_KEY` to the client. Either use a
-  `NEXT_PUBLIC_ALCHEMY_API_KEY` scoped to testnet or proxy RPC through a server
+  `VITE_ALCHEMY_API_KEY` scoped to testnet or proxy RPC through a server
   function. When absent, the code falls back to each chain's public RPC.
 
 ---
@@ -176,9 +176,9 @@ building any UI on top. Delegation is one-time per chain and reversible.
 
 ## What's stubbed / needs a live key
 
-- `NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY` — without it `getMagic()` warns and returns
+- `VITE_MAGIC_PUBLISHABLE_KEY` — without it `getMagic()` warns and returns
   `null` (login disabled). No crash.
-- `NEXT_PUBLIC_ZERODEV_PROJECT_ID` — without it `zerodevRpcUrl()` throws. Plus a
+- `VITE_ZERODEV_PROJECT_ID` — without it `zerodevRpcUrl()` throws. Plus a
   **gas policy** must be enabled in the dashboard.
 - CCTP addresses (`usdc`, `tokenMessenger`, `goalVaultOnHomeChain`,
   `destinationDomain`) are **parameters**, supplied by the CCTP / contracts
