@@ -105,7 +105,25 @@ const GOAL_VAULT_ABI = [
       { name: 'goal', type: 'uint256', indexed: false },
       { name: 'deadline', type: 'uint64', indexed: false }] },
 ] as const;
-const ERC20 = [{ type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ name: 'a', type: 'address' }], outputs: [{ type: 'uint256' }] }] as const;
+const ERC20 = [
+  { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ name: 'a', type: 'address' }], outputs: [{ type: 'uint256' }] },
+  { type: 'event', name: 'Transfer', inputs: [
+    { name: 'from', type: 'address', indexed: true },
+    { name: 'to', type: 'address', indexed: true },
+    { name: 'value', type: 'uint256', indexed: false },
+  ] },
+] as const;
+
+// Never let the Alchemy API key (embedded in RPC URLs) reach logs. viem errors
+// frequently echo the request URL, so scrub it defensively before printing.
+function redact(input: unknown): string {
+  let s = input instanceof Error ? (input.stack ?? input.message) : String(input);
+  if (ALCHEMY) s = s.split(ALCHEMY).join('***REDACTED_ALCHEMY_KEY***');
+  // Catch any Alchemy RPC URL / generic api-key query params even if the key differs.
+  s = s.replace(/(https:\/\/[a-z0-9-]+\.g\.alchemy\.com\/v2\/)[^\s"')]+/gi, '$1***REDACTED***');
+  s = s.replace(/(api[_-]?key=)[^\s"'&)]+/gi, '$1***REDACTED***');
+  return s;
+}
 
 const vaultUsdcBalance = () =>
   arbPublic.readContract({ address: arb.usdc, abi: ERC20, functionName: 'balanceOf', args: [GOAL_VAULT] }) as Promise<bigint>;
@@ -147,18 +165,47 @@ async function main() {
   const raisedBefore = await raisedOf(campaignId);
   console.log(`    raised before: ${formatUnits(raisedBefore, 6)} USDC`);
 
+  // SAFETY: verify the campaign can still be credited BEFORE the irreversible
+  // burn. A burn is one-way — if the campaign is already withdrawn or past its
+  // deadline, the mint would land in the vault but recordContribution would
+  // revert, stranding the backer's USDC cross-chain. Read on-chain state and
+  // bail out now, while bailing is still free.
+  {
+    const c = (await arbPublic.readContract({
+      address: GOAL_VAULT, abi: GOAL_VAULT_ABI, functionName: 'getCampaign', args: [campaignId],
+    })) as unknown as any[];
+    const deadline = c[3] as bigint;
+    const withdrawn = c[5] as boolean;
+    const now = BigInt(Math.floor(Date.now() / 1000));
+    if (withdrawn) {
+      throw new Error(`campaign #${campaignId} already withdrawn — refusing to burn (funds would be stranded).`);
+    }
+    if (now >= deadline) {
+      throw new Error(`campaign #${campaignId} past deadline (${deadline}, now ${now}) — refusing to burn (mint could not be credited).`);
+    }
+    console.log(`    campaign open (deadline ${deadline}, now ${now}) — safe to burn`);
+  }
+
   // 1. Compute maxFee for fast transfer.
   let maxFee = 0n;
   if (TRANSFER_TYPE === 'fast') {
     try {
       const fees: any = await getBurnFee(CctpDomain.BASE_SEPOLIA, CctpDomain.ARBITRUM_SEPOLIA);
-      const bps = Number(fees?.[0]?.minimumFee ?? fees?.minimumFee ?? 1);
+      // Circle returns a fee row PER finality threshold. Pick the FAST row
+      // (finalityThreshold === 1000) explicitly — fees[0] is not guaranteed to
+      // be the fast tier and could under-quote maxFee, reverting the burn.
+      const rows: any[] = Array.isArray(fees) ? fees : [fees];
+      const fastRow = rows.find((r) => Number(r?.finalityThreshold) === 1000);
+      if (!fastRow) {
+        throw new Error(`no fast-transfer (finalityThreshold=1000) fee row in ${JSON.stringify(fees)}`);
+      }
+      const bps = Number(fastRow.minimumFee ?? 1);
       maxFee = (AMOUNT * BigInt(Math.ceil(bps)) + 9_999n) / 10_000n;
       if (maxFee === 0n) maxFee = 1n;
-      console.log(`    fast-transfer fee ~${bps} bps -> maxFee=${maxFee}`);
+      console.log(`    fast-transfer fee ~${bps} bps (finalityThreshold=1000) -> maxFee=${maxFee}`);
     } catch (e) {
       maxFee = AMOUNT / 100n; // 1% safety cap
-      console.log(`    fee lookup failed (${(e as Error).message}); maxFee=${maxFee}`);
+      console.log(`    fee lookup failed (${redact(e)}); maxFee=${maxFee}`);
     }
   }
 
@@ -190,15 +237,39 @@ async function main() {
     message: att.message, attestation: att.attestation, chain: arbitrumSepolia,
   });
   const vaultAfter = await vaultUsdcBalance();
-  const minted = vaultAfter - vaultBefore;
-  console.log(`    mint tx: ${arb.explorer}/tx/${mintTx}`);
-  console.log(`    vault USDC balance: ${formatUnits(vaultBefore, 6)} -> ${formatUnits(vaultAfter, 6)} (minted ${formatUnits(minted, 6)})`);
 
-  // 5. RECORD attribution (relayer credits the campaign).
+  // Attribute the EXACT amount CCTP minted to the vault in THIS tx — parsed from
+  // the USDC Transfer(->vault) event in the mint receipt — NOT a balance delta.
+  // A raw `vaultAfter - vaultBefore` delta silently absorbs any other USDC that
+  // happens to land in the same window (a concurrent contribution, a stray
+  // transfer), over-crediting this backer. The mint event is the source of truth.
+  const mintRcpt = await arbPublic.getTransactionReceipt({ hash: mintTx });
+  let attributed = 0n;
+  for (const log of mintRcpt.logs) {
+    if (log.address.toLowerCase() !== arb.usdc.toLowerCase()) continue;
+    try {
+      const p = decodeEventLog({ abi: ERC20, data: log.data, topics: log.topics });
+      if (p.eventName === 'Transfer' && ((p.args as any).to as string).toLowerCase() === GOAL_VAULT.toLowerCase()) {
+        attributed += (p.args as any).value as bigint;
+      }
+    } catch {}
+  }
+  if (attributed === 0n) {
+    throw new Error('could not determine minted amount: no USDC Transfer(->vault) event in the mint tx');
+  }
+  const balanceDelta = vaultAfter - vaultBefore;
+  // Sanity: the vault must actually hold at least what the mint event credited.
+  if (balanceDelta < attributed) {
+    throw new Error(`vault balance rose ${balanceDelta} but mint event credited ${attributed} — aborting attribution`);
+  }
+  console.log(`    mint tx: ${arb.explorer}/tx/${mintTx}`);
+  console.log(`    vault USDC balance: ${formatUnits(vaultBefore, 6)} -> ${formatUnits(vaultAfter, 6)} (mint-event credited ${formatUnits(attributed, 6)}, balance delta ${formatUnits(balanceDelta, 6)})`);
+
+  // 5. RECORD attribution (relayer credits the campaign) with the attested amount.
   console.log('\n[4] recordContribution (relayer attributes the mint)...');
   const recHash = await arbWallet.writeContract({
     address: GOAL_VAULT, abi: GOAL_VAULT_ABI, functionName: 'recordContribution',
-    args: [campaignId, backer.address, minted, CctpDomain.BASE_SEPOLIA], account: relayer, chain: arbitrumSepolia,
+    args: [campaignId, backer.address, attributed, CctpDomain.BASE_SEPOLIA], account: relayer, chain: arbitrumSepolia,
   });
   await arbPublic.waitForTransactionReceipt({ hash: recHash });
   console.log(`    record tx: ${arb.explorer}/tx/${recHash}`);
@@ -210,8 +281,8 @@ async function main() {
   console.log(`Iris attestation latency: ${(attLatencyMs / 1000).toFixed(1)}s  (transfer=${TRANSFER_TYPE})`);
   console.log(JSON.stringify({
     campaignId: campaignId.toString(), burnTx: burn.transactionHash, mintTx, recordTx: recHash,
-    minted: minted.toString(), attLatencyMs, raisedBefore: raisedBefore.toString(), raisedAfter: raisedAfter.toString(),
+    minted: attributed.toString(), attLatencyMs, raisedBefore: raisedBefore.toString(), raisedAfter: raisedAfter.toString(),
   }, null, 2));
 }
 
-main().catch((e) => { console.error('SPIKE FAILED:', e); process.exit(1); });
+main().catch((e) => { console.error('SPIKE FAILED:', redact(e)); process.exit(1); });
