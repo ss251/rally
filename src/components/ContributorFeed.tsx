@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  ACCENT,
   CHAIN_META,
   avatarGradient,
   formatUsd,
@@ -95,7 +94,6 @@ export function ContributorFeed({
   className,
 }: ContributorFeedProps) {
   const now = useNow()
-  const accent = ACCENT[skin]
   const isPotluck = skin === 'potluck'
 
   const sorted = [...contributors].sort((a, b) => b.timestamp - a.timestamp)
@@ -125,7 +123,7 @@ export function ContributorFeed({
         <h3 className="flex items-center gap-2 text-sm font-semibold text-paper">
           <span
             className="animate-pulse-dot h-2 w-2 rounded-full"
-            style={{ background: accent.solid, color: accent.solid }}
+            style={{ background: 'rgba(255,241,232,0.82)', color: 'rgba(255,241,232,0.82)' }}
           />
           {isPotluck ? 'Gifts landing' : 'Live from the group'}
         </h3>
@@ -145,15 +143,11 @@ export function ContributorFeed({
                 fresh ? 'animate-slide-in' : ''
               }`}
               style={{
-                borderColor: isTop ? 'rgba(255,255,255,0.14)' : 'var(--color-line)',
-                background: isTop
-                  ? `linear-gradient(90deg, ${accent.solid}1a, var(--color-surface) 58%)`
-                  : 'var(--color-surface)',
-                // A coral left-rail that hugs the rounded corners (not a full
-                // ring) + a hairline top highlight — marks the newest row.
-                boxShadow: isTop
-                  ? `inset 3px 0 0 ${accent.solid}, inset 0 1px 0 rgba(255,255,255,0.05)`
-                  : undefined,
+                borderColor: isTop ? 'rgba(255,255,255,0.16)' : 'var(--color-line)',
+                background: isTop ? 'rgba(255,255,255,0.05)' : 'var(--color-surface)',
+                // Neutral lift only — the "just arrived" emphasis is the pour
+                // event (row slide + tube fill), not a static coral marker.
+                boxShadow: isTop ? 'inset 0 1px 0 rgba(255,255,255,0.06)' : undefined,
               }}
             >
               <Avatar c={c} />
@@ -171,10 +165,7 @@ export function ContributorFeed({
                   </p>
                 )}
               </div>
-              <span
-                className="tnum shrink-0 text-sm font-bold"
-                style={{ color: CHAIN_META[c.chain].color }}
-              >
+              <span className="tnum shrink-0 text-sm font-bold text-paper">
                 +{formatUsd(c.amount)}
               </span>
             </li>

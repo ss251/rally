@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, Loader2 } from 'lucide-react'
+import { Check, ChevronDown, Loader2 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { BottomSheet } from './BottomSheet'
 import { Confetti } from './Confetti'
@@ -14,6 +14,9 @@ interface ContributeSheetProps {
   campaignTitle?: string
   /** The chain the backer's money is auto-detected on (the CCTP source). */
   fromChain?: Chain
+  /** Amount pre-selected when the sheet opens — carried from the entry CTA so
+   *  "Chip in $25" opens to $25, not a silent $10 switch. */
+  initialAmount?: number
   /** Fired after a real contribution lands on-chain — refresh the live bar. */
   onContributed?: () => void
 }
@@ -36,13 +39,15 @@ export function ContributeSheet({
   onClose,
   campaignTitle = 'the Tokyo fund',
   fromChain = 'base',
+  initialAmount = AMOUNTS[0],
   onContributed,
 }: ContributeSheetProps) {
   const [email, setEmail] = useState('')
-  const [amount, setAmount] = useState(AMOUNTS[0])
+  const [amount, setAmount] = useState(initialAmount)
   const [status, setStatus] = useState<Status>('idle')
   const [movedUsd, setMovedUsd] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [fromOpen, setFromOpen] = useState(false)
   const chain = CHAIN_META[fromChain]
 
   // Reset the flow whenever the sheet closes.
@@ -51,7 +56,7 @@ export function ContributeSheet({
       const t = setTimeout(() => {
         setStatus('idle')
         setEmail('')
-        setAmount(AMOUNTS[0])
+        setAmount(initialAmount)
         setMovedUsd(null)
         setError(null)
       }, 250)
@@ -141,7 +146,7 @@ export function ContributeSheet({
               value={email}
               disabled={inFlight}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-rally-500/70 focus:bg-white/[0.06] disabled:opacity-60"
+              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60"
             />
           </label>
 
@@ -159,13 +164,8 @@ export function ContributeSheet({
                     className="relative rounded-xl py-3 text-base font-semibold transition-colors disabled:opacity-60"
                     style={
                       active
-                        ? {
-                            background:
-                              'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 60%, var(--color-rally-600))',
-                            color: 'var(--color-ink-950)',
-                            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45)',
-                          }
-                        : { background: 'rgba(255,255,255,0.04)', color: 'var(--color-paper)', border: '1px solid rgba(255,255,255,0.08)' }
+                        ? { background: 'rgba(255,255,255,0.10)', color: 'var(--color-paper)' }
+                        : { background: 'rgba(255,255,255,0.04)', color: 'var(--color-muted)', border: '1px solid rgba(255,255,255,0.08)' }
                     }
                   >
                     {active && (
@@ -173,7 +173,7 @@ export function ContributeSheet({
                         layoutId="amount-pill-glow"
                         aria-hidden
                         className="pointer-events-none absolute inset-0 rounded-xl"
-                        style={{ boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.4)' }}
+                        style={{ boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,0.45)' }}
                       />
                     )}
                     ${a}
@@ -181,12 +181,29 @@ export function ContributeSheet({
                 )
               })}
             </div>
-            <div className="flex items-center gap-1.5 pt-0.5 text-[13px] text-faint">
-              Paying from
-              <span className="inline-flex items-center gap-1.5 font-medium capitalize text-muted">
-                <span className="h-2 w-2 rounded-full" style={{ background: chain.to }} />
-                {chain.label ?? fromChain}
-              </span>
+            <div className="pt-0.5">
+              <button
+                type="button"
+                onClick={() => setFromOpen((v) => !v)}
+                className="flex items-center gap-1.5 text-[13px] text-faint transition-colors hover:text-muted"
+              >
+                Paying from
+                <span className="inline-flex items-center gap-1.5 font-medium capitalize text-muted">
+                  <span className="h-2 w-2 rounded-full" style={{ background: chain.to }} />
+                  {chain.label ?? fromChain}
+                </span>
+                <ChevronDown
+                  size={13}
+                  className="transition-transform"
+                  style={{ transform: fromOpen ? 'rotate(180deg)' : 'none' }}
+                />
+              </button>
+              {fromOpen && (
+                <p className="mt-1.5 max-w-[19rem] text-[12.5px] leading-relaxed text-faint">
+                  We detect the chain your USDC is already on and move it for you — no
+                  network switching, no bridge to figure out.
+                </p>
+              )}
             </div>
           </div>
 
@@ -233,6 +250,20 @@ export function ContributeSheet({
               <>Chip in {formatUsd(amount)}</>
             )}
           </button>
+
+          {/* One quiet line — teaches when idle, reassures at commitment. This
+              is the whole thesis, placed where a stranger decides to hand over
+              money: all-or-nothing, refunded automatically if the goal misses. */}
+          <p className="-mt-1 text-center text-[12.5px] leading-relaxed text-faint">
+            {!canSend && !inFlight ? (
+              'Enter your email to chip in.'
+            ) : (
+              <>
+                Hit the goal or everyone's refunded —{' '}
+                <span className="text-muted">automatically</span>.
+              </>
+            )}
+          </p>
         </div>
       )}
     </BottomSheet>

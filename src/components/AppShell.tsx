@@ -33,7 +33,7 @@ export function AppShell({ children, cta, header, className }: AppShellProps) {
         {/* Scroll region. Bottom padding leaves room for the pinned CTA. */}
         <main
           className={`flex-1 px-5 ${header ? '' : 'pt-safe'} ${
-            cta ? 'pb-40' : 'pb-safe'
+            cta ? 'pb-48' : 'pb-safe'
           } ${className ?? ''}`}
         >
           {children}
@@ -44,10 +44,10 @@ export function AppShell({ children, cta, header, className }: AppShellProps) {
           <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center">
             <div className="pointer-events-auto w-full max-w-[480px] px-safe">
               <div
-                className="pb-safe-cta px-5 pt-8"
+                className="pb-safe-cta px-5 pt-12"
                 style={{
                   background:
-                    'linear-gradient(180deg, transparent 0%, var(--color-ink-950) 42%)',
+                    'linear-gradient(180deg, transparent 0%, var(--color-ink-950) 38%)',
                 }}
               >
                 {cta}
