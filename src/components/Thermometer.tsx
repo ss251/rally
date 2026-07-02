@@ -121,7 +121,7 @@ export function Thermometer({
     >
       {/* Stacked per-chain bands */}
       <div className={`absolute inset-0 flex ${vertical ? 'flex-col-reverse' : 'flex-row'}`}>
-        {bands.map((b) => (
+        {bands.map((b, i) => (
           <div
             key={b.key}
             className="relative"
@@ -131,7 +131,29 @@ export function Thermometer({
               background: `linear-gradient(${vertical ? '180deg' : '90deg'}, ${b.to}, ${b.from})`,
               transition: 'flex-grow 900ms var(--ease-rally)',
             }}
-          />
+          >
+            {/* Hairline meniscus between adjacent bands — keeps the two brand
+                blues (Base/Arbitrum) legible where they stack. */}
+            {i < bands.length - 1 && (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute"
+                style={
+                  vertical
+                    ? { top: -1, left: 0, right: 0, height: 2, background: 'var(--band-sep)' }
+                    : {
+                        right: -1,
+                        top: 0,
+                        bottom: 0,
+                        width: 2,
+                        background: 'var(--band-sep)',
+                        // rotate the highlight/shadow to run along the vertical edge
+                        ['--band-sep-angle' as string]: '90deg',
+                      }
+                }
+              />
+            )}
+          </div>
         ))}
       </div>
 

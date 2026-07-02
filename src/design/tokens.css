@@ -52,12 +52,23 @@
   --color-potluck-500: #ff5c9a;
   --color-potluck-600: #ff4d8d;
 
-  /* ── Chain hues (prefixed `chain-` to avoid clobbering Tailwind's own
-        text-base / bg-base size utilities). Mirror chains.ts. ──────────── */
-  --color-chain-base: #3b82f6;
-  --color-chain-arbitrum: #22d3ee;
-  --color-chain-optimism: #fb7185;
-  --color-chain-solana: #a855f7;
+  /* ── Chain hues — REAL brand hex (prefixed `chain-` to avoid clobbering
+        Tailwind's own text-base / bg-base size utilities). Mirror chains.ts.
+        Base + Arbitrum are both brand-blue → a hairline (`--band-sep`) keeps
+        adjacent mercury bands legible. ─────────────────────────────────── */
+  --color-chain-base: #0052ff;       /* Base brand blue */
+  --color-chain-arbitrum: #12aaff;   /* Arbitrum brand blue */
+  --color-chain-optimism: #ff0420;   /* Optimism red */
+  --color-chain-solana: #9945ff;     /* Solana violet (band runs → #14f195) */
+  --color-chain-solana-2: #14f195;   /* Solana gradient terminus (green) */
+
+  /* Hairline drawn between stacked mercury bands (a glass meniscus: a bright
+     1px highlight over a 1px shadow) — reads as refraction, separates blues. */
+  --band-sep: linear-gradient(
+    var(--band-sep-angle, 180deg),
+    rgba(255, 255, 255, 0.5) 0 1px,
+    rgba(0, 0, 0, 0.32) 1px 2px
+  );
 
   --color-ok: #34d399;
   --color-warn: #fbbf24;

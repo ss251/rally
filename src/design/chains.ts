@@ -24,45 +24,51 @@ export interface ChainMeta {
   to: string
 }
 
-// Distinct, harmonious hues — each chain reads instantly in the stacked fill.
-// Base = electric blue, Arbitrum = cyan (separated from Base blue),
-// Optimism = rose (softened from OP red), Solana = violet.
+// REAL chain brand hex (from each project's brand kit — no ballparks):
+//   Base     #0052FF  (Base brand blue)
+//   Arbitrum #12AAFF  (Arbitrum brand blue)
+//   Optimism #FF0420  (Optimism red)
+//   Solana   #9945FF → #14F195  (the signature purple→green gradient)
+// Base and Arbitrum are BOTH blue on purpose (they're the real brand colors) —
+// a hairline separator is drawn between mercury bands (see Thermometer) so the
+// two blues stay legible when they stack. `from` = lighter/top edge tint,
+// `to` = saturated base; Solana carries its full gradient across the band.
 export const CHAIN_META: Record<Chain, ChainMeta> = {
   base: {
     id: 'base',
     label: 'Base',
     short: 'BASE',
     domain: 6,
-    color: '#3B82F6',
-    from: '#60A5FA',
-    to: '#3B82F6',
+    color: '#0052FF',
+    from: '#4C82FF',
+    to: '#0052FF',
   },
   arbitrum: {
     id: 'arbitrum',
     label: 'Arbitrum',
     short: 'ARB',
     domain: 3,
-    color: '#22D3EE',
-    from: '#67E8F9',
-    to: '#22D3EE',
+    color: '#12AAFF',
+    from: '#5CC6FF',
+    to: '#12AAFF',
   },
   optimism: {
     id: 'optimism',
     label: 'Optimism',
     short: 'OP',
     domain: 2,
-    color: '#FB7185',
-    from: '#FDA4AF',
-    to: '#FB7185',
+    color: '#FF0420',
+    from: '#FF4D63',
+    to: '#FF0420',
   },
   solana: {
     id: 'solana',
     label: 'Solana',
     short: 'SOL',
     domain: 5,
-    color: '#A855F7',
-    from: '#C084FC',
-    to: '#A855F7',
+    color: '#9945FF',
+    from: '#9945FF',
+    to: '#14F195',
   },
 }
 
