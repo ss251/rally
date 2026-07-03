@@ -49,7 +49,7 @@ All tokens live in **`src/design/tokens.css`** as a Tailwind v4 `@theme` extensi
 ### Motion
 - `--ease-rally` = `cubic-bezier(0.22, 1, 0.36, 1)` — expo-out, the fill rise.
 - `--ease-spring` = `cubic-bezier(0.34, 1.56, 0.64, 1)` — overshoot, chip entrance + bump.
-- Keyframes shipped: `wave`, `shimmer`, `rise`, `slideIn`, `pulseDot`, `float`, `bump`, `ribbon`, `sheen` (each exposed as an `animate-*` utility).
+- Keyframes shipped: `shimmer`, `rise`, `slideIn`, `pulseDot`, `sheen` (each exposed as an `animate-*` utility). The liquid's wave/bump/pour motion lives in the canvas instruments (`LiquidColumn`), not CSS.
 - Durations: fill = 900ms, chip entrance = 500ms, bump = 620ms, confetti burst ≈ 3s.
 
 ### Radii & spacing

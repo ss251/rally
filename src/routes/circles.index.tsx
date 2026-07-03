@@ -154,13 +154,9 @@ function CirclesHome() {
           params={{ id: '1' }}
           className="flex items-center justify-between rounded-2xl border border-white/[0.07] bg-white/[0.02] px-4 py-3.5 text-sm transition-colors hover:border-white/15"
         >
-          <span className="flex items-center gap-2 text-muted">
-            <span
-              className="h-1.5 w-1.5 rounded-full"
-              style={{ background: 'rgba(255,241,232,0.82)' }}
-            />
-            See a real circle, rotating live on Arbitrum
-          </span>
+          {/* No dot here — the header pill is this screen's one status lamp,
+              and the sentence already says "live on Arbitrum" in words. */}
+          <span className="text-muted">See a real circle, rotating live on Arbitrum</span>
           <span className="font-semibold text-paper">→</span>
         </Link>
       </div>
