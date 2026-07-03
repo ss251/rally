@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Link, notFound, useRouter } from '@tanstack/react-router'
 import { ArrowLeft, Gift } from 'lucide-react'
 import { AppShell } from '#/components/AppShell'
 import { ContributeSheet } from '#/components/ContributeSheet'
@@ -8,24 +8,24 @@ import { ContributorFeed } from '#/components/ContributorFeed'
 import { ShareLink } from '#/components/ShareLink'
 import { ChainIcon } from '#/components/ChainIcon'
 import { ACCENT, countdown, formatUsd, pct, type Skin } from '#/design/chains'
-import {
-  fetchLiveCampaign,
-  mockCampaign,
-  mockPotluckCampaign,
-  type CampaignView,
-} from '#/lib/campaign'
+import { loadCampaign, mockPotluckCampaign, type CampaignView } from '#/lib/campaign'
 
 export const Route = createFileRoute('/c/$id')({
   // `?skin=potluck` re-themes the SAME screen as a group gift (festive accent +
   // gift-note feed). It's a preview skin, so it renders representative data.
   validateSearch: (search: Record<string, unknown>): { skin?: 'potluck' } =>
     search.skin === 'potluck' ? { skin: 'potluck' } : {},
-  // Read live from Arbitrum Sepolia; fall back to representative mock so a
-  // shared link NEVER lands on a broken screen. Never throws to the boundary.
+  // Read live from Arbitrum Sepolia. A campaign that provably doesn't exist
+  // gets a real not-found screen (never someone else's numbers, never a
+  // chip-in that funds a different fund). The representative mock remains
+  // ONLY as the transient-RPC-failure fallback for KNOWN ids, so a shared
+  // link to a real fund never lands on a broken screen.
   loader: async ({ params }): Promise<CampaignView> => {
-    const live = await fetchLiveCampaign(params.id).catch(() => null)
-    return live ?? mockCampaign(params.id)
+    const load = await loadCampaign(params.id)
+    if (load.kind === 'not-found') throw notFound()
+    return load.view
   },
+  notFoundComponent: CampaignNotFound,
   component: CampaignDetail,
 })
 
@@ -211,7 +211,12 @@ function CampaignDetail() {
           </div>
 
           {hasBackers ? (
-            <ContributorFeed contributors={c.contributors} skin={skin} maxVisible={5} />
+            <ContributorFeed
+              contributors={c.contributors}
+              totalCount={c.backerCount}
+              skin={skin}
+              maxVisible={5}
+            />
           ) : (
             <EmptyFeed />
           )}
@@ -238,6 +243,7 @@ function CampaignDetail() {
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
         campaignTitle={c.title}
+        campaignId={c.id}
         fromChain={topChain}
         initialAmount={25}
         // A real contribution just landed on-chain — re-run the loader so the
@@ -245,6 +251,90 @@ function CampaignDetail() {
         onContributed={() => router.invalidate()}
       />
     </>
+  )
+}
+
+/**
+ * Unknown campaign id — a designed dead end, not a fake fund. An empty glass
+ * tube (nothing has ever poured in here) and one honest invitation: this
+ * rally doesn't exist yet, so start it.
+ */
+function CampaignNotFound() {
+  return (
+    <AppShell
+      header={
+        <div className="flex w-full items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Link
+              to="/"
+              aria-label="Back"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-colors active:scale-95 hover:text-paper"
+            >
+              <ArrowLeft size={18} />
+            </Link>
+            <span
+              className="text-lg font-semibold tracking-tight text-paper"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              Rally
+            </span>
+          </div>
+        </div>
+      }
+      cta={
+        <div className="flex flex-col gap-2.5">
+          <Link
+            to="/create"
+            className="relative flex w-full items-center justify-center overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
+            style={{
+              background:
+                'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
+              boxShadow:
+                'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
+            }}
+          >
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+              style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
+            />
+            Start a rally
+          </Link>
+          <Link
+            to="/c/$id"
+            params={{ id: '1' }}
+            className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-center text-base font-semibold text-paper transition-transform active:scale-[0.98]"
+          >
+            See one filling live →
+          </Link>
+        </div>
+      }
+    >
+      <div className="flex flex-col items-center gap-7 pt-14 text-center">
+        {/* An empty tube — nothing has ever poured in here. */}
+        <Thermometer
+          raised={0}
+          goal={100}
+          orientation="vertical"
+          height={200}
+          width={48}
+          showReadout={false}
+          showTicks={false}
+        />
+        <div>
+          <h1
+            className="text-[1.9rem] font-semibold leading-tight tracking-tight text-paper"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            This rally doesn’t exist yet
+          </h1>
+          <p className="mx-auto mt-2.5 max-w-[19rem] text-sm leading-relaxed text-muted">
+            No fund lives at this link — check the address, or be the one who
+            starts it. One link, one goal, everyone in.
+          </p>
+        </div>
+      </div>
+    </AppShell>
   )
 }
 
