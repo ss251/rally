@@ -1,5 +1,6 @@
 import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import { AppShell } from '#/components/AppShell'
+import { Brand } from '#/components/Brand'
 import { CampaignCard, type Campaign } from '#/components/CampaignCard'
 
 export const Route = createFileRoute('/demo')({
@@ -56,12 +57,7 @@ function Demo() {
     <AppShell
       header={
         <div className="flex w-full items-center justify-between">
-          <span
-            className="text-lg font-semibold tracking-tight text-paper"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Rally
-          </span>
+          <Brand />
           <span className="text-xs font-medium text-faint">Share cards</span>
         </div>
       }

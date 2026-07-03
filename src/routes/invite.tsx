@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, Check, Loader2 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { AppShell } from '#/components/AppShell'
+import { Brand } from '#/components/Brand'
 import { Confetti } from '#/components/Confetti'
 import { formatUsd } from '#/design/chains'
 import { loginWithEmail } from '#/lib/auth/magic'
@@ -256,12 +257,7 @@ function InviteHeader() {
         >
           <ArrowLeft size={18} />
         </Link>
-        <span
-          className="text-lg font-semibold tracking-tight text-paper"
-          style={{ fontFamily: 'var(--font-display)' }}
-        >
-          Rally <span className="text-muted">Circles</span>
-        </span>
+        <Brand sub="Circles" />
       </div>
       {/* Static dot; two-word status vocabulary: Demo | Live on Arbitrum.
           Invites always redeem against the live RotatingVault. */}
