@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
-import { ArrowLeft, Loader2, Sparkles } from 'lucide-react'
+import { ArrowLeft, ChevronDown, Loader2, Sparkles } from 'lucide-react'
 import { AppShell } from '#/components/AppShell'
 import { CircleMembers } from '#/components/CircleMembers'
 import { CircleSheet, type CircleSheetMode } from '#/components/CircleSheet'
@@ -51,6 +51,7 @@ function CircleDetail() {
   const [sheetMode, setSheetMode] = useState<CircleSheetMode>('chip')
   const [sheetOpen, setSheetOpen] = useState(false)
   const [you, setYou] = useState<string | null>(null)
+  const [demoOpen, setDemoOpen] = useState(false)
   const [demoFilling, setDemoFilling] = useState(false)
   const [demoError, setDemoError] = useState<string | null>(null)
   const [burst, setBurst] = useState(false)
@@ -236,25 +237,36 @@ function CircleDetail() {
         cta={
           <div className="flex flex-col gap-2.5">
             {primary}
-            {showDemoFill ? (
-              <button
-                onClick={demoFill}
-                disabled={demoFilling}
-                className="flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-sm font-semibold text-paper transition-transform active:scale-[0.98] disabled:opacity-60"
-              >
-                {demoFilling ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" /> The crew is chipping in…
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={15} strokeWidth={2.25} /> Watch the round fill — demo
-                  </>
-                )}
-              </button>
-            ) : (
-              <ShareLink variant="ghost" label="Copy the link" />
-            )}
+            <ShareLink variant="ghost" label="Copy the link" />
+            {/* The demo fill spends the relayer — it stays folded behind a
+                quiet disclosure (same pattern as the sheet's "Paying from")
+                instead of greeting every visitor as a big button. */}
+            {showDemoFill &&
+              (demoOpen ? (
+                <button
+                  onClick={demoFill}
+                  disabled={demoFilling}
+                  className="flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-sm font-semibold text-paper transition-transform active:scale-[0.98] disabled:opacity-60"
+                >
+                  {demoFilling ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" /> The crew is chipping in…
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={15} strokeWidth={2.25} /> Watch the round fill — demo
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={() => setDemoOpen(true)}
+                  className="mx-auto flex items-center gap-1.5 py-0.5 text-[13px] text-faint transition-colors hover:text-muted"
+                >
+                  <Sparkles size={13} strokeWidth={2.25} /> Demo
+                  <ChevronDown size={13} />
+                </button>
+              ))}
             {demoError && (
               <p className="text-center text-[12.5px] leading-relaxed text-warn">{demoError}</p>
             )}
