@@ -76,10 +76,12 @@ export const Route = createRootRoute({
     links: [
       { rel: 'stylesheet', href: appCss },
       { rel: 'manifest', href: '/manifest.webmanifest' },
-      // favicon.svg is the small-size optical variant of the mark (Shell
-      // size-ladder): heavier wall, no glass gap — built for 16–32px tabs.
+      // favicon.svg + the PNGs are the pixel-engineered small rungs of the
+      // mark (Shell size-ladder): ring edges on the pixel grid, meniscus
+      // snapped to a 1:4 stair — see docs/design/MARK.md.
       { rel: 'icon', href: '/icons/favicon.svg', type: 'image/svg+xml' },
       { rel: 'icon', href: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { rel: 'icon', href: '/favicon-16.png', sizes: '16x16', type: 'image/png' },
       { rel: 'icon', href: '/icons/icon-192.png', sizes: '192x192' },
       { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png' },
       ...splashLinks,
