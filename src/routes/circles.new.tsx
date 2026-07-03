@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ArrowLeft, Loader2, Sparkles } from 'lucide-react'
+import { ArrowLeft, Check, Loader2, Sparkles } from 'lucide-react'
 import { motion } from 'motion/react'
 import { AppShell } from '#/components/AppShell'
+import { Confetti } from '#/components/Confetti'
 import { ShareLink } from '#/components/ShareLink'
 import { formatUsd } from '#/design/chains'
 import { loginWithEmail } from '#/lib/auth/magic'
@@ -77,38 +78,60 @@ function CreateCircle() {
 
   if (created) {
     const pot = amount * seats
+    const hasSeats = created.openSeats.length > 0
     return (
       <AppShell header={<CreateHeader />}>
-        <div className="flex flex-col gap-6 pt-6">
-          <div className="text-center">
-            <motion.p
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-sm font-medium text-muted"
+        {/* The payoff. Mirrors the Pools "You're in ✦" moment — spring-in
+            check + confetti — then puts the seat invites front and center:
+            the circle only becomes real when the crew opens these. */}
+        <div className="relative flex flex-col gap-6 pt-6">
+          {/* The burst frames the check + headline (the payoff), not the tall
+              link list below — its stage is pinned to the first ~half screen
+              so the two popper corners sit beside the artifact card and the
+              confetti arcs up around "Your circle is live ✦". */}
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[55dvh]">
+            <Confetti active skin="rally" particleCount={150} />
+          </div>
+
+          <div className="flex flex-col items-center text-center">
+            <motion.div
+              initial={{ scale: 0.4, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 480, damping: 20 }}
+              className="flex h-16 w-16 items-center justify-center rounded-full"
+              style={{
+                background: 'var(--color-rally-500)',
+                boxShadow: '0 12px 40px -8px var(--color-rally-glow)',
+              }}
             >
-              Your circle is live ✦
-            </motion.p>
+              <Check size={30} strokeWidth={3} className="text-ink-950" />
+            </motion.div>
             <motion.h1
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 }}
-              className="mt-1.5 text-[1.9rem] font-semibold leading-tight tracking-tight text-paper"
+              transition={{ delay: 0.08 }}
+              className="mt-4 text-[1.9rem] font-semibold leading-tight tracking-tight text-paper"
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              {created.started ? 'The rotation has begun' : 'Drop the seats in the group chat'}
+              Your circle is live ✦
             </motion.h1>
-            <p className="mx-auto mt-2 max-w-[19rem] text-sm leading-relaxed text-muted">
+            <motion.p
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.14 }}
+              className="mx-auto mt-2 max-w-[19rem] text-sm leading-relaxed text-muted"
+            >
               {created.started
                 ? 'Seat 1 is yours and the crew is in. Chip into round 1 and watch the pot fill.'
-                : 'One link per seat. Whoever opens it joins with just their email — no wallet, no gas.'}
-            </p>
+                : 'Seat 1 is yours. One link per seat below — whoever opens one joins with just their email. No wallet, no gas.'}
+            </motion.p>
           </div>
 
           {/* The circle, summarized — the artifact they just made. */}
           <motion.div
             initial={{ opacity: 0, y: 16, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 30, delay: 0.12 }}
             className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-4"
           >
             <p className="text-sm font-semibold text-paper">{title.trim()}</p>
@@ -119,7 +142,18 @@ function CreateCircle() {
             </p>
           </motion.div>
 
-          <div className="flex flex-col gap-2.5">
+          {/* The invites — the hero action of this screen. */}
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="flex flex-col gap-2.5"
+          >
+            {hasSeats && (
+              <span className="text-center text-xs font-medium uppercase tracking-wide text-faint">
+                Share these with the crew — one per seat
+              </span>
+            )}
             {created.openSeats.map((seat) => (
               <ShareLink
                 key={seat}
@@ -131,11 +165,32 @@ function CreateCircle() {
             <Link
               to="/circle/$id"
               params={{ id: created.circleId }}
-              className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-center text-base font-semibold text-paper transition-transform active:scale-[0.98]"
+              className={
+                hasSeats
+                  ? 'w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-center text-base font-semibold text-paper transition-transform active:scale-[0.98]'
+                  : 'relative w-full overflow-hidden rounded-full py-4 text-center text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97]'
+              }
+              style={
+                hasSeats
+                  ? undefined
+                  : {
+                      background:
+                        'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
+                      boxShadow:
+                        'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
+                    }
+              }
             >
-              Open the circle →
+              {!hasSeats && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+                  style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
+                />
+              )}
+              View the circle →
             </Link>
-          </div>
+          </motion.div>
         </div>
       </AppShell>
     )
