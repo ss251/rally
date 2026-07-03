@@ -12,6 +12,7 @@ import { countdown, formatUsd } from '#/design/chains'
 import { getMagicUser } from '#/lib/auth/magic'
 import {
   fetchLiveCircle,
+  friendlyCircleError,
   inviteLinkFor,
   mockCircle,
   ROTATING_VAULT,
@@ -19,6 +20,10 @@ import {
   type CircleView,
 } from '#/lib/circle'
 import { fillCircleRoundServerFn } from '#/lib/circle-actions'
+import {
+  mintSeatInviteAsOrganizer,
+  startSelfCustodiedCircle,
+} from '#/lib/circle-self-custody'
 
 export const Route = createFileRoute('/circle/$id')({
   // Read live from the RotatingVault on Arbitrum Sepolia; fall back to the
@@ -72,6 +77,11 @@ function CircleDetail() {
   const youMember = you
     ? (c.members.find((m) => m.address.toLowerCase() === you.toLowerCase()) ?? null)
     : null
+  // The organizer's wallet — for self-custodied circles this is a real person
+  // (the creator), and organizer-only actions (signing invites, start) can
+  // ONLY happen from their session. Relayer-organized demo circles never match.
+  const youAreOrganizer =
+    !!you && c.organizerAddress !== ZERO_ADDR && c.organizerAddress.toLowerCase() === you.toLowerCase()
   const payee = c.round != null ? (c.members[c.round] ?? null) : null
   const potTaken = c.round != null && c.rounds[c.round]?.state === 'claimed'
   const failedRound = c.rounds.find((r) => r.state === 'failed')
@@ -106,6 +116,26 @@ function CircleDetail() {
     }
   }
 
+  // Organizer-only: start the full circle from the ORGANIZER's own 7702 kernel
+  // (start is organizer-gated on-chain — the relayer structurally can't do
+  // this for a self-custodied circle).
+  const [starting, setStarting] = useState(false)
+  const [startError, setStartError] = useState<string | null>(null)
+  const startCircle = async () => {
+    if (starting) return
+    setStartError(null)
+    setStarting(true)
+    try {
+      await startSelfCustodiedCircle({ circleId: c.id })
+      await router.invalidate()
+      setBurst(true)
+    } catch (e) {
+      setStartError(friendlyCircleError(e))
+    } finally {
+      setStarting(false)
+    }
+  }
+
   const cd = now != null && c.roundClosesAt != null ? countdown(c.roundClosesAt, now) : null
 
   // ── Pulse line + bar state per status ─────────────────────────────────────
@@ -136,6 +166,34 @@ function CircleDetail() {
       )
     }
     if (c.status === 'filling') {
+      // Full house → only the organizer can start (organizer-gated on-chain).
+      if (c.joined >= n) {
+        if (youAreOrganizer) {
+          return (
+            <button onClick={startCircle} disabled={starting} className={ctaBtnClass} style={coralCta}>
+              <CtaSheen />
+              {starting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 size={18} className="animate-spin" /> Starting the rotation…
+                </span>
+              ) : (
+                <>Start the circle — everyone’s in</>
+              )}
+            </button>
+          )
+        }
+        return (
+          <StatusPill>
+            All {n} seats are in — {c.organizer} starts the rotation
+          </StatusPill>
+        )
+      }
+      // Open seats. The organizer signs invites THEMSELVES (self-custodied
+      // circles carry the creator's signature in every link); everyone else
+      // shares the plain link (relayer-organized circles mint on demand).
+      if (youAreOrganizer) {
+        return <OrganizerInviteButton circleId={c.id} seat={firstOpenSeat} title={c.title} />
+      }
       return (
         <ShareLink
           variant="primary"
@@ -271,12 +329,22 @@ function CircleDetail() {
             {demoError && (
               <p className="text-center text-[12.5px] leading-relaxed text-warn">{demoError}</p>
             )}
+            {startError && (
+              <p className="text-center text-[12.5px] leading-relaxed text-warn">{startError}</p>
+            )}
+            {youAreOrganizer && c.status === 'filling' && (
+              <p className="text-center text-[12.5px] leading-relaxed text-faint">
+                You’re the organizer — invites carry your signature, and only you can start.
+              </p>
+            )}
           </div>
         }
       >
         <div className="flex flex-col gap-6 pt-4">
           <div>
-            <p className="text-sm text-faint">{c.organizer} is running</p>
+            <p className="text-sm text-faint">
+              {youAreOrganizer ? 'You’re running' : `${c.organizer} is running`}
+            </p>
             <h1
               className="mt-1.5 text-[2.15rem] font-semibold leading-[1.04] tracking-[-0.01em] text-paper"
               style={{ fontFamily: 'var(--font-display)', wordSpacing: '0.08em' }}
@@ -453,6 +521,66 @@ function StatusPill({ children }: { children: React.ReactNode }) {
   return (
     <div className="w-full rounded-full border border-white/10 bg-white/[0.04] py-4 text-center text-[15px] font-semibold text-paper">
       {children}
+    </div>
+  )
+}
+
+/**
+ * The organizer's invite action on a self-custodied circle: signs a fresh
+ * EIP-712 invite for the next open seat with THEIR OWN wallet (Magic
+ * signTypedData — no Rally key involved), then copies the signed link.
+ * Mirrors ShareLink's copy feedback so the two feel like one family.
+ */
+function OrganizerInviteButton({
+  circleId,
+  seat,
+  title,
+}: {
+  circleId: string
+  seat: number
+  title?: string
+}) {
+  const [state, setState] = useState<'idle' | 'signing' | 'copied' | 'error'>('idle')
+  const [error, setError] = useState<string | null>(null)
+
+  const signAndCopy = async () => {
+    if (state === 'signing') return
+    setError(null)
+    setState('signing')
+    try {
+      const invite = await mintSeatInviteAsOrganizer({ circleId, seat })
+      const url = inviteLinkFor(circleId, seat, title, invite)
+      try {
+        await navigator.clipboard.writeText(url)
+      } catch {
+        // Clipboard blocked (insecure ctx) — same optimistic fallback as ShareLink.
+      }
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate?.(8)
+      setState('copied')
+      setTimeout(() => setState('idle'), 1900)
+    } catch (e) {
+      setError(friendlyCircleError(e))
+      setState('error')
+    }
+  }
+
+  return (
+    <div className="flex w-full flex-col gap-1.5">
+      <button onClick={signAndCopy} disabled={state === 'signing'} className={ctaBtnClass} style={coralCta}>
+        <CtaSheen />
+        {state === 'signing' ? (
+          <span className="flex items-center justify-center gap-2">
+            <Loader2 size={18} className="animate-spin" /> Signing seat {seat + 1}’s invite…
+          </span>
+        ) : state === 'copied' ? (
+          <>Invite signed + copied ✓</>
+        ) : (
+          <>Invite the crew — sign seat {seat + 1}’s link</>
+        )}
+      </button>
+      {state === 'error' && error && (
+        <p className="text-center text-[12.5px] leading-relaxed text-warn">{error}</p>
+      )}
     </div>
   )
 }
