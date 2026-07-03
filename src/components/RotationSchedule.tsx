@@ -59,8 +59,10 @@ export function RotationSchedule({ rounds, className }: RotationScheduleProps) {
                       : {
                           borderColor: 'var(--color-line)',
                           background: 'var(--color-surface)',
+                          // Failed reads calm-muted (the × carries the fact) —
+                          // a stopped circle is settled, never alarm-amber.
                           color: failed
-                            ? 'var(--color-warn)'
+                            ? 'var(--color-muted)'
                             : claimed
                               ? 'var(--color-muted)'
                               : 'var(--color-faint)',
