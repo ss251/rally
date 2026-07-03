@@ -1,34 +1,48 @@
-import { useState } from 'react'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { useEffect, useState } from 'react'
+import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { RotateCw } from 'lucide-react'
 import { AppShell } from '#/components/AppShell'
 import { ContributeSheet } from '#/components/ContributeSheet'
 import { Thermometer } from '#/components/Thermometer'
-import { ContributorFeed, type Contributor } from '#/components/ContributorFeed'
+import { ContributorFeed } from '#/components/ContributorFeed'
 import { ChainIcon } from '#/components/ChainIcon'
-import { formatUsd, type ChainSegment } from '#/design/chains'
+import { countdown, formatUsd, pct } from '#/design/chains'
+import { loadCampaign, mockCampaign, type CampaignView } from '#/lib/campaign'
 
-export const Route = createFileRoute('/')({ component: Home })
+// The landing hero IS the product: the live on-chain campaign, filling. The
+// bar a visitor sees here is the same bar their "Chip in" raises — same id,
+// same loader, same read as /c/1. No staged numbers.
+const HERO_CAMPAIGN_ID = '1'
 
-// —— Demo campaign (real, human — the product shown live on the landing) ——
-const RAISED = 3120
-const GOAL = 4000
-const SEGMENTS: ChainSegment[] = [
-  { chain: 'base', amount: 1400 },
-  { chain: 'arbitrum', amount: 720 },
-  { chain: 'optimism', amount: 400 },
-  { chain: 'solana', amount: 600 },
-]
-const now = Date.now()
-const CONTRIBUTORS: Contributor[] = [
-  { id: 'a', name: 'Maya', amount: 250, chain: 'base', timestamp: now - 90_000 },
-  { id: 'b', name: 'Tomás', amount: 40, chain: 'solana', timestamp: now - 240_000 },
-  { id: 'c', name: 'Priya', amount: 120, chain: 'arbitrum', timestamp: now - 600_000 },
-  { id: 'd', name: 'Wei', amount: 60, chain: 'optimism', timestamp: now - 1_500_000 },
-]
+export const Route = createFileRoute('/')({
+  loader: async (): Promise<CampaignView> => {
+    const load = await loadCampaign(HERO_CAMPAIGN_ID)
+    return load.kind === 'view' ? load.view : mockCampaign(HERO_CAMPAIGN_ID)
+  },
+  component: Home,
+})
+
+/** Client-only clock so the countdown never mismatches on hydration. */
+function useNow(intervalMs = 30_000): number | null {
+  const [now, setNow] = useState<number | null>(null)
+  useEffect(() => {
+    setNow(Date.now())
+    const id = setInterval(() => setNow(Date.now()), intervalMs)
+    return () => clearInterval(id)
+  }, [intervalMs])
+  return now
+}
 
 function Home() {
+  const c = Route.useLoaderData()
+  const router = useRouter()
   const [sheetOpen, setSheetOpen] = useState(false)
+  const now = useNow()
+
+  const realPct = pct(c.raised, c.goal, 9999)
+  const cd = now == null ? null : countdown(c.deadline, now)
+  const topChain = c.segments[c.segments.length - 1]?.chain ?? 'base'
+  const funded = c.status === 'funded'
 
   return (
     <>
@@ -43,7 +57,7 @@ function Home() {
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-faint">
               <span className="h-1.5 w-1.5 rounded-full animate-pulse-dot" style={{ background: 'rgba(255,241,232,0.82)' }} />
-              Arbitrum testnet
+              {c.live ? 'Live on Arbitrum' : 'Arbitrum testnet'}
             </span>
           </div>
         }
@@ -75,34 +89,37 @@ function Home() {
           </div>
         }
       >
-        {/* —— The hero IS the product: a live campaign, filling —— */}
+        {/* —— The hero IS the product: the live campaign, read off-chain —— */}
         <div className="flex flex-col gap-6 pt-4">
           <div>
-            <p className="text-sm text-faint">Maya is rallying for</p>
+            <p className="text-sm text-faint">{c.organizer} is rallying for</p>
             <h1
               className="mt-1.5 text-[2.15rem] font-semibold leading-[1.04] tracking-[-0.01em] text-paper"
               style={{ fontFamily: 'var(--font-display)', wordSpacing: '0.08em' }}
             >
-              Send the crew to Tokyo
+              {c.title}
             </h1>
           </div>
 
           {/* Hero row: the liquid column + a vertically-centered readout (no void) */}
           <div className="flex items-center gap-6">
             <Thermometer
-              raised={RAISED}
-              goal={GOAL}
-              segments={SEGMENTS}
+              raised={c.raised}
+              goal={c.goal}
+              segments={c.segments}
               orientation="vertical"
               height={248}
               width={52}
-              status="live"
+              status={c.status}
               showReadout={false}
             />
             <div className="flex flex-1 flex-col justify-center gap-4">
               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
-                <span className="h-1.5 w-1.5 rounded-full animate-pulse-dot" style={{ background: 'rgba(255,241,232,0.82)' }} />
-                Raising now
+                {/* Honest state: the pulse only beats when the numbers are live. */}
+                {c.live && (
+                  <span className="h-1.5 w-1.5 rounded-full animate-pulse-dot" style={{ background: 'rgba(255,241,232,0.82)' }} />
+                )}
+                {c.live ? (funded ? 'Goal met' : 'Raising now') : 'Preview — reconnecting'}
               </span>
               <div>
                 <div className="flex items-end gap-2.5">
@@ -110,47 +127,61 @@ function Home() {
                     className="tnum font-display text-figure font-semibold leading-none text-paper"
                     style={{ fontFamily: 'var(--font-display)' }}
                   >
-                    {formatUsd(RAISED)}
+                    {formatUsd(c.raised)}
                   </span>
                   <span
                     className="tnum font-display text-2xl font-semibold leading-none"
                     style={{ color: 'rgba(255,240,233,0.72)' }}
                   >
-                    78%
+                    {realPct}%
                   </span>
                 </div>
                 <p className="mt-2 text-sm text-muted">
-                  of <span className="font-medium text-paper/90">{formatUsd(GOAL)}</span> USDC goal
+                  of <span className="font-medium text-paper/90">{formatUsd(c.goal)}</span> USDC goal
                 </p>
               </div>
-              <div className="flex flex-col gap-1.5">
-                {SEGMENTS.map((s) => (
-                  <span key={s.chain} className="flex items-center gap-2 text-[13px] text-muted">
-                    <ChainIcon chain={s.chain} size={16} />
-                    <span className="capitalize text-paper/80">{s.chain}</span>
-                    <span className="tnum ml-auto text-faint">{formatUsd(s.amount)}</span>
-                  </span>
-                ))}
-              </div>
+              {c.segments.length > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  {c.segments.map((s) => (
+                    <span key={s.chain} className="flex items-center gap-2 text-[13px] text-muted">
+                      <ChainIcon chain={s.chain} size={16} />
+                      <span className="capitalize text-paper/80">{s.chain}</span>
+                      <span className="tnum ml-auto text-faint">{formatUsd(s.amount)}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
               <div className="mt-1 flex items-center gap-2 text-[13px] text-muted">
-                <span className="font-medium text-paper">23 backers</span>
+                <span className="tnum font-medium text-paper">
+                  {c.backerCount} {c.backerCount === 1 ? 'backer' : 'backers'}
+                </span>
                 <span className="text-faint">·</span>
-                <span>2 days left</span>
+                <span className={cd?.urgent ? 'text-warn' : undefined}>
+                  {cd == null ? 'open' : cd.label}
+                </span>
               </div>
             </div>
           </div>
 
-          <ContributorFeed contributors={CONTRIBUTORS} maxVisible={4} />
+          <ContributorFeed
+            contributors={c.contributors}
+            totalCount={c.backerCount}
+            maxVisible={4}
+          />
 
-          {/* This hero is a demo. The real thing is live on-chain — go see it. */}
+          {/* The same fund, full page — share it, watch it, verify it. */}
           <Link
             to="/c/$id"
-            params={{ id: '1' }}
+            params={{ id: HERO_CAMPAIGN_ID }}
             className="flex items-center justify-between rounded-2xl border border-white/[0.07] bg-white/[0.02] px-4 py-3.5 text-sm transition-colors hover:border-white/15"
           >
             <span className="flex items-center gap-2 text-muted">
-              <span className="h-1.5 w-1.5 rounded-full animate-pulse-dot" style={{ background: 'rgba(255,241,232,0.82)' }} />
-              See a real rally, filling live on Arbitrum
+              {c.live && (
+                <span className="h-1.5 w-1.5 rounded-full animate-pulse-dot" style={{ background: 'rgba(255,241,232,0.82)' }} />
+              )}
+              {c.live
+                ? 'This bar is on-chain — open the full rally'
+                : 'Open the full rally page'}
             </span>
             <span className="font-semibold text-paper">→</span>
           </Link>
@@ -189,9 +220,13 @@ function Home() {
       <ContributeSheet
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
-        campaignTitle="the Tokyo fund"
-        fromChain="base"
+        campaignTitle={c.title}
+        campaignId={HERO_CAMPAIGN_ID}
+        fromChain={topChain}
         initialAmount={25}
+        // The money just landed on-chain — re-run the loader so THIS bar,
+        // the one they're looking at, visibly rises.
+        onContributed={() => router.invalidate()}
       />
     </>
   )
