@@ -105,7 +105,7 @@ flowchart TD
 We'd rather a judge hear these from us than find them.
 
 - **Magic OTP is human-in-the-browser.** Email login needs a real person to enter the one-time code. Genuinely gasless and seedless — but not headless.
-- **The relayer is a demo concierge.** Fresh email wallets hold no testnet USDC, so in the demo a relayer fronts the source-chain burn (Goals) and holds the organizer seat for circles created in-app. In production each backer burns their own USDC via their sponsored 7702 wallet, and organizers sign for themselves — the CCTP rail, the escrow accounting, and every refund are real either way.
+- **The relayer is a demo concierge.** Fresh email wallets hold no testnet USDC, so in the demo a relayer fronts the source-chain burn (Goals) and organizes the *demo-friends* circles (the toggle on `/circles/new` — labeled in the UI: the Rally crew runs the demo). **Circles you create for real are self-custodied:** `createCircle` is sent from the creator's own sponsored 7702 wallet, so *their* address is the on-chain organizer; every seat invite is an EIP-712 signature minted by *their* key in the browser; and `start` — organizer-gated on-chain — only works from their wallet. Rally's server never holds a key that can sign an invite, start, or cancel one of those circles; it can only relay already-signed messages. The CCTP rail, the escrow accounting, and every refund are real in both lanes.
 - **Testnet only.** Arbitrum / Base / OP Sepolia with faucet USDC. No mainnet, no real money — by design (see [ROADMAP](./ROADMAP.md) for the mainnet path).
 
 ---
