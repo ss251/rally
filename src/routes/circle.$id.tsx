@@ -391,13 +391,14 @@ function CircleDetail() {
               href={`https://sepolia.arbiscan.io/address/${ROTATING_VAULT}`}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center justify-between rounded-2xl border border-white/[0.07] bg-white/[0.02] px-4 py-3 text-[13px] text-faint transition-colors hover:border-white/15"
+              className="flex items-center justify-between gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.02] px-4 py-3 text-[13px] text-faint transition-colors hover:border-white/15"
             >
-              <span>
-                Settled on-chain · rotating vault{' '}
-                <span className="tnum text-muted">{ROTATING_VAULT_SHORT}</span>
+              {/* One line at 393pt: the address never breaks mid-hex. */}
+              <span className="min-w-0 truncate">
+                Settled on-chain · vault{' '}
+                <span className="tnum whitespace-nowrap text-muted">{ROTATING_VAULT_SHORT}</span>
               </span>
-              <span className="text-muted">View ↗</span>
+              <span className="shrink-0 whitespace-nowrap text-muted">View ↗</span>
             </a>
           )}
         </div>
