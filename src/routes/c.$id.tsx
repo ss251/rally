@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createFileRoute, Link, notFound, useRouter } from '@tanstack/react-router'
 import { ArrowLeft, Gift } from 'lucide-react'
 import { AppShell } from '#/components/AppShell'
+import { Brand } from '#/components/Brand'
 import { ContributeSheet } from '#/components/ContributeSheet'
 import { Thermometer } from '#/components/Thermometer'
 import { ContributorFeed } from '#/components/ContributorFeed'
@@ -78,12 +79,7 @@ function CampaignDetail() {
               >
                 <ArrowLeft size={18} />
               </Link>
-              <span
-                className="text-lg font-semibold tracking-tight text-paper"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                Rally
-              </span>
+              <Brand />
             </div>
             {/* Static dot; two-word status vocabulary: Demo | Live on Arbitrum. */}
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs font-medium text-faint">
@@ -275,12 +271,7 @@ function CampaignNotFound() {
             >
               <ArrowLeft size={18} />
             </Link>
-            <span
-              className="text-lg font-semibold tracking-tight text-paper"
-              style={{ fontFamily: 'var(--font-display)' }}
-            >
-              Rally
-            </span>
+            <Brand />
           </div>
         </div>
       }

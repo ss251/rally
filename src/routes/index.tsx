@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { RotateCw } from 'lucide-react'
 import { AppShell } from '#/components/AppShell'
+import { Brand } from '#/components/Brand'
 import { ContributeSheet } from '#/components/ContributeSheet'
 import { ModeSwitch } from '#/components/ModeSwitch'
 import { Thermometer } from '#/components/Thermometer'
@@ -50,12 +51,7 @@ function Home() {
       <AppShell
         header={
           <div className="flex w-full items-center justify-between">
-            <span
-              className="text-lg font-semibold tracking-tight text-paper"
-              style={{ fontFamily: 'var(--font-display)' }}
-            >
-              Rally
-            </span>
+            <Brand />
             {/* Static dot — the hero's pulse is the page's single heartbeat. */}
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs font-medium text-faint">
               <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'rgba(255,241,232,0.82)' }} />

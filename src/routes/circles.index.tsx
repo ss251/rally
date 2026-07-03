@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { RotateCw, Undo2, Users } from 'lucide-react'
 import { AppShell } from '#/components/AppShell'
+import { Brand } from '#/components/Brand'
 import { ModeSwitch } from '#/components/ModeSwitch'
 import { RoundBar } from '#/components/RoundBar'
 import { RotationSchedule } from '#/components/RotationSchedule'
@@ -23,12 +24,7 @@ function CirclesHome() {
         <div className="flex w-full items-center justify-between">
           {/* A peer landing, not a sub-page: same wordmark-only header as `/` —
               the ModeSwitch below is the way between the two modes. */}
-          <span
-            className="text-lg font-semibold tracking-tight text-paper"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Rally <span className="text-muted">Circles</span>
-          </span>
+          <Brand sub="Circles" />
           {/* Static dot + honest label — this hero is representative data. */}
           <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs font-medium text-faint">
             <span
