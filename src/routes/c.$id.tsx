@@ -85,12 +85,13 @@ function CampaignDetail() {
                 Rally
               </span>
             </div>
+            {/* Static dot; two-word status vocabulary: Demo | Live on Arbitrum. */}
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-faint">
               <span
-                className="h-1.5 w-1.5 rounded-full animate-pulse-dot"
-                style={{ background: 'rgba(255,241,232,0.82)', color: 'rgba(255,241,232,0.82)' }}
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ background: 'rgba(255,241,232,0.82)' }}
               />
-              {isPotluck ? 'Potluck · testnet' : c.live ? 'Live on Arbitrum' : 'Arbitrum testnet'}
+              {!isPotluck && c.live ? 'Live on Arbitrum' : 'Demo'}
             </span>
           </div>
         }

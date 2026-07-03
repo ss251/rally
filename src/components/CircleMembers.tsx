@@ -14,7 +14,7 @@ interface CircleMembersProps {
 
 const ZERO_ADDR = '0x0000000000000000000000000000000000000000'
 
-function Avatar({ name, open }: { name: string; open: boolean }) {
+function Avatar({ name, seat, open }: { name: string; seat: number; open: boolean }) {
   if (open) {
     return (
       <span
@@ -25,7 +25,9 @@ function Avatar({ name, open }: { name: string; open: boolean }) {
       </span>
     )
   }
-  const g = avatarGradient(name)
+  // Seat-offset hue seed — short member names (Ana/Ben/Sam) otherwise hash
+  // into the same green band and the cast reads as one person.
+  const g = avatarGradient(name, seat)
   return (
     <span
       aria-hidden
@@ -57,9 +59,10 @@ export function CircleMembers({
     <section className={`flex flex-col ${className ?? ''}`} aria-label="Circle members">
       <header className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-paper">
+          {/* Static — one pulsing dot per screen, and it belongs to the hero. */}
           <span
-            className="animate-pulse-dot h-2 w-2 rounded-full"
-            style={{ background: 'rgba(255,241,232,0.82)', color: 'rgba(255,241,232,0.82)' }}
+            className="h-2 w-2 rounded-full"
+            style={{ background: 'rgba(255,241,232,0.82)' }}
           />
           {broken ? 'Everyone gets back' : filling ? 'Seats' : 'This round'}
         </h3>
@@ -85,7 +88,7 @@ export function CircleMembers({
                 boxShadow: highlight ? 'inset 0 1px 0 rgba(255,255,255,0.06)' : undefined,
               }}
             >
-              <Avatar name={m.name} open={open} />
+              <Avatar name={m.name} seat={m.seat} open={open} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <span className={`truncate text-sm font-semibold ${open ? 'text-faint' : 'text-paper'}`}>

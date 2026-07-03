@@ -161,11 +161,14 @@ export function initials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
 
-/** Deterministic gradient for an avatar fallback, seeded by name. */
-export function avatarGradient(name: string): { from: string; to: string } {
+/** Deterministic gradient for an avatar fallback, seeded by name. Short names
+ *  can hash into near-identical hues (Ana/Ben/Sam all land in the same green
+ *  band) — pass a stable `slot` (seat / payout index) to rotate each one by
+ *  the golden angle so neighbours in a list stay visually distinct. */
+export function avatarGradient(name: string, slot = 0): { from: string; to: string } {
   let h = 0
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
-  const a = h % 360
+  const a = (h + slot * 137) % 360
   const b = (a + 40) % 360
   return { from: `hsl(${a} 70% 62%)`, to: `hsl(${b} 74% 48%)` }
 }

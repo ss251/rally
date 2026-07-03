@@ -129,9 +129,10 @@ export function ContributorFeed({
     <section className={`flex flex-col ${className ?? ''}`} aria-label="Contributors">
       <header className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-paper">
+          {/* Static — one pulsing dot per screen, and it belongs to the hero. */}
           <span
-            className="animate-pulse-dot h-2 w-2 rounded-full"
-            style={{ background: 'rgba(255,241,232,0.82)', color: 'rgba(255,241,232,0.82)' }}
+            className="h-2 w-2 rounded-full"
+            style={{ background: 'rgba(255,241,232,0.82)' }}
           />
           {isPotluck ? 'Gifts landing' : 'Live from the group'}
         </h3>
