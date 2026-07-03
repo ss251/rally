@@ -296,7 +296,7 @@ function CircleDetail() {
         cta={
           <div className="flex flex-col gap-2.5">
             {primary}
-            <ShareLink variant="ghost" label="Copy the link" />
+            <ShareLink variant="text" label="or copy the link" />
             {/* The demo fill spends the relayer — it stays folded behind a
                 quiet disclosure (same pattern as the sheet's "Paying from")
                 instead of greeting every visitor as a big button. */}
