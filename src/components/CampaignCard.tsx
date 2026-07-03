@@ -188,7 +188,7 @@ export function CampaignCard({ campaign, href, onOpen, compact, className }: Cam
           <BackerStack backers={campaign.backers} count={campaign.backerCount} />
           <span
             className={`tnum inline-flex items-center gap-1 text-xs ${
-              cd?.urgent ? 'text-warn' : 'text-muted'
+              cd?.urgent ? 'font-medium text-warn' : 'text-muted'
             }`}
           >
             <Clock size={12} /> {cd == null ? '—' : cd.label}
