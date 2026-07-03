@@ -132,6 +132,20 @@ export const ROTATING_VAULT_ABI = [
     inputs: [],
     outputs: [{ type: 'uint256' }],
   },
+  // On-chain EIP-712 digest for an invite — lets a signer cross-check a
+  // locally-built typed-data hash against the contract before shipping links.
+  {
+    type: 'function',
+    name: 'inviteDigest',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'circleId', type: 'uint256' },
+      { name: 'member', type: 'address' },
+      { name: 'payoutIndex', type: 'uint256' },
+      { name: 'nonce', type: 'uint256' },
+    ],
+    outputs: [{ type: 'bytes32' }],
+  },
   // ── writes ────────────────────────────────────────────────────────────────
   {
     type: 'function',
@@ -248,6 +262,9 @@ export interface CircleView {
   id: string
   title: string
   organizer: string
+  /** The on-chain organizer address (0x0 for the mock) — the wallet whose
+   *  signature mints invites and which alone can call start/cancel. */
+  organizerAddress: string
   status: CircleStatusView
   /** Per-member per-round contribution, whole USDC units. */
   depositUsd: number
@@ -297,11 +314,35 @@ const STATUS_MAP: Record<number, CircleStatusView | null> = {
   5: 'cancelled',
 }
 
-/** Build the shareable invite URL for a seat (client-side; SSR-safe fallback). */
-export function inviteLinkFor(circleId: string, seat: number, title?: string): string {
+/**
+ * A pre-signed, organizer-signed EIP-712 invite — the self-custodied lane.
+ * `nonce` is a 0x-hex uint256 string (URL-friendly; BigInt() parses it back).
+ */
+export interface SignedInvite {
+  seat: number
+  member: string
+  nonce: string
+  signature: string
+}
+
+/**
+ * Build the shareable invite URL for a seat (client-side; SSR-safe fallback).
+ * With `invite`, the link carries the org-signed EIP-712 invite inline
+ * (`m`/`n`/`s` — the exact pre-signed shape /invite already redeems), so the
+ * seat can be taken without the organizer — or Rally — being able to sign
+ * anything on the joiner's behalf. Without it, the link is the relayer-lane
+ * shape: the concierge mints an invite on demand (relayer-organized circles only).
+ */
+export function inviteLinkFor(
+  circleId: string,
+  seat: number,
+  title?: string,
+  invite?: SignedInvite,
+): string {
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const t = title ? `&t=${encodeURIComponent(title)}` : ''
-  return `${origin}/invite?c=${circleId}&i=${seat}${t}`
+  const signed = invite ? `&m=${invite.member}&n=${invite.nonce}&s=${invite.signature}` : ''
+  return `${origin}/invite?c=${circleId}&i=${seat}${t}${signed}`
 }
 
 /**
@@ -402,7 +443,9 @@ export async function fetchLiveCircle(id: string, titleHint?: string): Promise<C
 
     const meta = KNOWN[id] ?? {
       title: titleHint || 'A live circle',
-      organizer: 'On-chain',
+      // Unknown circles are self-custodied in-app creates — name the organizer
+      // by their address (the honest label; titles/names live off-chain).
+      organizer: shortAddr(circle.organizer),
       seatNames: [],
     }
     const nameFor = (addr: string, seat: number) =>
@@ -445,6 +488,7 @@ export async function fetchLiveCircle(id: string, titleHint?: string): Promise<C
       id,
       title: meta.title,
       organizer: meta.organizer,
+      organizerAddress: circle.organizer,
       status,
       depositUsd,
       potUsd,
@@ -488,6 +532,7 @@ export function mockCircle(id = 'demo'): CircleView {
     id,
     title: 'The cousins’ chit fund',
     organizer: 'Priya',
+    organizerAddress: ZERO_ADDR,
     status: 'active',
     depositUsd: 50,
     potUsd: 250,
