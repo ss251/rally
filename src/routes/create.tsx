@@ -173,7 +173,7 @@ function CreateCampaign() {
             </motion.h1>
             <p className="mx-auto mt-2 max-w-[18rem] text-sm leading-relaxed text-muted">
               One tap for anyone to chip in — from whatever chain their money's on.
-              No wallet, no gas, no seed phrase.
+              Just their email — nothing to install, nothing to set up.
             </p>
           </div>
 

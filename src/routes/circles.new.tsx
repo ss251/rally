@@ -123,7 +123,7 @@ function CreateCircle() {
             >
               {created.started
                 ? 'Seat 1 is yours and the crew is in. Chip into round 1 and watch the pot fill.'
-                : 'Seat 1 is yours. One link per seat below — whoever opens one joins with just their email. No wallet, no gas.'}
+                : 'Seat 1 is yours. One link per seat below — whoever opens one joins with just their email, nothing to install.'}
             </motion.p>
           </div>
 
