@@ -9,12 +9,14 @@
 
 import { createPublicClient, http, parseAbiItem, type Address } from 'viem'
 import {
+  CHAIN_META,
   CHAIN_ORDER,
   type Chain,
   type ChainSegment,
   type CampaignStatus,
 } from '#/design/chains'
 import type { Contributor } from '#/components/ContributorFeed'
+import { getCampaignMetaServerFn } from '#/lib/campaign-actions'
 
 // ── Deployment (mirrors deployments/arbitrum-sepolia.json) ──────────────────
 export const GOAL_VAULT: Address = '0x914e4682aD2FeBb3e00a21dB29B93c16fc080AB4'
@@ -74,12 +76,38 @@ export interface CampaignView {
 
 // Friendly, human metadata for known on-chain campaigns (title/organizer are
 // not stored on-chain). Honest: the numbers are live; the label is ours.
-const KNOWN: Record<string, { title: string; organizer: string }> = {
-  '1': { title: 'Rally’s first live fund', organizer: 'The Rally crew' },
+// `knownBackers` names the demo crew's wallets in the live feed — mirroring
+// how Circles names its seats. Keys are LOWERCASE addresses.
+interface CampaignMetaView {
+  title: string
+  organizer: string
+  knownBackers?: Record<string, string>
+}
+
+const KNOWN: Record<string, CampaignMetaView> = {
+  '1': {
+    title: 'Rally’s first live fund',
+    organizer: 'The Rally crew',
+    knownBackers: {
+      // The three wallets that filled campaign #1 live (see the on-chain log).
+      '0x6a63bdd548715b4dac5e2ee62a6d4085c2d393b1': 'Sam',
+      '0xf0fe5731ef41e101f1fd37cf481bb2bb8117d74f': 'Maya',
+      '0xe8723d9b24a1a1d59eff5dd4e794c39b5c39ce89': 'Tomás',
+    },
+  },
 }
 
 const toUsd = (raw: bigint) => Number(raw) / 10 ** USDC_DECIMALS
 const shortAddr = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`
+
+/**
+ * A backer's display name is ALWAYS human — a known crew name when we have
+ * one, else a warm anonymous label carrying the chain their money came from.
+ * Never a hex address on the money screen.
+ */
+function backerName(meta: CampaignMetaView, addr: string, chain: Chain): string {
+  return meta.knownBackers?.[addr.toLowerCase()] ?? `A friend · from ${CHAIN_META[chain].label}`
+}
 
 function deriveStatus(raised: number, goal: number, deadlineMs: number): CampaignStatus {
   if (goal > 0 && raised >= goal) return 'funded'
@@ -87,11 +115,17 @@ function deriveStatus(raised: number, goal: number, deadlineMs: number): Campaig
   return 'live'
 }
 
+/** How a campaign load resolved — the routes branch on this, honestly. */
+export type CampaignLoad =
+  | { kind: 'view'; view: CampaignView }
+  | { kind: 'not-found'; id: string }
+
 /**
  * Read a live campaign off Arbitrum Sepolia. Resolves to a `CampaignView` on
- * success, or `null` on any failure / non-existent campaign (caller falls back
- * to mock). Bounded + defensive: the event query is best-effort — if it fails
- * we still return the core numbers with a single derived source band.
+ * success, `null` when the campaign definitively does not exist, and THROWS on
+ * a transport/RPC failure (so callers can tell "gone" from "flaky network").
+ * Bounded + defensive: the event query is best-effort — if it fails we still
+ * return the core numbers with a single derived source band.
  */
 export async function fetchLiveCampaign(id: string): Promise<CampaignView | null> {
   const campaignId = (() => {
@@ -103,28 +137,20 @@ export async function fetchLiveCampaign(id: string): Promise<CampaignView | null
   })()
   if (campaignId == null || campaignId <= 0n) return null
 
-  const client = createPublicClient({ transport: http(ARBITRUM_SEPOLIA_RPC) })
+  // Modest timeout: this read sits in route loaders (SSR included) — a hung
+  // public RPC should degrade to the fallback path, not stall first paint.
+  const client = createPublicClient({
+    transport: http(ARBITRUM_SEPOLIA_RPC, { timeout: 4_000, retryCount: 1 }),
+  })
 
-  let creator: string
-  let goalRaw: bigint
-  let deadlineRaw: bigint
-  let raisedRaw: bigint
-  let contributionCount: number
-  try {
-    const [c, , goal, deadline, raised, , count] = await client.readContract({
-      address: GOAL_VAULT,
-      abi: GET_CAMPAIGN_ABI,
-      functionName: 'getCampaign',
-      args: [campaignId],
-    })
-    creator = c
-    goalRaw = goal
-    deadlineRaw = deadline
-    raisedRaw = raised
-    contributionCount = Number(count)
-  } catch {
-    return null
-  }
+  // Throws on transport failure — deliberately NOT caught here.
+  const [creator, , goalRaw, deadlineRaw, raisedRaw, , count] = await client.readContract({
+    address: GOAL_VAULT,
+    abi: GET_CAMPAIGN_ABI,
+    functionName: 'getCampaign',
+    args: [campaignId],
+  })
+  const contributionCount = Number(count)
 
   // A non-existent campaign returns the zero-struct (creator == 0x0, goal == 0).
   if (creator === '0x0000000000000000000000000000000000000000' || goalRaw === 0n) {
@@ -134,6 +160,15 @@ export async function fetchLiveCampaign(id: string): Promise<CampaignView | null
   const raised = toUsd(raisedRaw)
   const goal = toUsd(goalRaw)
   const deadline = Number(deadlineRaw) * 1000
+
+  // Resolve the human label: the KNOWN table first, then the off-chain title
+  // store (campaigns born in /create), then an honest generic.
+  const meta: CampaignMetaView =
+    KNOWN[id] ??
+    (await getCampaignMetaServerFn({ data: { id } }).catch(() => null)) ?? {
+      title: 'A live Rally fund',
+      organizer: 'On-chain',
+    }
 
   // Best-effort: pull the contribution log for per-chain bands + a named feed.
   const contributors: Contributor[] = []
@@ -156,7 +191,7 @@ export async function fetchLiveCampaign(id: string): Promise<CampaignView | null
       segMap.set(chain, (segMap.get(chain) ?? 0) + amount)
       contributors.push({
         id: `${log.transactionHash}-${log.logIndex}`,
-        name: shortAddr(backer),
+        name: backerName(meta, backer, chain),
         amount,
         chain,
         timestamp: Date.now(), // block time not fetched to keep RPC calls minimal
@@ -179,7 +214,6 @@ export async function fetchLiveCampaign(id: string): Promise<CampaignView | null
         : []
 
   const backerCount = backerSet.size > 0 ? backerSet.size : contributionCount
-  const meta = KNOWN[id] ?? { title: 'A live Rally fund', organizer: 'On-chain' }
 
   return {
     id,
@@ -196,6 +230,24 @@ export async function fetchLiveCampaign(id: string): Promise<CampaignView | null
     status: deriveStatus(raised, goal, deadline),
     live: true,
     creator: shortAddr(creator),
+  }
+}
+
+/**
+ * Load a campaign for a route, with the honest fallback policy:
+ *   · live read succeeds            → the real numbers
+ *   · campaign provably absent      → not-found (the route shows a real 404)
+ *   · transport failure, KNOWN id   → representative mock, clearly non-live
+ *   · transport failure, unknown id → not-found (never fake a stranger's fund)
+ */
+export async function loadCampaign(id: string): Promise<CampaignLoad> {
+  try {
+    const live = await fetchLiveCampaign(id)
+    if (live) return { kind: 'view', view: live }
+    return { kind: 'not-found', id }
+  } catch {
+    if (KNOWN[id]) return { kind: 'view', view: mockCampaign(id) }
+    return { kind: 'not-found', id }
   }
 }
 
