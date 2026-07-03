@@ -6,7 +6,7 @@
  * runs from the waterline (180°) to 30° — rising at exactly 15°, two-thirds
  * full. Ring inherits `currentColor`; the liquid is flat brand coral.
  */
-export function BrandMark({ size = 20 }: { size?: number }) {
+export function BrandMark({ size = 18 }: { size?: number }) {
   return (
     <svg
       width={size}
@@ -15,12 +15,15 @@ export function BrandMark({ size = 20 }: { size?: number }) {
       fill="none"
       aria-hidden="true"
       className="shrink-0"
+      style={{ transform: 'translateY(-1px)' }}
     >
-      {/* vessel: R=216, wall w=R/6=36 (stroke path at R−w/2=198) */}
-      <circle cx="256" cy="256" r="198" stroke="currentColor" strokeWidth="36" />
-      {/* liquid: r=7R/9=168; chord 180°→30° ⇒ meniscus at 15° */}
+      {/* vessel: R=216; UI rung rides a step heavier — wall w=R/5=43.2
+          (stroke path at R−w/2=194.4) so the ring holds its own against the
+          semibold wordmark at header size */}
+      <circle cx="256" cy="256" r="194.4" stroke="currentColor" strokeWidth="43.2" />
+      {/* liquid: r=R−4w/3=158.4; chord 180°→30° ⇒ meniscus at 15° */}
       <path
-        d="M 88 256 A 168 168 0 1 0 401.49 172 Z"
+        d="M 97.6 256 A 158.4 158.4 0 1 0 393.18 176.8 Z"
         fill="var(--color-rally-500)"
       />
     </svg>
@@ -30,11 +33,13 @@ export function BrandMark({ size = 20 }: { size?: number }) {
 /**
  * Header lockup: mark + "Rally" (+ optional muted suffix, e.g. "Circles").
  * Same type treatment as the previous text-only wordmark — this is a lockup,
- * not a decoration: the mark sits at the wordmark's optical cap height.
+ * not a decoration. The mark is optically aligned to the cap-height mass of
+ * "Rall", not the full bounding box (the y-descender would drag it low) —
+ * hence the 1px lift.
  */
 export function Brand({ sub }: { sub?: string }) {
   return (
-    <span className="inline-flex items-center gap-2 text-paper">
+    <span className="inline-flex items-center gap-1.5 text-paper">
       <BrandMark />
       <span
         className="text-lg font-semibold tracking-tight"

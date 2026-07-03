@@ -60,13 +60,20 @@ axis (see below).
 
 | context | file | geometry |
 | --- | --- | --- |
-| ≥ 48 px (app tile, PWA icons, OG, header) | `public/icons/icon.svg` | master: R = 162 in the 512 tile, glass gap intact |
+| ≥ 48 px (app tile, PWA icons, OG) | `public/icons/icon.svg` | master: R = 162 in the 512 tile, glass gap intact |
 | maskable (Android/iOS PWA, apple-touch) | `public/icons/icon-maskable.svg` | full-bleed dusk, R = 150 (inside the 80% safe zone) |
-| 16–32 px (browser tab) | `public/icons/favicon.svg` | small-size optics: glyph enlarged to R = 196, wall thickened to `R/4.5`, **glass gap dropped** — at 16 px the gap is sub-pixel noise, so the liquid touches the wall and the tilt carries the identity |
+| header lockup (~18 px, retina) | `src/components/Brand.tsx` | wall one step heavier (`R/5`), glass gap kept — retina renders it |
+| 32 px tab | `public/favicon-32.png` (`icons/favicon.svg` is the same drawing) | **pixel rung, redrawn on the 32-grid**: ring edges on integer pixels (outer 12.5, wall 2, gap 1, liquid 9.5); meniscus snapped to a **1:4 stair** (14.04°) |
+| 16 px tab | `public/favicon-16.png` | **pixel rung, redrawn on the 16-grid**: 2 px ring (edges 5/7), gap dropped, liquid r = 5, 1:4 meniscus |
 
-The master's own glass gap self-resolves down the ladder: crisp at 512,
-a hairline at 48, gone at 16. The favicon variant just accepts that fact a
-step earlier and spends the reclaimed pixels on wall weight.
+Below 48 px the constructed clearances stop being spatial decisions and
+become anti-aliasing noise (the master's `w/3` gap is under half a pixel at
+16). So the small rungs are not scaled vectors — they are **redrawn on the
+pixel grid**, the way Shell's smallest shell is its own drawing. The 1:4
+stair is the pixel-honest neighbor of 15° (`atan(1/4) = 14.04°`), and both
+chord–circle intersections land on rational points (`√92416 = 304`,
+`√25600 = 160`) — the pixel rungs are still constructed, just in the
+raster's own arithmetic.
 
 ## The rejected sheet
 
@@ -106,13 +113,16 @@ the only liquid that glows.
 
 ## Applications
 
-- **Header lockup** (`src/components/Brand.tsx`): mark at 20 px, ring on
-  `currentColor`, wordmark in Clash Display 600 `text-lg tracking-tight` —
-  the same rhythm the text-only wordmark had. Clearspace: the wall width.
+- **Header lockup** (`src/components/Brand.tsx`): mark at 18 px, ring on
+  `currentColor` at the heavier UI wall (`R/5`), wordmark in Clash Display
+  600 `text-lg tracking-tight` — the same rhythm the text-only wordmark
+  had. The mark is aligned to the cap-height mass of "Rall" (1 px lift —
+  the y-descender would drag a box-centered mark low); gap 6 px.
 - **OG poster** (`public/og.png`, 1200×630): the mark's meniscus extends
   across the canvas as a coral datum at 15°, and the region below the line
-  is one step lighter (`--color-ink-900`) — the poster itself is two-thirds
-  full. Wordmark + the one-liner sit inside the filled region.
+  is one step lighter — the poster itself is two-thirds full. Wordmark +
+  the one-liner sit inside the filled region. Verified at 440 px and 360 px
+  (Discord/Slack unfurl sizes).
 - **Splash** (`scripts/gen-splash.mjs`): dusk canvas, mark at 31% of the
   short edge, wordmark, "Conditional group money."
 
@@ -120,10 +130,25 @@ the only liquid that glows.
 
 | file | purpose |
 | --- | --- |
-| `public/icons/icon.svg` | master app tile (favicon ≥48px, manifest `any`) |
-| `public/icons/favicon.svg` | 16–32 px optical variant (linked as the SVG favicon) |
+| `public/icons/icon.svg` | master app tile (manifest `any`, ≥48px contexts) |
+| `public/icons/favicon.svg` | the 32-grid pixel rung (linked as the SVG favicon) |
 | `public/icons/icon-maskable.svg` | full-bleed maskable source |
 | `public/icons/icon-{192,512}.png`, `icon-maskable-{192,512}.png` | manifest rasters (from the SVGs, via rsvg) |
 | `public/icons/apple-touch-icon.png` | 180×180, from the maskable source |
-| `public/favicon-32.png` | tab raster fallback (from `favicon.svg`) |
+| `public/favicon-32.png`, `public/favicon-16.png` | pixel-rung tab rasters |
 | `public/og.png` | the unfurl poster |
+
+## The review round
+
+The family was put through an adversarial vision review (Fugu Ultra,
+prompted as a modernist identity designer) and iterated on its verdicts:
+
+- *"The large mark is rational. The small mark is not yet engineered"* —
+  the 16/32 px rungs were redrawn on the pixel grid (table above) instead
+  of rasterizing the master.
+- *"The lockup reads assembled, not locked up"* — gap tightened by a
+  third, mark aligned to cap-height mass instead of the bounding box,
+  wall stepped up to `R/5` at UI size.
+- *"The datum line is doing conceptual work but rendered too delicately"*
+  — OG datum thickened to 3.5 px, field split strengthened one step, and
+  the near-tangent with the wordmark's "R" opened up.
