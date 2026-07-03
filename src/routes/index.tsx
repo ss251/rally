@@ -56,9 +56,10 @@ function Home() {
             >
               Rally
             </span>
+            {/* Static dot — the hero's pulse is the page's single heartbeat. */}
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-faint">
-              <span className="h-1.5 w-1.5 rounded-full animate-pulse-dot" style={{ background: 'rgba(255,241,232,0.82)' }} />
-              {c.live ? 'Live on Arbitrum' : 'Arbitrum testnet'}
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'rgba(255,241,232,0.82)' }} />
+              {c.live ? 'Live on Arbitrum' : 'Demo'}
             </span>
           </div>
         }
@@ -181,7 +182,7 @@ function Home() {
           >
             <span className="flex items-center gap-2 text-muted">
               {c.live && (
-                <span className="h-1.5 w-1.5 rounded-full animate-pulse-dot" style={{ background: 'rgba(255,241,232,0.82)' }} />
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'rgba(255,241,232,0.82)' }} />
               )}
               {c.live
                 ? 'This bar is on-chain — open the full rally'

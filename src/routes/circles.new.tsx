@@ -262,7 +262,7 @@ function CreateCircle() {
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="The cousins’ chit fund"
+            placeholder="The cousins’ savings circle"
             maxLength={60}
             disabled={inFlight}
             className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60"

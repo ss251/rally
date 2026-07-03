@@ -201,7 +201,7 @@ function CreateCampaign() {
 
           {c.live && (
             <p className="text-center text-[12.5px] leading-relaxed text-faint">
-              Fund #{c.id}, live on Arbitrum testnet — the bar fills the moment
+              Fund #{c.id}, live on Arbitrum — the bar fills the moment
               money lands.
             </p>
           )}
