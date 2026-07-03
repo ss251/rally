@@ -1,35 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="512" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#20172b"/>
-      <stop offset="1" stop-color="#130d1a"/>
-    </linearGradient>
-    <linearGradient id="mercury" x1="0" y1="406" x2="0" y2="200" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#ff6b4a"/>
-      <stop offset="1" stop-color="#ffc36b"/>
-    </linearGradient>
-    <radialGradient id="glow" cx="256" cy="360" r="150" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#ff8a5b" stop-opacity="0.55"/>
-      <stop offset="1" stop-color="#ff8a5b" stop-opacity="0"/>
-    </radialGradient>
-    <clipPath id="tube">
-      <rect x="190" y="106" width="132" height="300" rx="66"/>
-    </clipPath>
-  </defs>
-
-  <rect width="512" height="512" rx="114" fill="url(#bg)"/>
-  <circle cx="256" cy="360" r="150" fill="url(#glow)"/>
-
-  <!-- glass tube -->
-  <rect x="190" y="106" width="132" height="300" rx="66" fill="#ffffff" fill-opacity="0.04"/>
-
-  <!-- mercury fill (~62%) -->
-  <g clip-path="url(#tube)">
-    <rect x="190" y="220" width="132" height="200" fill="url(#mercury)"/>
-    <!-- bright meniscus -->
-    <rect x="190" y="219" width="132" height="3" fill="#ffffff" fill-opacity="0.85"/>
-  </g>
-
-  <!-- tube hairline -->
-  <rect x="190" y="106" width="132" height="300" rx="66" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="2"/>
+  <!-- Rally mark — constructed geometry (see docs/design/MARK.md)
+       vessel R=162 · wall w=R/6=27 · glass gap w/3=9 · liquid r=7R/9=126
+       meniscus: chord 180°->30° on the liquid circle => rises at exactly 15°
+       fill = 66.3% (two-thirds) — past halfway, before the payout.
+       Flat paint only: dusk #130d1a / paper #f6f1f9 / coral #ff7a50. -->
+  <rect width="512" height="512" rx="114" fill="#130d1a"/>
+  <circle cx="256" cy="256" r="148.5" stroke="#f6f1f9" stroke-width="27"/>
+  <path d="M 130.00 256.00 A 126.00 126.00 0 1 0 365.12 193.00 Z" fill="#ff7a50"/>
 </svg>

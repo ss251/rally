@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <!-- Rally favicon variant — small-size optics (16/32px): glyph enlarged to
+       R=196, wall thickened to R/4.5, glass gap dropped. See docs/design/MARK.md. -->
+  <rect width="512" height="512" rx="114" fill="#130d1a"/>
+  <circle cx="256" cy="256" r="174.222" stroke="#f6f1f9" stroke-width="43.5556"/>
+  <path d="M 103.56 256.00 A 152.44 152.44 0 1 0 388.02 179.78 Z" fill="#ff7a50"/>
+</svg>
