@@ -7,7 +7,7 @@ import { Confetti } from '#/components/Confetti'
 import { ShareLink } from '#/components/ShareLink'
 import { formatUsd } from '#/design/chains'
 import { loginWithEmail } from '#/lib/auth/magic'
-import { inviteLinkFor, type SignedInvite } from '#/lib/circle'
+import { friendlyCircleError, inviteLinkFor, type SignedInvite } from '#/lib/circle'
 import { createCircleServerFn, type CreateCircleFnInput } from '#/lib/circle-actions'
 import { createSelfCustodiedCircle } from '#/lib/circle-self-custody'
 
@@ -101,7 +101,10 @@ function CreateCircle() {
       }
       setStatus('idle')
     } catch (e) {
-      setError(e instanceof Error && e.message ? e.message : 'Something went wrong. Please try again.')
+      // Raw JS/SDK errors reached this form live ("Cannot read properties of
+      // undefined…") — money surfaces never show stack-trace language.
+      console.error('[create-circle]', e)
+      setError(friendlyCircleError(e))
       setStatus('error')
     }
   }
