@@ -38,6 +38,32 @@ export const Route = createRootRoute({
           'One link. A bar that fills itself from every chain. Hit the goal, or everyone gets their money back.',
       },
       { name: 'theme-color', content: '#130d1a' },
+      // Share unfurl (Discord/Slack/iMessage/X) — the first judging surface.
+      { property: 'og:type', content: 'website' },
+      { property: 'og:site_name', content: 'Rally' },
+      { property: 'og:title', content: 'Rally — pool money together, from any chain' },
+      {
+        property: 'og:description',
+        content: 'It pays out together, or refunds everyone — automatically.',
+      },
+      { property: 'og:url', content: 'https://rally-production-94cc.up.railway.app/' },
+      { property: 'og:image', content: 'https://rally-production-94cc.up.railway.app/og.png' },
+      { property: 'og:image:width', content: '1200' },
+      { property: 'og:image:height', content: '630' },
+      {
+        property: 'og:image:alt',
+        content: 'Rally — a vessel that fills as a group pools money',
+      },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: 'Rally — pool money together, from any chain' },
+      {
+        name: 'twitter:description',
+        content: 'It pays out together, or refunds everyone — automatically.',
+      },
+      {
+        name: 'twitter:image',
+        content: 'https://rally-production-94cc.up.railway.app/og.png',
+      },
       // iOS standalone / app-like chrome
       { name: 'mobile-web-app-capable', content: 'yes' },
       { name: 'apple-mobile-web-app-capable', content: 'yes' },
@@ -50,7 +76,9 @@ export const Route = createRootRoute({
     links: [
       { rel: 'stylesheet', href: appCss },
       { rel: 'manifest', href: '/manifest.webmanifest' },
-      { rel: 'icon', href: '/icons/icon.svg', type: 'image/svg+xml' },
+      // favicon.svg is the small-size optical variant of the mark (Shell
+      // size-ladder): heavier wall, no glass gap — built for 16–32px tabs.
+      { rel: 'icon', href: '/icons/favicon.svg', type: 'image/svg+xml' },
       { rel: 'icon', href: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
       { rel: 'icon', href: '/icons/icon-192.png', sizes: '192x192' },
       { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png' },
