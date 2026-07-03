@@ -12,6 +12,8 @@ interface ContributeSheetProps {
   open: boolean
   onClose: () => void
   campaignTitle?: string
+  /** The on-chain campaign this sheet funds — ALWAYS the one on screen. */
+  campaignId?: string
   /** The chain the backer's money is auto-detected on (the CCTP source). */
   fromChain?: Chain
   /** Amount pre-selected when the sheet opens — carried from the entry CTA so
@@ -38,6 +40,7 @@ export function ContributeSheet({
   open,
   onClose,
   campaignTitle = 'the Tokyo fund',
+  campaignId = '1',
   fromChain = 'base',
   initialAmount = AMOUNTS[0],
   onContributed,
@@ -100,13 +103,14 @@ export function ContributeSheet({
             backer: gasless.backer,
             burnTxHash: gasless.burnTx,
             sourceDomain: gasless.sourceDomain,
+            campaignId,
           },
         })
       } else {
         // Fresh/empty wallet → relayer fronts the source USDC (capped to its
         // finite testnet treasury), recorded under the backer's real address.
         res = await contributeServerFn({
-          data: { backer: user.address, amountUsd: amount },
+          data: { backer: user.address, amountUsd: amount, campaignId },
         })
       }
 

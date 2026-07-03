@@ -1,13 +1,32 @@
 import { useMemo, useState } from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, Gift, PartyPopper } from 'lucide-react'
+import { ArrowLeft, Gift, Loader2, PartyPopper } from 'lucide-react'
 import { motion } from 'motion/react'
 import { AppShell } from '#/components/AppShell'
 import { CampaignCard, type Campaign } from '#/components/CampaignCard'
 import { ShareLink } from '#/components/ShareLink'
 import type { Skin } from '#/design/chains'
+import { loginWithEmail } from '#/lib/auth/magic'
+import { createCampaignServerFn } from '#/lib/campaign-actions'
+import { loadCampaign, type CampaignView } from '#/lib/campaign'
 
-export const Route = createFileRoute('/create')({ component: CreateCampaign })
+export const Route = createFileRoute('/create')({
+  // `?created=<id>` is the post-create success state (PRG: we navigate here
+  // after the on-chain create lands, so refresh/share keeps the real screen).
+  validateSearch: (search: Record<string, unknown>): { created?: string } =>
+    typeof search.created === 'string' && /^[0-9]{1,10}$/.test(search.created)
+      ? { created: search.created }
+      : {},
+  loaderDeps: ({ search }) => ({ created: search.created }),
+  // Load the REAL campaign for the success screen — the link we hand out is
+  // backed by a live read, not a copy of someone else's fund.
+  loader: async ({ deps }): Promise<CampaignView | null> => {
+    if (!deps.created) return null
+    const load = await loadCampaign(deps.created)
+    return load.kind === 'view' ? load.view : null
+  },
+  component: CreateCampaign,
+})
 
 const DAY = 24 * 60 * 60 * 1000
 const DEADLINES: { label: string; days: number }[] = [
@@ -17,7 +36,9 @@ const DEADLINES: { label: string; days: number }[] = [
   { label: '30 days', days: 30 },
 ]
 
-// Skin-aware copy — the same form builds a fundraiser or a group gift.
+// Skin-aware copy — the same form previews a fundraiser or a group gift.
+// Rally creates for REAL (Magic login → GoalVault campaign on Arbitrum
+// Sepolia). Potluck is an honest preview of the gift skin — it ships next.
 const COPY: Record<Skin, { titlePh: string; goalLabel: string; goalPh: string; verb: string; kicker: string }> = {
   rally: {
     titlePh: 'Send the crew to Tokyo',
@@ -30,25 +51,40 @@ const COPY: Record<Skin, { titlePh: string; goalLabel: string; goalPh: string; v
     titlePh: 'Priya’s surprise send-off',
     goalLabel: 'Gift pool',
     goalPh: '600',
-    verb: 'Start the potluck',
+    verb: 'Preview the potluck',
     kicker: 'A group gift everyone chips into.',
   },
 }
 
+type Status = 'idle' | 'authing' | 'creating' | 'error'
+
+/** "sailesh.e123@gmail.com" → "Sailesh" — a warm organizer label, never hex. */
+function organizerFromEmail(email: string): string {
+  const local = email.split('@')[0] ?? ''
+  const token = local.split(/[._+\-]/).find((t) => /[a-zA-Z]/.test(t)) ?? ''
+  const word = token.replace(/[^a-zA-Z]/g, '')
+  if (!word) return 'The crew'
+  return word[0].toUpperCase() + word.slice(1).toLowerCase()
+}
+
 function CreateCampaign() {
   const navigate = useNavigate()
+  const createdView = Route.useLoaderData()
   const [mode, setMode] = useState<Skin>('rally')
   const [title, setTitle] = useState('')
+  const [email, setEmail] = useState('')
   const [goal, setGoal] = useState('')
   const [days, setDays] = useState(7)
-  const [created, setCreated] = useState(false)
+  const [status, setStatus] = useState<Status>('idle')
+  const [error, setError] = useState<string | null>(null)
 
   const copy = COPY[mode]
   const goalNum = Math.max(0, Number(goal.replace(/[^0-9.]/g, '')) || 0)
-  const canCreate = title.trim().length > 1 && goalNum > 0
+  const inFlight = status === 'authing' || status === 'creating'
+  const canCreate =
+    title.trim().length > 1 && goalNum > 0 && /.+@.+\..+/.test(email) && !inFlight
 
-  // The live preview (also the artifact shown on success). Re-skins in place as
-  // the Rally/Potluck toggle flips — same card, different accent + voice.
+  // The live preview card, re-skinning in place as you type + toggle.
   const preview: Campaign = useMemo(
     () => ({
       id: 'preview',
@@ -64,10 +100,57 @@ function CreateCampaign() {
     [title, goalNum, days, mode, copy.titlePh, copy.goalPh],
   )
 
-  const shareUrl =
-    typeof window !== 'undefined' ? `${window.location.origin}/c/1` : '/c/1'
+  const create = async () => {
+    if (!canCreate) return
+    setError(null)
+    try {
+      // 1. Real Magic email login — the creator's embedded wallet is the
+      //    beneficiary: the money is theirs on success.
+      setStatus('authing')
+      const user = await loginWithEmail(email)
 
-  if (created) {
+      // 2. createCampaign on the live GoalVault (the Rally relayer pays the
+      //    testnet gas to open it; the fund itself belongs to the creator).
+      setStatus('creating')
+      const res = await createCampaignServerFn({
+        data: {
+          title: title.trim(),
+          organizer: organizerFromEmail(email),
+          goalUsd: goalNum,
+          days,
+          beneficiary: user.address,
+        },
+      })
+
+      // 3. PRG to the success state — the loader re-reads the REAL campaign.
+      setStatus('idle')
+      navigate({
+        to: '/create',
+        search: { created: res.campaignId },
+        replace: true,
+      })
+    } catch (e) {
+      setError(e instanceof Error && e.message ? e.message : 'Something went wrong. Please try again.')
+      setStatus('error')
+    }
+  }
+
+  // —— Success: a REAL fund, a REAL link ————————————————————————————————
+  if (createdView) {
+    const c = createdView
+    const path = `/c/${c.id}`
+    const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}${path}` : path
+    const card: Campaign = {
+      id: c.id,
+      title: c.title,
+      organizer: 'You',
+      raised: c.raised,
+      goal: c.goal,
+      deadline: c.deadline,
+      backerCount: c.backerCount,
+      segments: c.segments,
+      mode: 'rally',
+    }
     return (
       <AppShell header={<CreateHeader />}>
         <div className="flex flex-col gap-6 pt-6">
@@ -77,7 +160,7 @@ function CreateCampaign() {
               animate={{ opacity: 1, y: 0 }}
               className="text-sm font-medium text-muted"
             >
-              {mode === 'potluck' ? 'Your potluck is live ✦' : 'Your rally is live ✦'}
+              Your rally is live ✦
             </motion.p>
             <motion.h1
               initial={{ opacity: 0, y: 10 }}
@@ -99,19 +182,29 @@ function CreateCampaign() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ type: 'spring', stiffness: 320, damping: 30 }}
           >
-            <CampaignCard campaign={preview} onOpen={() => navigate({ to: '/c/$id', params: { id: '1' } })} />
+            <CampaignCard
+              campaign={card}
+              onOpen={() => navigate({ to: '/c/$id', params: { id: c.id } })}
+            />
           </motion.div>
 
           <div className="flex flex-col gap-2.5">
             <ShareLink variant="primary" url={shareUrl} label="Copy the link" />
             <Link
               to="/c/$id"
-              params={{ id: '1' }}
+              params={{ id: c.id }}
               className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-center text-base font-semibold text-paper transition-transform active:scale-[0.98]"
             >
               Open the rally →
             </Link>
           </div>
+
+          {c.live && (
+            <p className="text-center text-[12.5px] leading-relaxed text-faint">
+              Fund #{c.id}, live on Arbitrum testnet — the bar fills the moment
+              money lands.
+            </p>
+          )}
         </div>
       </AppShell>
     )
@@ -121,24 +214,63 @@ function CreateCampaign() {
     <AppShell
       header={<CreateHeader />}
       cta={
-        <button
-          onClick={() => canCreate && setCreated(true)}
-          disabled={!canCreate}
-          className="relative w-full overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97] disabled:opacity-45"
-          style={{
-            background:
-              'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
-            boxShadow:
-              'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
-          }}
-        >
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
-            style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
-          />
-          {copy.verb}
-        </button>
+        mode === 'potluck' ? (
+          // Honest: potluck creation ships next — this opens the live preview.
+          <div className="flex flex-col items-center gap-2.5">
+            <Link
+              to="/c/$id"
+              params={{ id: '1' }}
+              search={{ skin: 'potluck' }}
+              className="relative flex w-full items-center justify-center overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
+              style={{
+                background: 'linear-gradient(180deg, #ff7db0, #ff5c9a 58%, #f0457f)',
+                boxShadow:
+                  'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
+              }}
+            >
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+                style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
+              />
+              {copy.verb} →
+            </Link>
+            <p className="text-center text-[12.5px] leading-relaxed text-faint">
+              A live preview of the gift skin — potluck creation ships next.
+            </p>
+          </div>
+        ) : (
+          <button
+            onClick={create}
+            disabled={!canCreate}
+            className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97] disabled:opacity-45"
+            style={{
+              background:
+                'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
+              boxShadow:
+                'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
+            }}
+          >
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+              style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
+            />
+            {status === 'authing' ? (
+              <>
+                <Loader2 size={18} className="animate-spin" /> Check your email…
+              </>
+            ) : status === 'creating' ? (
+              <>
+                <Loader2 size={18} className="animate-spin" /> Opening the fund…
+              </>
+            ) : status === 'error' ? (
+              <>Try again</>
+            ) : (
+              <>{copy.verb}</>
+            )}
+          </button>
+        )
       }
     >
       <div className="flex flex-col gap-6 pt-4">
@@ -153,7 +285,7 @@ function CreateCampaign() {
         </div>
 
         {/* Mode toggle — flips the preview below between fundraiser + group gift. */}
-        <ModeToggle mode={mode} onChange={setMode} />
+        <ModeToggle mode={mode} onChange={setMode} disabled={inFlight} />
 
         {/* Live preview — the shareable card, re-skinning as you type + toggle. */}
         <CampaignCard campaign={preview} compact />
@@ -168,9 +300,29 @@ function CreateCampaign() {
             onChange={(e) => setTitle(e.target.value)}
             placeholder={copy.titlePh}
             maxLength={60}
-            className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-rally-500/70 focus:bg-white/[0.06]"
+            disabled={inFlight}
+            className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-rally-500/70 focus:bg-white/[0.06] disabled:opacity-60"
           />
         </label>
+
+        {/* Email — the fund pays out to the creator's email wallet. */}
+        {mode === 'rally' && (
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium uppercase tracking-wide text-faint">
+              Your email — the goal pays out to you
+            </span>
+            <input
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              placeholder="you@email.com"
+              value={email}
+              disabled={inFlight}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-rally-500/70 focus:bg-white/[0.06] disabled:opacity-60"
+            />
+          </label>
+        )}
 
         {/* Goal */}
         <label className="flex flex-col gap-1.5">
@@ -186,7 +338,8 @@ function CreateCampaign() {
               onChange={(e) => setGoal(e.target.value)}
               inputMode="decimal"
               placeholder={copy.goalPh}
-              className="tnum w-full rounded-xl border border-white/10 bg-white/[0.04] py-3.5 pl-8 pr-16 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-rally-500/70 focus:bg-white/[0.06]"
+              disabled={inFlight}
+              className="tnum w-full rounded-xl border border-white/10 bg-white/[0.04] py-3.5 pl-8 pr-16 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-rally-500/70 focus:bg-white/[0.06] disabled:opacity-60"
             />
             <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-faint">
               USDC
@@ -204,7 +357,8 @@ function CreateCampaign() {
                 <button
                   key={d.days}
                   onClick={() => setDays(d.days)}
-                  className="relative rounded-xl py-2.5 text-sm font-semibold transition-colors"
+                  disabled={inFlight}
+                  className="relative rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
                   style={
                     active
                       ? { background: 'var(--color-rally-500)', color: 'var(--color-ink-950)' }
@@ -229,6 +383,10 @@ function CreateCampaign() {
             })}
           </div>
         </div>
+
+        {status === 'error' && error && (
+          <p className="-mt-2 text-[13px] leading-relaxed text-warn">{error}</p>
+        )}
       </div>
     </AppShell>
   )
@@ -256,7 +414,15 @@ function CreateHeader() {
   )
 }
 
-function ModeToggle({ mode, onChange }: { mode: Skin; onChange: (m: Skin) => void }) {
+function ModeToggle({
+  mode,
+  onChange,
+  disabled,
+}: {
+  mode: Skin
+  onChange: (m: Skin) => void
+  disabled?: boolean
+}) {
   const opts: { key: Skin; label: string; Icon: typeof Gift }[] = [
     { key: 'rally', label: 'Rally', Icon: PartyPopper },
     { key: 'potluck', label: 'Potluck', Icon: Gift },
@@ -269,7 +435,8 @@ function ModeToggle({ mode, onChange }: { mode: Skin; onChange: (m: Skin) => voi
           <button
             key={key}
             onClick={() => onChange(key)}
-            className="relative flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-colors"
+            disabled={disabled}
+            className="relative flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
             style={{ color: active ? 'var(--color-paper)' : 'var(--color-faint)' }}
           >
             {active && (

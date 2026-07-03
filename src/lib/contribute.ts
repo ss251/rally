@@ -20,11 +20,22 @@ import { createServerFn } from '@tanstack/react-start'
 import type { Address } from 'viem'
 import type { FillContributionResult } from '#/lib/cctp/contribute-fill'
 
+/** Digits-only campaign id (matches route params); parsed server-side. */
+const parseCampaignId = (v: unknown): number | undefined => {
+  if (v === undefined) return undefined
+  if (typeof v !== 'string' || !/^[0-9]{1,10}$/.test(v) || Number(v) < 1) {
+    throw new Error('a valid campaign id is required')
+  }
+  return Number(v)
+}
+
 export interface ContributeInput {
   /** The backer's Magic email-wallet address (0x…40 hex). */
   backer: string
   /** Requested USD amount (clamped server-side to a small testnet cap). */
   amountUsd?: number
+  /** The campaign being funded — the one on screen (defaults to #1). */
+  campaignId?: string
 }
 
 export const contributeServerFn = createServerFn({ method: 'POST' })
@@ -36,11 +47,16 @@ export const contributeServerFn = createServerFn({ method: 'POST' })
       typeof data.amountUsd === 'number' && Number.isFinite(data.amountUsd)
         ? data.amountUsd
         : undefined
-    return { backer: data.backer, amountUsd }
+    parseCampaignId(data.campaignId)
+    return { backer: data.backer, amountUsd, campaignId: data.campaignId }
   })
   .handler(async ({ data }): Promise<FillContributionResult> => {
     const { fillContribution } = await import('#/lib/cctp/contribute-fill')
-    return fillContribution({ backer: data.backer as Address, amountUsd: data.amountUsd })
+    return fillContribution({
+      backer: data.backer as Address,
+      amountUsd: data.amountUsd,
+      campaignId: parseCampaignId(data.campaignId),
+    })
   })
 
 // ---------------------------------------------------------------------------
@@ -56,6 +72,8 @@ export interface CompleteInput {
   burnTxHash: string
   /** CCTP source domain of the burn (defaults to Base Sepolia = 6). */
   sourceDomain?: number
+  /** The campaign being funded — the one on screen (defaults to #1). */
+  campaignId?: string
 }
 
 export const completeContributionServerFn = createServerFn({ method: 'POST' })
@@ -70,7 +88,13 @@ export const completeContributionServerFn = createServerFn({ method: 'POST' })
       typeof data.sourceDomain === 'number' && Number.isFinite(data.sourceDomain)
         ? data.sourceDomain
         : undefined
-    return { backer: data.backer, burnTxHash: data.burnTxHash, sourceDomain }
+    parseCampaignId(data.campaignId)
+    return {
+      backer: data.backer,
+      burnTxHash: data.burnTxHash,
+      sourceDomain,
+      campaignId: data.campaignId,
+    }
   })
   .handler(async ({ data }): Promise<FillContributionResult> => {
     const { completeContribution } = await import('#/lib/cctp/complete-fill')
@@ -78,5 +102,6 @@ export const completeContributionServerFn = createServerFn({ method: 'POST' })
       backer: data.backer as Address,
       burnTxHash: data.burnTxHash as `0x${string}`,
       sourceDomain: data.sourceDomain,
+      campaignId: parseCampaignId(data.campaignId),
     })
   })
