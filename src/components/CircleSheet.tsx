@@ -50,8 +50,8 @@ const COPY: Record<
     title: 'Your turn',
     lead: 'Everyone’s in — this round’s pot is yours. Enter your email to take it. No gas, ever.',
     reassure: 'The whole pot, in one tap. That’s the deal — every member gets a turn.',
-    doneTitle: 'The pot is yours ✦',
-    done: (a) => `${formatUsd(a)} just landed in your wallet. That’s your round.`,
+    doneTitle: 'You got the pot ✦',
+    done: () => 'Straight to your wallet, gas-free. That’s your round — the rotation moves on.',
   },
   refund: {
     title: 'Get your money back',
@@ -152,7 +152,12 @@ export function CircleSheet({
         <SuccessView
           title={copy.doneTitle}
           body={copy.done(movedUsd ?? amount, circleTitle)}
-          onDoneLabel={mode === 'refund' ? 'Back to the circle' : 'Back to the circle'}
+          // Claiming the pot is the biggest moment in a circle's life — the
+          // whole point of the rotation. Name the amount, huge, and let the
+          // burst be bigger than a routine chip-in.
+          figure={mode === 'claim' ? (movedUsd ?? amount) : undefined}
+          particleCount={mode === 'claim' ? 190 : 110}
+          onDoneLabel="Back to the circle"
           onDone={onClose}
         />
       ) : (
@@ -248,17 +253,22 @@ export function CircleSheet({
 function SuccessView({
   title,
   body,
+  figure,
+  particleCount = 110,
   onDoneLabel,
   onDone,
 }: {
   title: string
   body: string
+  /** Optional hero amount — rendered as the money-shot figure (claim mode). */
+  figure?: number
+  particleCount?: number
   onDoneLabel: string
   onDone: () => void
 }) {
   return (
     <div className="relative flex flex-col items-center gap-4 py-4 text-center">
-      <Confetti active skin="rally" particleCount={110} />
+      <Confetti active skin="rally" particleCount={particleCount} />
       <motion.div
         initial={{ scale: 0.4, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -278,7 +288,20 @@ function SuccessView({
         >
           {title}
         </h3>
-        <p className="mt-1.5 text-[15px] leading-relaxed text-muted">{body}</p>
+        {figure != null && (
+          <motion.p
+            initial={{ scale: 0.6, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 22, delay: 0.1 }}
+            className="tnum mt-3 text-figure font-semibold text-paper"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            {formatUsd(figure)}
+          </motion.p>
+        )}
+        <p className={`${figure != null ? 'mt-3' : 'mt-1.5'} text-[15px] leading-relaxed text-muted`}>
+          {body}
+        </p>
       </div>
       <button
         onClick={onDone}
