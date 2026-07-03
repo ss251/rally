@@ -290,7 +290,7 @@ const KNOWN: Record<string, { title: string; organizer: string; seatNames: strin
   '1': {
     title: 'The crew’s first circle',
     organizer: 'The Rally crew',
-    seatNames: ['Sam', 'Maya', 'Tomás', 'Priya'],
+    seatNames: ['Sam', 'Maya', 'Tom', 'Emma'],
   },
   // Broken on purpose (round 2 left unfunded) so the safety rail — everyone
   // refunded, automatically — is demonstrable live, not just promised.
@@ -507,12 +507,12 @@ export async function fetchLiveCircle(id: string, titleHint?: string): Promise<C
 }
 
 // ── Representative fallback (never let the screen look broken) ───────────────
-// A warm, human demo circle in Rally's voice — the diaspora chit fund. Used by
-// the /circles landing hero and whenever a live read fails.
+// A warm, human demo circle in Rally's voice — five friends, one rotating pot.
+// Used by the /circles landing hero and whenever a live read fails.
 export function mockCircle(id = 'demo'): CircleView {
   const now = Date.now()
-  const seatNames = ['Priya', 'Ravi', 'Amma', 'Meena', 'Arjun']
-  const fundedSeats = new Set([0, 1, 3]) // Priya, Ravi, Meena are in this round
+  const seatNames = ['Emma', 'Ben', 'Sam', 'Maya', 'Chris']
+  const fundedSeats = new Set([0, 1, 3]) // Emma, Ben, Maya are in this round
   const members: CircleMemberView[] = seatNames.map((name, i) => ({
     address: `0x00000000000000000000000000000000000000a${i}`,
     name,
@@ -530,8 +530,8 @@ export function mockCircle(id = 'demo'): CircleView {
   }))
   return {
     id,
-    title: 'The cousins’ chit fund',
-    organizer: 'Priya',
+    title: 'The roommates’ savings circle',
+    organizer: 'Emma',
     organizerAddress: ZERO_ADDR,
     status: 'active',
     depositUsd: 50,

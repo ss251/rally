@@ -92,7 +92,7 @@ const KNOWN: Record<string, CampaignMetaView> = {
       // The three wallets that filled campaign #1 live (see the on-chain log).
       '0x6a63bdd548715b4dac5e2ee62a6d4085c2d393b1': 'Sam',
       '0xf0fe5731ef41e101f1fd37cf481bb2bb8117d74f': 'Maya',
-      '0xe8723d9b24a1a1d59eff5dd4e794c39b5c39ce89': 'Tomás',
+      '0xe8723d9b24a1a1d59eff5dd4e794c39b5c39ce89': 'Tom',
     },
   },
   // Created live through the product's own /create flow (tx 0xd554bd41…83fc) —
@@ -279,9 +279,9 @@ export function mockCampaign(id: string): CampaignView {
     ],
     contributors: [
       { id: 'a', name: 'Maya', amount: 250, chain: 'base', timestamp: now - 90_000 },
-      { id: 'b', name: 'Tomás', amount: 40, chain: 'solana', timestamp: now - 240_000 },
-      { id: 'c', name: 'Priya', amount: 120, chain: 'arbitrum', timestamp: now - 600_000 },
-      { id: 'd', name: 'Wei', amount: 60, chain: 'optimism', timestamp: now - 1_500_000 },
+      { id: 'b', name: 'Tom', amount: 40, chain: 'solana', timestamp: now - 240_000 },
+      { id: 'c', name: 'Emma', amount: 120, chain: 'arbitrum', timestamp: now - 600_000 },
+      { id: 'd', name: 'Chris', amount: 60, chain: 'optimism', timestamp: now - 1_500_000 },
     ],
     status: 'live',
     live: false,
@@ -295,7 +295,7 @@ export function mockPotluckCampaign(id: string): CampaignView {
   const now = Date.now()
   return {
     id,
-    title: 'Aisha’s surprise send-off',
+    title: 'Kate’s surprise send-off',
     organizer: 'The design team',
     raised: 620,
     goal: 800,
@@ -311,7 +311,7 @@ export function mockPotluckCampaign(id: string): CampaignView {
       { id: 'p1', name: 'Diego', amount: 50, chain: 'base', note: 'Go get ’em in Lisbon 🇵🇹', timestamp: now - 60_000 },
       { id: 'p2', name: 'Hannah', amount: 25, chain: 'solana', note: 'We’ll miss you at standup!', timestamp: now - 320_000 },
       { id: 'p3', name: 'Marcus', amount: 40, chain: 'arbitrum', note: 'For the fancy espresso machine ☕️', timestamp: now - 900_000 },
-      { id: 'p4', name: 'Yuki', amount: 30, chain: 'optimism', note: 'One more for the road ✨', timestamp: now - 1_800_000 },
+      { id: 'p4', name: 'Jordan', amount: 30, chain: 'optimism', note: 'One more for the road ✨', timestamp: now - 1_800_000 },
     ],
     status: 'live',
     live: false,
