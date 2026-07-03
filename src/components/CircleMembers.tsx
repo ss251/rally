@@ -101,7 +101,11 @@ export function CircleMembers({
                   )}
                 </div>
                 <p className="text-xs text-faint">
-                  {open ? 'waiting for an invite' : `takes round ${m.seat + 1}’s pot`}
+                  {open
+                    ? 'waiting for an invite'
+                    : broken
+                      ? `was due round ${m.seat + 1}’s pot`
+                      : `takes round ${m.seat + 1}’s pot`}
                 </p>
               </div>
               {broken ? (

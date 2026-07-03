@@ -164,18 +164,27 @@ export function CircleSheet({
         <div className="flex flex-col gap-5 pb-2">
           <p className="-mt-1 text-[15px] leading-relaxed text-muted">{copy.lead}</p>
 
-          {/* The figure — circles have exact amounts, so no tier picker. */}
-          <div className="flex items-end justify-between rounded-2xl border border-white/[0.07] bg-white/[0.02] px-4 py-3.5">
-            <span className="text-xs font-medium uppercase tracking-wide text-faint">
-              {mode === 'chip' ? 'Your share this round' : mode === 'claim' ? 'This round’s pot' : 'Coming back to you'}
-            </span>
-            <span
-              className="tnum font-display text-2xl font-semibold leading-none text-paper"
-              style={{ fontFamily: 'var(--font-display)' }}
-            >
-              {mode === 'refund' && amount <= 0 ? '—' : formatUsd(amount)}
-            </span>
-          </div>
+          {/* The figure — circles have exact amounts, so no tier picker. A $0
+              refund is a sentence, not a dangling em-dash: don't promise a
+              stranger money the vault doesn't owe them. */}
+          {mode === 'refund' && amount <= 0 ? (
+            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] px-4 py-3.5 text-[13px] leading-relaxed text-muted">
+              This email isn’t in this circle — nothing is owed here. If you chipped in,
+              use the email you joined with.
+            </div>
+          ) : (
+            <div className="flex items-end justify-between rounded-2xl border border-white/[0.07] bg-white/[0.02] px-4 py-3.5">
+              <span className="text-xs font-medium uppercase tracking-wide text-faint">
+                {mode === 'chip' ? 'Your share this round' : mode === 'claim' ? 'This round’s pot' : 'Coming back to you'}
+              </span>
+              <span
+                className="tnum font-display text-2xl font-semibold leading-none text-paper"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                {formatUsd(amount)}
+              </span>
+            </div>
+          )}
 
           {/* Email */}
           <label className="flex flex-col gap-1.5">
@@ -237,7 +246,7 @@ export function CircleSheet({
             ) : amount > 0 ? (
               <>Get {formatUsd(amount)} back</>
             ) : (
-              <>Get your money back</>
+              <>Check your refund</>
             )}
           </button>
 
