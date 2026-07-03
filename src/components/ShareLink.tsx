@@ -42,7 +42,7 @@ export function ShareLink({ url, variant = 'ghost', label = 'Copy link', classNa
     return (
       <button
         onClick={copy}
-        className={`w-full py-1 text-center text-[15px] font-medium text-muted transition-colors hover:text-paper ${className ?? ''}`}
+        className={`w-full py-1 text-center text-sm font-medium text-muted transition-colors hover:text-paper ${className ?? ''}`}
       >
         {copied ? 'Copied to clipboard ✓' : `${label} →`}
       </button>

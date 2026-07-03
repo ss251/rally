@@ -163,7 +163,7 @@ export function ContributeSheet({
             <span className="flex items-baseline justify-between">
               <span className="text-xs font-medium uppercase tracking-wide text-faint">Email</span>
               {!/.+@.+\..+/.test(email) && (
-                <span className="text-[11px] text-faint">enter yours to chip in</span>
+                <span className="text-xs text-faint">enter yours to chip in</span>
               )}
             </span>
             <input
@@ -227,7 +227,7 @@ export function ContributeSheet({
                 />
               </button>
               {fromOpen && (
-                <p className="mt-1.5 max-w-[19rem] text-[12.5px] leading-relaxed text-faint">
+                <p className="mt-1.5 max-w-[19rem] text-[13px] leading-relaxed text-faint">
                   We detect the chain your USDC is already on and move it for you — no
                   network switching, no bridge to figure out.
                 </p>
@@ -283,7 +283,7 @@ export function ContributeSheet({
               stranger decides to hand over money: all-or-nothing, refunded
               automatically if the goal misses. It never yields to a form nag;
               this safety line is what converts someone who owes us nothing. */}
-          <p className="-mt-1 text-center text-[12.5px] leading-relaxed text-faint">
+          <p className="-mt-1 text-center text-[13px] leading-relaxed text-faint">
             Hit the goal or everyone's refunded —{' '}
             <span className="text-muted">automatically</span>.
           </p>

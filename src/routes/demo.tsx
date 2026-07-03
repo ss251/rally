@@ -62,14 +62,14 @@ function Demo() {
           >
             Rally
           </span>
-          <span className="text-[11px] font-medium text-faint">Share cards</span>
+          <span className="text-xs font-medium text-faint">Share cards</span>
         </div>
       }
     >
       <div className="flex flex-col gap-6 pt-4">
         <div>
           <h1
-            className="text-[1.7rem] font-semibold leading-tight tracking-tight text-paper"
+            className="text-display font-semibold text-paper"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             One link, dropped in the chat

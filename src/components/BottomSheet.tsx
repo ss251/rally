@@ -90,7 +90,7 @@ export function BottomSheet({
             onDragEnd={handleDragEnd}
           >
             <div
-              className="relative overflow-hidden rounded-t-[1.75rem] border-t border-white/10 bg-ink-900/90 backdrop-blur-2xl"
+              className="relative overflow-hidden rounded-t-[1.5rem] border-t border-white/10 bg-ink-900/90 backdrop-blur-2xl"
               style={{
                 paddingBottom: 'calc(var(--safe-bottom) + 1.25rem)',
                 boxShadow:

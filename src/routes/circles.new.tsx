@@ -143,7 +143,7 @@ function CreateCircle() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.08 }}
-              className="mt-4 text-[1.9rem] font-semibold leading-tight tracking-tight text-paper"
+              className="mt-4 text-display font-semibold text-paper"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               Your circle is live ✦
@@ -176,7 +176,7 @@ function CreateCircle() {
               rotates
             </p>
             {/* The custody line — who holds this circle's keys, plainly. */}
-            <p className="mt-2 border-t border-white/[0.06] pt-2 text-[12.5px] leading-relaxed text-faint">
+            <p className="mt-2 border-t border-white/[0.06] pt-2 text-[13px] leading-relaxed text-faint">
               {created.selfCustodied
                 ? 'Self-custodied: your wallet is the on-chain organizer — invites carry your signature, and only you can start the circle.'
                 : 'Demo circle: the Rally crew runs it so you can watch a full rotation solo.'}
@@ -301,7 +301,7 @@ function CreateCircle() {
       <div className="flex flex-col gap-6 pt-4">
         <div>
           <h1
-            className="text-[2rem] font-semibold leading-[1.05] tracking-tight text-paper"
+            className="text-display font-semibold text-paper"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             Start a circle
@@ -418,7 +418,7 @@ function CreateCircle() {
             })}
           </div>
           {cadence === 300 && (
-            <p className="text-[12.5px] leading-relaxed text-faint">
+            <p className="text-[13px] leading-relaxed text-faint">
               5-minute rounds are perfect for a demo rotation.
             </p>
           )}
@@ -459,7 +459,7 @@ function CreateCircle() {
               )
             })}
           </div>
-          <p className="text-[12.5px] leading-relaxed text-faint">
+          <p className="text-[13px] leading-relaxed text-faint">
             The pot each round: <span className="tnum text-muted">{formatUsd(amount * seats)}</span> —
             every member gets exactly one turn.
           </p>
@@ -483,7 +483,7 @@ function CreateCircle() {
             </span>
             <span>
               <span className="block text-sm font-semibold text-paper">Fill seats with demo friends</span>
-              <span className="block text-[12.5px] leading-relaxed text-faint">
+              <span className="block text-[13px] leading-relaxed text-faint">
                 so you can watch a full rotation solo — real on-chain, testnet money
               </span>
             </span>
@@ -501,7 +501,7 @@ function CreateCircle() {
 
         {/* Who organizes the circle — the custody line, stated before the tap.
             Real create = the creator's wallet; demo = the Rally crew, plainly. */}
-        <p className="-mt-3 text-[12.5px] leading-relaxed text-faint">
+        <p className="-mt-3 text-[13px] leading-relaxed text-faint">
           {demoFill ? (
             <>
               Demo circles are run by <span className="font-medium text-muted">the Rally crew</span>{' '}

@@ -80,15 +80,40 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
-  /* Display sizes for the money-shot readouts. */
-  --text-mega: 4.5rem;         /* hero raised amount */
-  --text-mega--line-height: 1;
-  --text-mega--letter-spacing: -0.03em;
+  /* THE TYPE LADDER (px) — every size has ONE job; nothing lives between rungs.
+       10  uppercase micro tags (tracking-wide earns the small size)
+       12  metadata      — timestamps, counts, field labels, status ticks
+       13  supporting    — helper sentences, meta rows, errors, fine print
+       14  body          — names, labels, text links (text-sm)
+       15  lead          — sheet intros + standing status in the CTA zone
+       16  action        — inputs and CTAs (text-base)
+       18  title         — wordmark, sheet + card titles (text-lg)
+       24  readout       — the %, "pot", success titles (text-2xl)
+       34  display       — screen h1 (--text-display)
+       44  figure        — the money (--text-figure)
+       72  mega          — reserved: the withdraw-success total (--text-mega)
+     The display tier marches evenly: 24 → 34 → 44 (+10 each); mega = 3 × 24.
+     Exempt: the 8.5px goal etching INSIDE the instruments — printed on the
+     glass (canvas scale), not set in the page. */
+  --text-display: 2.125rem;    /* screen h1 */
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.01em;
   --text-figure: 2.75rem;      /* card / section amounts */
   --text-figure--line-height: 1.05;
   --text-figure--letter-spacing: -0.02em;
+  --text-mega: 4.5rem;         /* hero raised amount */
+  --text-mega--line-height: 1;
+  --text-mega--letter-spacing: -0.03em;
 
-  /* ── Radii ────────────────────────────────────────────────────────────── */
+  /* ── Radii — one ladder, derived from the tube down ───────────────────────
+       tube   999px  capsules: the glass column, buttons, pills, chips, dots
+       card   24px   the artifact card + the sheet's top edge (1.5rem)
+       row    16px   list rows, sections, framed groups   (= rounded-2xl)
+       field  12px   inputs + freestanding choice chips   (= rounded-xl)
+       nested = outer − inset: a chip inside a p-1.5 row frame is 16 − 6 = 10px
+     Spacing rhythm (4px base): 24 between sections (gap-6) · 16 card padding
+     and CTA height (p-4) · 12 header→list (mb-3) · 8 between rows (gap-2) ·
+     6 chip inset (p-1.5). */
   --radius-tube: 999px;
   --radius-card: 1.5rem;
 

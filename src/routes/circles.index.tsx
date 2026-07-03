@@ -30,7 +30,7 @@ function CirclesHome() {
             Rally <span className="text-muted">Circles</span>
           </span>
           {/* Static dot + honest label — this hero is representative data. */}
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-faint">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs font-medium text-faint">
             <span
               className="h-1.5 w-1.5 rounded-full"
               style={{ background: 'rgba(255,241,232,0.82)' }}
@@ -72,7 +72,7 @@ function CirclesHome() {
         <div>
           <p className="text-sm text-faint">{DEMO.organizer} is running</p>
           <h1
-            className="mt-1.5 text-[2.15rem] font-semibold leading-[1.04] tracking-[-0.01em] text-paper"
+            className="mt-1.5 text-display font-semibold text-paper"
             style={{ fontFamily: 'var(--font-display)', wordSpacing: '0.08em' }}
           >
             {DEMO.title}

@@ -50,7 +50,7 @@ export function RotationSchedule({ rounds, className }: RotationScheduleProps) {
                 </span>
               )}
               <span
-                className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-medium"
+                className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
                 style={
                   current
                     ? {
