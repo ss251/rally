@@ -311,15 +311,11 @@ function CampaignNotFound() {
       }
     >
       <div className="flex flex-col items-center gap-7 pt-14 text-center">
-        {/* An empty tube — nothing has ever poured in here. */}
-        <Thermometer
-          raised={0}
-          goal={100}
-          orientation="vertical"
-          height={200}
-          width={48}
-          showReadout={false}
-          showTicks={false}
+        {/* An empty glass tube — no goal etched, because no fund lives here. */}
+        <div
+          aria-hidden
+          className="border border-white/10 bg-white/[0.03] shadow-[inset_0_2px_18px_rgba(0,0,0,0.55)] backdrop-blur-sm"
+          style={{ width: 48, height: 200, borderRadius: 'var(--radius-tube)' }}
         />
         <div>
           <h1
