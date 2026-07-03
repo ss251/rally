@@ -33,8 +33,8 @@ export function RouteSkeleton() {
         <div className="flex flex-col gap-3">
           <Shimmer className="h-3.5 w-28" />
           <div className="flex flex-col gap-2">
-            <Shimmer className="h-9 w-64 rounded-xl" />
-            <Shimmer className="h-9 w-44 rounded-xl" />
+            <Shimmer className="h-9 w-64" />
+            <Shimmer className="h-9 w-44" />
           </div>
         </div>
 
@@ -48,7 +48,7 @@ export function RouteSkeleton() {
             <Shimmer className="h-3 w-24" />
             <div className="flex flex-col gap-2.5">
               <div className="flex items-end gap-2.5">
-                <Shimmer className="h-10 w-32 rounded-xl" />
+                <Shimmer className="h-10 w-32" />
                 <Shimmer className="h-6 w-12" />
               </div>
               <Shimmer className="h-3.5 w-36" />
@@ -91,7 +91,7 @@ export function RouteSkeleton() {
 function Shimmer({ className = '' }: { className?: string }) {
   return (
     <span
-      className={`block animate-shimmer rounded-lg ${className}`}
+      className={`block animate-shimmer rounded-full ${className}`}
       style={{
         background:
           'linear-gradient(100deg, rgba(255,255,255,0.05) 38%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.05) 62%)',

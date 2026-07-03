@@ -166,7 +166,7 @@ function CreateCampaign() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
-              className="mt-1.5 text-[1.9rem] font-semibold leading-tight tracking-tight text-paper"
+              className="mt-1.5 text-display font-semibold text-paper"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               Drop this in the group chat
@@ -200,7 +200,7 @@ function CreateCampaign() {
           </div>
 
           {c.live && (
-            <p className="text-center text-[12.5px] leading-relaxed text-faint">
+            <p className="text-center text-[13px] leading-relaxed text-faint">
               Fund #{c.id}, live on Arbitrum — the bar fills the moment
               money lands.
             </p>
@@ -235,7 +235,7 @@ function CreateCampaign() {
               />
               {copy.verb} →
             </Link>
-            <p className="text-center text-[12.5px] leading-relaxed text-faint">
+            <p className="text-center text-[13px] leading-relaxed text-faint">
               A live preview of the gift skin — potluck creation ships next.
             </p>
           </div>
@@ -286,7 +286,7 @@ function CreateCampaign() {
       <div className="flex flex-col gap-6 pt-4">
         <div>
           <h1
-            className="text-[2rem] font-semibold leading-[1.05] tracking-tight text-paper"
+            className="text-display font-semibold text-paper"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             Start something
@@ -446,7 +446,7 @@ function ModeToggle({
             key={key}
             onClick={() => onChange(key)}
             disabled={disabled}
-            className="relative flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
+            className="relative flex items-center justify-center gap-2 rounded-[10px] py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
             style={{ color: active ? 'var(--color-paper)' : 'var(--color-faint)' }}
           >
             {active && (
@@ -454,7 +454,8 @@ function ModeToggle({
               // a quiet white inset ring — the accent stays reserved for the CTA.
               <motion.span
                 layoutId="mode-toggle-pill"
-                className="absolute inset-0 rounded-xl"
+                // Concentric with the frame: 16px row radius − 6px inset = 10px.
+                className="absolute inset-0 rounded-[10px]"
                 style={{
                   background: 'rgba(255,255,255,0.10)',
                   boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,0.45)',

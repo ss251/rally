@@ -25,13 +25,14 @@ export function ModeSwitch({ active }: { active: 'goals' | 'circles' }) {
             key={key}
             to={to}
             aria-current={isActive ? 'page' : undefined}
-            className="relative flex items-center justify-center gap-2 rounded-xl py-2 text-[13px] font-semibold transition-colors"
+            className="relative flex items-center justify-center gap-2 rounded-[10px] py-2 text-[13px] font-semibold transition-colors"
             style={{ color: isActive ? 'var(--color-paper)' : 'var(--color-faint)' }}
           >
             {isActive && (
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-0 rounded-xl"
+                // Concentric with the frame: 16px row radius − 6px inset = 10px.
+                className="pointer-events-none absolute inset-0 rounded-[10px]"
                 style={{
                   background: 'rgba(255,255,255,0.10)',
                   boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,0.45)',

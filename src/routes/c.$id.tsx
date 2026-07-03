@@ -86,7 +86,7 @@ function CampaignDetail() {
               </span>
             </div>
             {/* Static dot; two-word status vocabulary: Demo | Live on Arbitrum. */}
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-faint">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs font-medium text-faint">
               <span
                 className="h-1.5 w-1.5 rounded-full"
                 style={{ background: 'rgba(255,241,232,0.82)' }}
@@ -123,7 +123,7 @@ function CampaignDetail() {
           <div>
             {isPotluck && (
               <span
-                className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold text-ink-950"
+                className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold text-ink-950"
                 style={{ background: `linear-gradient(90deg, ${accent.from}, ${accent.to})` }}
               >
                 <Gift size={12} strokeWidth={2.5} /> Group gift
@@ -133,7 +133,7 @@ function CampaignDetail() {
               {c.organizer} {isPotluck ? 'is collecting for' : 'is rallying for'}
             </p>
             <h1
-              className="mt-1.5 text-[2.15rem] font-semibold leading-[1.04] tracking-[-0.01em] text-paper"
+              className="mt-1.5 text-display font-semibold text-paper"
               style={{ fontFamily: 'var(--font-display)', wordSpacing: '0.08em' }}
             >
               {c.title}
@@ -312,7 +312,7 @@ function CampaignNotFound() {
         </div>
       }
     >
-      <div className="flex flex-col items-center gap-7 pt-14 text-center">
+      <div className="flex flex-col items-center gap-6 pt-14 text-center">
         {/* An empty glass tube — no goal etched, because no fund lives here. */}
         <div
           aria-hidden
@@ -321,7 +321,7 @@ function CampaignNotFound() {
         />
         <div>
           <h1
-            className="text-[1.9rem] font-semibold leading-tight tracking-tight text-paper"
+            className="text-display font-semibold text-paper"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             This rally doesn’t exist yet

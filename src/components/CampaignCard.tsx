@@ -79,7 +79,7 @@ function BackerStack({ backers, count }: { backers?: Backer[]; count: number }) 
           ) : (
             <span
               key={i}
-              className="flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-bold text-white ring-2 ring-ink-900"
+              className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white ring-2 ring-ink-900"
               style={{ background: `linear-gradient(135deg, ${g.from}, ${g.to})` }}
               aria-hidden="true"
             >

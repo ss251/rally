@@ -188,7 +188,7 @@ function InvitePage() {
         <div>
           <p className="text-sm text-faint">You’ve got a seat in</p>
           <h1
-            className="mt-1.5 text-[2.15rem] font-semibold leading-[1.04] tracking-[-0.01em] text-paper"
+            className="mt-1.5 text-display font-semibold text-paper"
             style={{ fontFamily: 'var(--font-display)', wordSpacing: '0.08em' }}
           >
             {title}
@@ -237,7 +237,7 @@ function InvitePage() {
           <p className="-mt-2 text-[13px] leading-relaxed text-warn">{error}</p>
         )}
 
-        <p className="text-center text-[12.5px] leading-relaxed text-faint">
+        <p className="text-center text-[13px] leading-relaxed text-faint">
           No wallet, no gas, no seed phrase — just your email.
         </p>
       </div>
@@ -265,7 +265,7 @@ function InviteHeader() {
       </div>
       {/* Static dot; two-word status vocabulary: Demo | Live on Arbitrum.
           Invites always redeem against the live RotatingVault. */}
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-faint">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs font-medium text-faint">
         <span
           className="h-1.5 w-1.5 rounded-full"
           style={{ background: 'rgba(255,241,232,0.82)' }}
