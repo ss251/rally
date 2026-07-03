@@ -11,7 +11,7 @@ import { mockCircle } from '#/lib/circle'
 export const Route = createFileRoute('/circles/')({ component: CirclesHome })
 
 // —— Demo circle (real, human — the product shown live on the landing) ——
-// The diaspora chit fund: five cousins, $50 a month, the pot rotates.
+// The roommates' savings circle: five friends, $50 a month, the pot rotates.
 const DEMO = mockCircle('demo')
 
 function CirclesHome() {

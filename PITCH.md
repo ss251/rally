@@ -13,7 +13,7 @@
 
 ### Beat 0 — Open cold on the money (0:00–0:20)
 
-Open the landing. It *is* a live campaign — "Rally's first live fund," the bar partway up, real names in the feed (Sam, Maya, Tomás — the crew that filled it), the quiet **Live on Arbitrum** pill in the corner. Don't explain yet. Let them look.
+Open the landing. It *is* a live campaign — "Rally's first live fund," the bar partway up, real names in the feed (Sam, Maya, Tom — the crew that filled it), the quiet **Live on Arbitrum** pill in the corner. Don't explain yet. Let them look.
 
 > "This is Rally. This bar is not a mockup — it's reading an escrow on Arbitrum right now, and every color in it is a different chain the money came from. Nobody who chipped in bridged anything, paid gas, or knows what network they were on."
 

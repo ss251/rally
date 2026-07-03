@@ -48,7 +48,7 @@ const COPY: Record<Skin, { titlePh: string; goalLabel: string; goalPh: string; v
     kicker: 'A goal bar your friends fill together.',
   },
   potluck: {
-    titlePh: 'Priya’s surprise send-off',
+    titlePh: 'Kate’s surprise send-off',
     goalLabel: 'Gift pool',
     goalPh: '600',
     verb: 'Preview the potluck',

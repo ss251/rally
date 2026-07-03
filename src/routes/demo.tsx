@@ -29,13 +29,13 @@ const RALLY: Campaign = {
     { chain: 'optimism', amount: 400 },
     { chain: 'solana', amount: 600 },
   ],
-  backers: [{ name: 'Maya' }, { name: 'Tomás Vidal' }, { name: 'Priya' }, { name: 'Wei' }],
+  backers: [{ name: 'Maya' }, { name: 'Tom Vidal' }, { name: 'Emma' }, { name: 'Chris' }],
   mode: 'rally',
 }
 
 const POTLUCK: Campaign = {
   id: '2',
-  title: 'Aisha’s surprise send-off',
+  title: 'Kate’s surprise send-off',
   organizer: 'The design team',
   raised: 620,
   goal: 800,
@@ -47,7 +47,7 @@ const POTLUCK: Campaign = {
     { chain: 'optimism', amount: 80 },
     { chain: 'solana', amount: 100 },
   ],
-  backers: [{ name: 'Diego' }, { name: 'Hannah Ito' }, { name: 'Marcus' }, { name: 'Yuki' }],
+  backers: [{ name: 'Diego' }, { name: 'Hannah Cole' }, { name: 'Marcus' }, { name: 'Jordan' }],
   mode: 'potluck',
 }
 
