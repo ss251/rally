@@ -137,23 +137,34 @@ export async function burnOnSource(params: BurnParams): Promise<BurnResult> {
   const minFinalityThreshold = finalityThresholdFor(transferType);
 
   // 1a. Ensure USDC allowance for TokenMessengerV2.
-  const current = (await publicClient.readContract({
-    address: sourceChain.usdc,
-    abi: ERC20_ABI,
-    functionName: "allowance",
-    args: [owner, CCTP_V2_TESTNET.TokenMessengerV2],
-  })) as bigint;
+  const readAllowance = async () =>
+    (await publicClient.readContract({
+      address: sourceChain.usdc,
+      abi: ERC20_ABI,
+      functionName: "allowance",
+      args: [owner, CCTP_V2_TESTNET.TokenMessengerV2],
+    })) as bigint;
 
-  if (current < amount) {
+  if ((await readAllowance()) < amount) {
+    // Approve a large ceiling (not the exact amount): public RPCs are
+    // load-balanced, so an exact per-tx approve can be mined on one node while
+    // the burn's eth_estimateGas lands on another that hasn't seen it yet —
+    // "ERC20: transfer amount exceeds allowance" (hit live 2026-07-03). A big
+    // ceiling makes re-approval (and that race) a once-ever event per wallet.
     const approveHash = await walletClient.writeContract({
       address: sourceChain.usdc,
       abi: ERC20_ABI,
       functionName: "approve",
-      args: [CCTP_V2_TESTNET.TokenMessengerV2, amount],
+      args: [CCTP_V2_TESTNET.TokenMessengerV2, amount * 1_000_000n],
       account,
       chain,
     } as any);
     await publicClient.waitForTransactionReceipt({ hash: approveHash });
+    // Poll until the *read path* actually reflects the new allowance so the
+    // burn can't race a stale node (bounded: ~10s worst case).
+    for (let i = 0; i < 10 && (await readAllowance()) < amount; i++) {
+      await new Promise((r) => setTimeout(r, 1000));
+    }
   }
 
   // 1b. Burn.

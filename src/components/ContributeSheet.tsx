@@ -6,6 +6,29 @@ import { Confetti } from './Confetti'
 import { CHAIN_META, formatUsd, type Chain } from '#/design/chains'
 import { loginWithEmail } from '#/lib/auth/magic'
 import { tryGaslessBackerBurn } from '#/lib/backer-gasless'
+
+// Money errors must read like a product, never like a stack trace. Raw
+// viem/RPC reverts (with contract addresses and calldata) reached this sheet
+// live on 2026-07-03 — map the known failure shapes to human words and give
+// everything else one honest fallback. The full error still lands in the
+// console for us.
+function friendlyMoneyError(e: unknown): string {
+  const raw = e instanceof Error ? e.message : String(e ?? '')
+  // eslint-disable-next-line no-console
+  console.error('[chip-in]', raw)
+  const m = raw.toLowerCase()
+  if (m.includes('allowance') || m.includes('insufficient') || m.includes('exceeds'))
+    return 'The money rail hiccuped — nothing left your account. Try again in a few seconds.'
+  if (m.includes('deadline') || m.includes('ended'))
+    return 'This rally already ended — nothing was sent.'
+  if (m.includes('withdrawn'))
+    return 'This rally already paid out — nothing was sent.'
+  if (m.includes('timeout') || m.includes('network') || m.includes('fetch'))
+    return 'The network hiccuped — nothing left your account. Try again.'
+  if (m.includes('denied') || m.includes('rejected'))
+    return 'The request was cancelled — nothing was sent.'
+  return 'Something went wrong on our side — nothing left your account. Try again.'
+}
 import { contributeServerFn, completeContributionServerFn } from '#/lib/contribute'
 
 interface ContributeSheetProps {
@@ -119,11 +142,7 @@ export function ContributeSheet({
       // 3. Bar rises for real — re-read the live GoalVault.
       onContributed?.()
     } catch (e) {
-      setError(
-        e instanceof Error && e.message
-          ? e.message
-          : 'Something went wrong. Please try again.',
-      )
+      setError(friendlyMoneyError(e))
       setStatus('error')
     }
   }
