@@ -22,9 +22,13 @@ interface RoundBarProps {
 // a circle is one pot of shared money, not a cross-chain composition.
 const SLUG_A = { from: '#FFB579', to: '#FF8A55' }
 const SLUG_B = { from: '#FF9A5B', to: '#FF7A50' }
-// Broken: the same liquid gone cold — desaturated plum, still legible.
-const SLUG_BROKEN_A = { from: '#8d8298', to: '#7a7086' }
-const SLUG_BROKEN_B = { from: '#837890', to: '#6f6579' }
+// Broken: the same liquid gone quiet, not gone wrong. These sit in the dusk
+// canvas's own muted-mauve family (--color-muted is #a89fb4) so the settled
+// instrument reads "stopped, everyone's made whole" — cool moonlight, calm,
+// never alarm-amber or red. Lifted vs. the old cold plum so the liquid stays
+// clearly legible against the glass instead of reading as dead sediment.
+const SLUG_BROKEN_A = { from: '#a89fb4', to: '#8a7f9e' }
+const SLUG_BROKEN_B = { from: '#9a90a9', to: '#7d7292' }
 
 /**
  * The Circles signature: the SAME glass instrument as the Pools thermometer,

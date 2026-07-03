@@ -114,7 +114,7 @@ function CircleDetail() {
       : c.status === 'active'
         ? `Round ${(c.round ?? 0) + 1} of ${n}`
         : c.status === 'broken'
-          ? 'Circle broken'
+          ? 'Stopped — everyone’s made whole'
           : c.status === 'completed'
             ? 'Every pot paid'
             : 'Called off'
@@ -270,13 +270,22 @@ function CircleDetail() {
             </h1>
           </div>
 
-          {/* Broken: say it plainly, above the instrument. */}
+          {/* Broken: say it plainly, above the instrument. Calm, not alarm —
+              a stopped circle is the safety rail WORKING, so the banner wears
+              the dusk's muted mauve (settled moonlight), never warning amber. */}
           {c.status === 'broken' && (
-            <div className="rounded-2xl border border-[rgba(251,191,36,0.25)] bg-[rgba(251,191,36,0.06)] px-4 py-3.5 text-[13px] leading-relaxed text-muted">
-              <span className="font-semibold text-warn">
+            <div
+              className="rounded-2xl border px-4 py-3.5 text-[13px] leading-relaxed text-muted"
+              style={{
+                borderColor: 'rgba(168,159,180,0.22)',
+                background: 'rgba(168,159,180,0.06)',
+              }}
+            >
+              <span className="font-semibold" style={{ color: '#cdc5da' }}>
                 Round {(failedRound?.index ?? 0) + 1} went unfunded, so the circle stopped.
               </span>{' '}
-              Every deposit still in the pot goes back to its owner — automatically.
+              Everyone gets their money back — every deposit still in the pot returns to its
+              owner, automatically. No one’s money stays stuck.
             </div>
           )}
 
@@ -292,9 +301,14 @@ function CircleDetail() {
             />
             <div className="flex flex-1 flex-col justify-center gap-4">
               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
+                {/* A broken circle is settled, not live — the dot goes still. */}
                 <span
-                  className="h-1.5 w-1.5 rounded-full animate-pulse-dot"
-                  style={{ background: 'rgba(255,241,232,0.82)', color: 'rgba(255,241,232,0.82)' }}
+                  className={`h-1.5 w-1.5 rounded-full ${c.status === 'broken' ? '' : 'animate-pulse-dot'}`}
+                  style={
+                    c.status === 'broken'
+                      ? { background: 'rgba(168,159,180,0.85)' }
+                      : { background: 'rgba(255,241,232,0.82)', color: 'rgba(255,241,232,0.82)' }
+                  }
                 />
                 {pulseLabel}
               </span>
