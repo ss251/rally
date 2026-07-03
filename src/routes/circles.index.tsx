@@ -97,7 +97,7 @@ function CirclesHome() {
               Round {(DEMO.round ?? 0) + 1} of {DEMO.memberTarget}
             </span>
             <div>
-              <div className="flex items-end gap-2.5">
+              <div className="flex items-baseline gap-2.5">
                 <span
                   className="tnum font-display text-figure font-semibold leading-none text-paper"
                   style={{ fontFamily: 'var(--font-display)' }}

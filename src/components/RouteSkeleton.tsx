@@ -47,7 +47,7 @@ export function RouteSkeleton() {
           <div className="flex flex-1 flex-col justify-center gap-4">
             <Shimmer className="h-3 w-24" />
             <div className="flex flex-col gap-2.5">
-              <div className="flex items-end gap-2.5">
+              <div className="flex items-baseline gap-2.5">
                 <Shimmer className="h-10 w-32" />
                 <Shimmer className="h-6 w-12" />
               </div>
