@@ -28,6 +28,12 @@ interface ContributorFeedProps {
   skin?: Skin
   /** Cap the rows shown; the rest collapse into a "+N more" footer. */
   maxVisible?: number
+  /**
+   * Total backer count when `contributors` is only a window of it (e.g. the
+   * most recent rows of a longer on-chain log). Keeps the feed header in
+   * agreement with the hero readout — one truth, two places.
+   */
+  totalCount?: number
   className?: string
 }
 
@@ -91,6 +97,7 @@ export function ContributorFeed({
   contributors,
   skin = 'rally',
   maxVisible = 6,
+  totalCount,
   className,
 }: ContributorFeedProps) {
   const now = useNow()
@@ -98,7 +105,8 @@ export function ContributorFeed({
 
   const sorted = [...contributors].sort((a, b) => b.timestamp - a.timestamp)
   const visible = sorted.slice(0, maxVisible)
-  const overflow = sorted.length - visible.length
+  const total = Math.max(totalCount ?? 0, sorted.length)
+  const overflow = total - visible.length
 
   // Track which ids are freshly arrived to animate only them.
   const seen = useRef<Set<string>>(new Set())
@@ -128,7 +136,7 @@ export function ContributorFeed({
           {isPotluck ? 'Gifts landing' : 'Live from the group'}
         </h3>
         <span className="tnum text-xs text-faint">
-          {sorted.length} {sorted.length === 1 ? 'backer' : 'backers'}
+          {total} {total === 1 ? 'backer' : 'backers'}
         </span>
       </header>
 
