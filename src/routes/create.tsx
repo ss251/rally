@@ -240,22 +240,32 @@ function CreateCampaign() {
             </p>
           </div>
         ) : (
+          // Matches ContributeSheet's CTA exactly: coral only when it can act;
+          // a quiet gray rest state while the form is incomplete — never dimmed
+          // coral (a muddy 45%-opacity primary reads "broken", not "waiting").
           <button
             onClick={create}
             disabled={!canCreate}
-            className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97] disabled:opacity-45"
+            className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-all duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
             style={{
               background:
-                'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
+                canCreate || inFlight
+                  ? 'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))'
+                  : 'rgba(255,255,255,0.05)',
+              color: canCreate || inFlight ? 'var(--color-ink-950)' : 'rgba(255,255,255,0.4)',
               boxShadow:
-                'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
+                canCreate || inFlight
+                  ? 'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)'
+                  : 'inset 0 0 0 1px rgba(255,255,255,0.08)',
             }}
           >
-            <span
-              aria-hidden
-              className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
-              style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
-            />
+            {(canCreate || inFlight) && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+                style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
+              />
+            )}
             {status === 'authing' ? (
               <>
                 <Loader2 size={18} className="animate-spin" /> Check your email…
@@ -301,7 +311,7 @@ function CreateCampaign() {
             placeholder={copy.titlePh}
             maxLength={60}
             disabled={inFlight}
-            className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-rally-500/70 focus:bg-white/[0.06] disabled:opacity-60"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60"
           />
         </label>
 
@@ -319,7 +329,7 @@ function CreateCampaign() {
               value={email}
               disabled={inFlight}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-rally-500/70 focus:bg-white/[0.06] disabled:opacity-60"
+              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60"
             />
           </label>
         )}
@@ -339,7 +349,7 @@ function CreateCampaign() {
               inputMode="decimal"
               placeholder={copy.goalPh}
               disabled={inFlight}
-              className="tnum w-full rounded-xl border border-white/10 bg-white/[0.04] py-3.5 pl-8 pr-16 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-rally-500/70 focus:bg-white/[0.06] disabled:opacity-60"
+              className="tnum w-full rounded-xl border border-white/10 bg-white/[0.04] py-3.5 pl-8 pr-16 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60"
             />
             <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-faint">
               USDC
@@ -361,10 +371,10 @@ function CreateCampaign() {
                   className="relative rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
                   style={
                     active
-                      ? { background: 'var(--color-rally-500)', color: 'var(--color-ink-950)' }
+                      ? { background: 'rgba(255,255,255,0.10)', color: 'var(--color-paper)' }
                       : {
                           background: 'rgba(255,255,255,0.04)',
-                          color: 'var(--color-paper)',
+                          color: 'var(--color-muted)',
                           border: '1px solid rgba(255,255,255,0.08)',
                         }
                   }
@@ -374,7 +384,7 @@ function CreateCampaign() {
                       layoutId="deadline-glow"
                       aria-hidden
                       className="pointer-events-none absolute inset-0 rounded-xl"
-                      style={{ boxShadow: '0 8px 26px -8px var(--color-rally-glow)' }}
+                      style={{ boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,0.45)' }}
                     />
                   )}
                   {d.label}
@@ -440,14 +450,14 @@ function ModeToggle({
             style={{ color: active ? 'var(--color-paper)' : 'var(--color-faint)' }}
           >
             {active && (
+              // The canonical selected state (ContributeSheet's amount chips):
+              // a quiet white inset ring — the accent stays reserved for the CTA.
               <motion.span
                 layoutId="mode-toggle-pill"
-                className="absolute inset-0 rounded-xl border border-white/10"
+                className="absolute inset-0 rounded-xl"
                 style={{
-                  background:
-                    key === 'potluck'
-                      ? 'linear-gradient(90deg, rgba(255,92,154,0.22), rgba(255,194,75,0.14))'
-                      : 'linear-gradient(90deg, rgba(255,122,80,0.22), rgba(255,176,32,0.12))',
+                  background: 'rgba(255,255,255,0.10)',
+                  boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,0.45)',
                 }}
                 transition={{ type: 'spring', stiffness: 420, damping: 34 }}
               />

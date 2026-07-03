@@ -200,22 +200,31 @@ function CreateCircle() {
     <AppShell
       header={<CreateHeader />}
       cta={
+        // Matches ContributeSheet's CTA exactly: coral only when it can act; a
+        // quiet gray rest state while the form is incomplete — never dimmed coral.
         <button
           onClick={create}
           disabled={!canCreate}
-          className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97] disabled:opacity-45"
+          className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-all duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
           style={{
             background:
-              'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
+              canCreate || inFlight
+                ? 'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))'
+                : 'rgba(255,255,255,0.05)',
+            color: canCreate || inFlight ? 'var(--color-ink-950)' : 'rgba(255,255,255,0.4)',
             boxShadow:
-              'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
+              canCreate || inFlight
+                ? 'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)'
+                : 'inset 0 0 0 1px rgba(255,255,255,0.08)',
           }}
         >
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
-            style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
-          />
+          {(canCreate || inFlight) && (
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+              style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
+            />
+          )}
           {status === 'authing' ? (
             <>
               <Loader2 size={18} className="animate-spin" /> Check your email…
@@ -256,7 +265,7 @@ function CreateCircle() {
             placeholder="The cousins’ chit fund"
             maxLength={60}
             disabled={inFlight}
-            className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-rally-500/70 focus:bg-white/[0.06] disabled:opacity-60"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60"
           />
         </label>
 
@@ -273,7 +282,7 @@ function CreateCircle() {
             value={email}
             disabled={inFlight}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-rally-500/70 focus:bg-white/[0.06] disabled:opacity-60"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60"
           />
         </label>
 
@@ -330,10 +339,10 @@ function CreateCircle() {
                   className="relative rounded-xl px-1 py-2.5 text-[13px] font-semibold transition-colors disabled:opacity-60"
                   style={
                     active
-                      ? { background: 'var(--color-rally-500)', color: 'var(--color-ink-950)' }
+                      ? { background: 'rgba(255,255,255,0.10)', color: 'var(--color-paper)' }
                       : {
                           background: 'rgba(255,255,255,0.04)',
-                          color: 'var(--color-paper)',
+                          color: 'var(--color-muted)',
                           border: '1px solid rgba(255,255,255,0.08)',
                         }
                   }
@@ -343,7 +352,7 @@ function CreateCircle() {
                       layoutId="circle-cadence-glow"
                       aria-hidden
                       className="pointer-events-none absolute inset-0 rounded-xl"
-                      style={{ boxShadow: '0 8px 26px -8px var(--color-rally-glow)' }}
+                      style={{ boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,0.45)' }}
                     />
                   )}
                   {cad.label}
@@ -372,10 +381,10 @@ function CreateCircle() {
                   className="relative rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
                   style={
                     active
-                      ? { background: 'var(--color-rally-500)', color: 'var(--color-ink-950)' }
+                      ? { background: 'rgba(255,255,255,0.10)', color: 'var(--color-paper)' }
                       : {
                           background: 'rgba(255,255,255,0.04)',
-                          color: 'var(--color-paper)',
+                          color: 'var(--color-muted)',
                           border: '1px solid rgba(255,255,255,0.08)',
                         }
                   }
@@ -385,7 +394,7 @@ function CreateCircle() {
                       layoutId="circle-seats-glow"
                       aria-hidden
                       className="pointer-events-none absolute inset-0 rounded-xl"
-                      style={{ boxShadow: '0 8px 26px -8px var(--color-rally-glow)' }}
+                      style={{ boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,0.45)' }}
                     />
                   )}
                   {s}
@@ -399,19 +408,21 @@ function CreateCircle() {
           </p>
         </div>
 
-        {/* Demo fill */}
+        {/* Demo fill — selected state speaks the quiet white ring, like every
+            other chip on this form. Coral stays reserved for the one CTA. */}
         <button
           onClick={() => setDemoFill((v) => !v)}
           disabled={inFlight}
           className="flex items-center justify-between rounded-2xl border p-4 text-left transition-colors disabled:opacity-60"
           style={{
-            borderColor: demoFill ? 'rgba(255,122,80,0.35)' : 'var(--color-line)',
-            background: demoFill ? 'rgba(255,122,80,0.07)' : 'var(--color-surface)',
+            borderColor: demoFill ? 'transparent' : 'var(--color-line)',
+            background: demoFill ? 'rgba(255,255,255,0.06)' : 'var(--color-surface)',
+            boxShadow: demoFill ? 'inset 0 0 0 1.5px rgba(255,255,255,0.45)' : undefined,
           }}
         >
           <span className="flex items-center gap-3">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.03]">
-              <Sparkles size={15} strokeWidth={2.25} style={{ color: 'var(--color-rally-500)' }} />
+              <Sparkles size={15} strokeWidth={2.25} style={{ color: 'var(--color-muted)' }} />
             </span>
             <span>
               <span className="block text-sm font-semibold text-paper">Fill seats with demo friends</span>
@@ -422,7 +433,7 @@ function CreateCircle() {
           </span>
           <span
             className="relative h-6 w-10 shrink-0 rounded-full transition-colors"
-            style={{ background: demoFill ? 'var(--color-rally-500)' : 'rgba(255,255,255,0.12)' }}
+            style={{ background: demoFill ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.12)' }}
           >
             <span
               className="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all"
