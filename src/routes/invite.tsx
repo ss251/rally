@@ -234,7 +234,7 @@ function InvitePage() {
         </label>
 
         {status === 'error' && error && (
-          <p className="-mt-2 text-[13px] leading-relaxed text-warn">{error}</p>
+          <p className="-mt-2 text-[13px] font-medium leading-relaxed text-warn">{error}</p>
         )}
 
         <p className="text-center text-[13px] leading-relaxed text-faint">

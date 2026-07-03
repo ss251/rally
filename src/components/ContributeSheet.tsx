@@ -237,7 +237,7 @@ export function ContributeSheet({
 
           {/* Error line — honest, quiet. */}
           {status === 'error' && error && (
-            <p className="-mb-1 text-[13px] leading-relaxed text-warn">{error}</p>
+            <p className="-mb-1 text-[13px] font-medium leading-relaxed text-warn">{error}</p>
           )}
 
           {/* CTA */}

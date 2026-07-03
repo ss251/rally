@@ -161,7 +161,8 @@ function Home() {
                   {c.backerCount} {c.backerCount === 1 ? 'backer' : 'backers'}
                 </span>
                 <span className="text-faint">·</span>
-                <span className={cd?.urgent ? 'text-warn' : undefined}>
+                {/* Urgency survives the black test as weight, not only amber. */}
+                <span className={cd?.urgent ? 'font-medium text-warn' : undefined}>
                   {cd == null ? 'open' : cd.label}
                 </span>
               </div>

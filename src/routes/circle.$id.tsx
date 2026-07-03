@@ -327,10 +327,10 @@ function CircleDetail() {
                 </button>
               ))}
             {demoError && (
-              <p className="text-center text-[13px] leading-relaxed text-warn">{demoError}</p>
+              <p className="text-center text-[13px] font-medium leading-relaxed text-warn">{demoError}</p>
             )}
             {startError && (
-              <p className="text-center text-[13px] leading-relaxed text-warn">{startError}</p>
+              <p className="text-center text-[13px] font-medium leading-relaxed text-warn">{startError}</p>
             )}
             {youAreOrganizer && c.status === 'filling' && (
               <p className="text-center text-[13px] leading-relaxed text-faint">
@@ -435,7 +435,8 @@ function CircleDetail() {
                     </span>
                   </span>
                   {cd != null && (
-                    <span className={cd.urgent ? 'text-warn' : 'text-faint'}>
+                    {/* Urgency survives the black test as weight, not only amber. */}
+                    <span className={cd.urgent ? 'font-medium text-warn' : 'text-faint'}>
                       {cd.ended ? 'round closed' : `round closes in ${cd.label.replace(' left', '')}`}
                     </span>
                   )}
@@ -579,7 +580,7 @@ function OrganizerInviteButton({
         )}
       </button>
       {state === 'error' && error && (
-        <p className="text-center text-[13px] leading-relaxed text-warn">{error}</p>
+        <p className="text-center text-[13px] font-medium leading-relaxed text-warn">{error}</p>
       )}
     </div>
   )
