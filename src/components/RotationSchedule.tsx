@@ -15,8 +15,16 @@ interface RotationScheduleProps {
 export function RotationSchedule({ rounds, className }: RotationScheduleProps) {
   return (
     <section className={className} aria-label="Rotation schedule">
-      <header className="mb-2.5 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-paper">The rotation</h3>
+      <header className="mb-3 flex items-center justify-between">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-paper">
+          {/* Static — one pulsing dot per screen, and it belongs to the hero.
+              Same section-header anatomy as ContributorFeed/CircleMembers. */}
+          <span
+            className="h-2 w-2 rounded-full"
+            style={{ background: 'rgba(255,241,232,0.82)' }}
+          />
+          The rotation
+        </h3>
         <span className="text-xs text-faint">one pot each round</span>
       </header>
       <div

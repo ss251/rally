@@ -379,7 +379,7 @@ function CircleDetail() {
               memberTarget={n}
               fundedCount={barCount}
               broken={c.status === 'broken'}
-              height={200}
+              height={248}
               width={52}
             />
             <div className="flex flex-1 flex-col justify-center gap-4">
@@ -427,7 +427,7 @@ function CircleDetail() {
                 </p>
               </div>
               {c.status === 'active' && payee && (
-                <div className="flex flex-col gap-1 text-[13px] text-muted">
+                <div className="mt-1 flex flex-col gap-1 text-[13px] text-muted">
                   <span>
                     This round’s pot →{' '}
                     <span className="font-semibold text-paper">
