@@ -1,8 +1,15 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import { AppShell } from '#/components/AppShell'
 import { CampaignCard, type Campaign } from '#/components/CampaignCard'
 
-export const Route = createFileRoute('/demo')({ component: Demo })
+export const Route = createFileRoute('/demo')({
+  // Internal component showcase — dev-only. In prod it redirects home so a
+  // judge (or anyone) can't stumble onto an internal kitchen-sink page.
+  beforeLoad: () => {
+    if (import.meta.env.PROD) throw redirect({ to: '/' })
+  },
+  component: Demo,
+})
 
 const DAY = 24 * 60 * 60 * 1000
 
