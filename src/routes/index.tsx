@@ -3,6 +3,7 @@ import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { RotateCw } from 'lucide-react'
 import { AppShell } from '#/components/AppShell'
 import { ContributeSheet } from '#/components/ContributeSheet'
+import { ModeSwitch } from '#/components/ModeSwitch'
 import { Thermometer } from '#/components/Thermometer'
 import { ContributorFeed } from '#/components/ContributorFeed'
 import { ChainIcon } from '#/components/ChainIcon'
@@ -91,6 +92,9 @@ function Home() {
       >
         {/* —— The hero IS the product: the live campaign, read off-chain —— */}
         <div className="flex flex-col gap-6 pt-4">
+          {/* Both modes are the story — discoverable before any scroll. */}
+          <ModeSwitch active="goals" />
+
           <div>
             <p className="text-sm text-faint">{c.organizer} is rallying for</p>
             <h1

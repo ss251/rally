@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { ArrowLeft, RotateCw, Undo2, Users } from 'lucide-react'
 import { AppShell } from '#/components/AppShell'
+import { ModeSwitch } from '#/components/ModeSwitch'
 import { RoundBar } from '#/components/RoundBar'
 import { RotationSchedule } from '#/components/RotationSchedule'
 import { CircleMembers } from '#/components/CircleMembers'
@@ -71,6 +72,9 @@ function CirclesHome() {
     >
       {/* —— The hero IS the product: a savings circle, mid-rotation —— */}
       <div className="flex flex-col gap-6 pt-4">
+        {/* The same switch as the Goals landing — one tap between the modes. */}
+        <ModeSwitch active="circles" />
+
         <div>
           <p className="text-sm text-faint">{DEMO.organizer} is running</p>
           <h1
