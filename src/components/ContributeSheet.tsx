@@ -136,7 +136,7 @@ export function ContributeSheet({
         <div className="flex flex-col gap-5 pb-2">
           <p className="-mt-1 text-[15px] leading-relaxed text-muted">
             Enter your email and pick an amount — you're in from whatever chain your
-            money's on. No wallet, no gas, no seed phrase.
+            money's on. Nothing to install, nothing to set up.
           </p>
 
           {/* Email — the nag lives on the field, not on the thesis line. */}

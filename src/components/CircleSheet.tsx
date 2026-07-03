@@ -41,7 +41,7 @@ const COPY: Record<
 > = {
   chip: {
     title: 'Chip in',
-    lead: 'Everyone puts in the same amount each round. Enter your email — no wallet, no gas, no seed phrase.',
+    lead: 'Everyone puts in the same amount each round. Just your email — nothing to install, nothing to set up.',
     reassure: 'If anyone misses a round, the circle stops and everyone’s refunded — automatically.',
     doneTitle: 'You’re in this round ✦',
     done: (a, t) => `Your ${formatUsd(a)} is in the pot for ${t}. Watch the bar fill.`,
