@@ -435,7 +435,7 @@ function CircleDetail() {
                     </span>
                   </span>
                   {cd != null && (
-                    {/* Urgency survives the black test as weight, not only amber. */}
+                    // Urgency survives the black test as weight, not only amber.
                     <span className={cd.urgent ? 'font-medium text-warn' : 'text-faint'}>
                       {cd.ended ? 'round closed' : `round closes in ${cd.label.replace(' left', '')}`}
                     </span>
