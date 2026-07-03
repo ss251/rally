@@ -36,3 +36,10 @@ RALLY_HUMAN_SETUP.md
 .lavish/
 *decision-memo*
 *transcript*
+
+# UI screens work artifacts
+/shots/
+/shots.mjs
+
+# Stray agent worktrees (may contain .env.local — never commit)
+.claude/worktrees/

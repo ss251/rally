@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  ACCENT,
   CHAIN_META,
   avatarGradient,
   formatUsd,
@@ -9,6 +8,7 @@ import {
   type Chain,
   type Skin,
 } from '#/design/chains'
+import { ChainIcon } from './ChainIcon'
 
 export interface Contributor {
   id: string
@@ -28,6 +28,12 @@ interface ContributorFeedProps {
   skin?: Skin
   /** Cap the rows shown; the rest collapse into a "+N more" footer. */
   maxVisible?: number
+  /**
+   * Total backer count when `contributors` is only a window of it (e.g. the
+   * most recent rows of a longer on-chain log). Keeps the feed header in
+   * agreement with the hero readout — one truth, two places.
+   */
+  totalCount?: number
   className?: string
 }
 
@@ -47,10 +53,10 @@ function ChainBadge({ chain }: { chain: Chain }) {
   const m = CHAIN_META[chain]
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+      className="inline-flex items-center gap-1 rounded-full py-0.5 pl-1 pr-1.5 text-[10px] font-semibold uppercase tracking-wide"
       style={{ color: m.color, background: `${m.color}1f` }}
     >
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: m.color }} />
+      <ChainIcon chain={chain} size={13} />
       {m.short}
     </span>
   )
@@ -91,15 +97,16 @@ export function ContributorFeed({
   contributors,
   skin = 'rally',
   maxVisible = 6,
+  totalCount,
   className,
 }: ContributorFeedProps) {
   const now = useNow()
-  const accent = ACCENT[skin]
   const isPotluck = skin === 'potluck'
 
   const sorted = [...contributors].sort((a, b) => b.timestamp - a.timestamp)
   const visible = sorted.slice(0, maxVisible)
-  const overflow = sorted.length - visible.length
+  const total = Math.max(totalCount ?? 0, sorted.length)
+  const overflow = total - visible.length
 
   // Track which ids are freshly arrived to animate only them.
   const seen = useRef<Set<string>>(new Set())
@@ -122,13 +129,16 @@ export function ContributorFeed({
     <section className={`flex flex-col ${className ?? ''}`} aria-label="Contributors">
       <header className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-paper">
+          {/* Static — one pulsing dot per screen, and it belongs to the hero. */}
           <span
-            className="animate-pulse-dot h-2 w-2 rounded-full"
-            style={{ background: accent.solid, color: accent.solid }}
+            className="h-2 w-2 rounded-full"
+            style={{ background: 'rgba(255,241,232,0.82)' }}
           />
           {isPotluck ? 'Gifts landing' : 'Live from the group'}
         </h3>
-        <span className="tnum text-xs text-faint">{sorted.length} backers</span>
+        <span className="tnum text-xs text-faint">
+          {total} {total === 1 ? 'backer' : 'backers'}
+        </span>
       </header>
 
       <ul className="flex flex-col gap-2">
@@ -142,10 +152,11 @@ export function ContributorFeed({
                 fresh ? 'animate-slide-in' : ''
               }`}
               style={{
-                borderColor: isTop ? `${accent.solid}66` : 'var(--color-line)',
-                background: isTop
-                  ? `linear-gradient(90deg, ${accent.solid}14, transparent 65%)`
-                  : 'var(--color-surface)',
+                borderColor: isTop ? 'rgba(255,255,255,0.16)' : 'var(--color-line)',
+                background: isTop ? 'rgba(255,255,255,0.05)' : 'var(--color-surface)',
+                // Neutral lift only — the "just arrived" emphasis is the pour
+                // event (row slide + tube fill), not a static coral marker.
+                boxShadow: isTop ? 'inset 0 1px 0 rgba(255,255,255,0.06)' : undefined,
               }}
             >
               <Avatar c={c} />
@@ -163,10 +174,7 @@ export function ContributorFeed({
                   </p>
                 )}
               </div>
-              <span
-                className="tnum shrink-0 text-sm font-bold"
-                style={{ color: CHAIN_META[c.chain].color }}
-              >
+              <span className="tnum shrink-0 text-sm font-bold text-paper">
                 +{formatUsd(c.amount)}
               </span>
             </li>

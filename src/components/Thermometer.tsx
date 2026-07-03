@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Check } from 'lucide-react'
 import {
   ACCENT,
@@ -7,10 +7,12 @@ import {
   formatUsd,
   pct as pctOf,
   type CampaignStatus,
+  type Chain,
   type ChainSegment,
   type Skin,
 } from '#/design/chains'
 import { Confetti } from './Confetti'
+import { LiquidColumn } from './LiquidColumn'
 
 interface ThermometerProps {
   /** Total raised so far, whole USDC units. */
@@ -25,6 +27,8 @@ interface ThermometerProps {
   status?: CampaignStatus
   /** Tube height in px (vertical only). */
   height?: number
+  /** Tube width in px (vertical only). */
+  width?: number
   showReadout?: boolean
   showTicks?: boolean
   /** Force the funded/celebration visuals without a live crossing. */
@@ -51,6 +55,7 @@ export function Thermometer({
   orientation = 'vertical',
   status,
   height = 340,
+  width = 44,
   showReadout = true,
   showTicks,
   celebrate = false,
@@ -62,7 +67,10 @@ export function Thermometer({
   const funded = status === 'funded' || realPct >= 100
   const accent = ACCENT[skin]
   const vertical = orientation === 'vertical'
-  const ticks = showTicks ?? vertical
+  // Interior scale ticks are opt-in only — full-width lines compete with the
+  // crisp chain seams and can be misread as band boundaries. The etched goal
+  // line at 100% is the reference the instrument actually needs.
+  const ticks = showTicks === true
 
   // Normalize + order segments; fall back to a single accent band.
   const bands = useMemo(() => {
@@ -81,88 +89,52 @@ export function Thermometer({
       }))
   }, [segments, accent.from, accent.to])
 
-  const topColor = bands[bands.length - 1]?.to ?? accent.to
+  const liquidBands = bands.map((b) => ({ from: b.from, to: b.to, grow: b.grow }))
+  // Surface color = the band riding the meniscus. Vertical stacks band[0] (Base)
+  // at the top so it maps to the legend; horizontal fills to the last band.
+  const surfaceColor = vertical
+    ? (bands[0]?.to ?? accent.to)
+    : (bands[bands.length - 1]?.to ?? accent.to)
+  const reducedMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
 
-  // Bump the liquid when new money lands.
+  // Pour the liquid when new money lands: bump `pourKey` (drives the settle-and-
+  // overshoot rise in LiquidColumn) and remember the exact color of the chain
+  // that grew, so the entering slug pours in that chain's color.
   const prevRaised = useRef(raised)
   const prevPct = useRef(realPct)
-  const [bumping, setBumping] = useState(false)
+  const prevSeg = useRef(segments)
+  const pourColor = useRef(surfaceColor)
+  const [pourKey, setPourKey] = useState(0)
   const [burst, setBurst] = useState(false)
 
   useEffect(() => {
     const grew = raised > prevRaised.current
     const crossed = prevPct.current < 100 && realPct >= 100
     if (grew) {
-      setBumping(true)
-      const t = setTimeout(() => setBumping(false), 620)
+      // Which chain contributed the most new money since last render?
+      const before = new Map((prevSeg.current ?? []).map((s) => [s.chain, s.amount]))
+      let grewChain: Chain | null = null
+      let bestDelta = 0
+      for (const s of segments ?? []) {
+        const d = s.amount - (before.get(s.chain) ?? 0)
+        if (d > bestDelta) {
+          bestDelta = d
+          grewChain = s.chain
+        }
+      }
+      pourColor.current = grewChain ? CHAIN_META[grewChain].to : surfaceColor
+      setPourKey((k) => k + 1)
       if (crossed) {
         setBurst(true)
         onGoalReached?.()
       }
-      prevRaised.current = raised
-      prevPct.current = realPct
-      return () => clearTimeout(t)
     }
     prevRaised.current = raised
     prevPct.current = realPct
-  }, [raised, realPct, onGoalReached])
-
-  // Shared fill (the stacked liquid + wave surface + shimmer).
-  const fill = (
-    <div
-      className={`absolute overflow-hidden ${
-        vertical ? 'inset-x-0 bottom-0 origin-bottom' : 'inset-y-0 left-0 origin-left'
-      } ${bumping ? 'animate-bump' : ''}`}
-      style={{
-        [vertical ? 'height' : 'width']: `${fillPct}%`,
-        transition: `${vertical ? 'height' : 'width'} 900ms var(--ease-rally)`,
-        borderRadius: 'inherit',
-      } as CSSProperties}
-    >
-      {/* Stacked per-chain bands */}
-      <div className={`absolute inset-0 flex ${vertical ? 'flex-col-reverse' : 'flex-row'}`}>
-        {bands.map((b) => (
-          <div
-            key={b.key}
-            className="relative"
-            style={{
-              flexGrow: b.grow,
-              flexBasis: 0,
-              background: `linear-gradient(${vertical ? '180deg' : '90deg'}, ${b.to}, ${b.from})`,
-              transition: 'flex-grow 900ms var(--ease-rally)',
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Moving shimmer sweep */}
-      <div
-        className="absolute inset-0 animate-shimmer mix-blend-overlay"
-        style={{
-          background:
-            'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%)',
-          backgroundSize: '200% 100%',
-        }}
-      />
-
-      {/* Surface: wave crest (vertical) or leading meniscus (horizontal) */}
-      {vertical ? (
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-4 -translate-y-1/2">
-          <div
-            className="absolute inset-x-[-60%] top-0 h-8 animate-wave rounded-[45%] bg-white/25"
-            style={{ boxShadow: `0 0 22px 2px ${topColor}` }}
-          />
-          <div className="absolute inset-x-[-60%] top-0.5 h-8 animate-wave-slow rounded-[45%] bg-white/15" />
-          <div className="absolute inset-x-2 top-0 h-px bg-white/80" />
-        </div>
-      ) : (
-        <div
-          className="pointer-events-none absolute inset-y-0 right-0 w-2 translate-x-1/2"
-          style={{ boxShadow: `0 0 18px 3px ${topColor}`, background: 'rgba(255,255,255,0.7)' }}
-        />
-      )}
-    </div>
-  )
+    prevSeg.current = segments
+  }, [raised, realPct, segments, surfaceColor, onGoalReached])
 
   // The glass tube itself.
   const tube = (
@@ -171,8 +143,8 @@ export function Thermometer({
       style={{
         borderRadius: 'var(--radius-tube)',
         ...(vertical
-          ? { width: 40, height, minHeight: 120 }
-          : { width: '100%', height: 16 }),
+          ? { width, height, minHeight: 120 }
+          : { width: '100%', height: 22 }),
       }}
       role="progressbar"
       aria-valuenow={realPct}
@@ -180,31 +152,57 @@ export function Thermometer({
       aria-valuemax={100}
       aria-label={`${formatUsd(raised)} of ${formatUsd(goal)} ${currency} raised, ${realPct}%`}
     >
-      {/* Bloom behind the liquid */}
-      <div
-        className="pointer-events-none absolute inset-0 animate-sheen"
-        style={{
-          background: `radial-gradient(120% 60% at 50% ${vertical ? 100 : 50}%, ${topColor}55, transparent 70%)`,
-        }}
-      />
-      {fill}
+      <div className="absolute inset-0">
+        <LiquidColumn
+          width={vertical ? width : 320}
+          height={vertical ? height : 22}
+          fillPct={fillPct}
+          bands={liquidBands}
+          topColor={surfaceColor}
+          pourColor={pourColor.current}
+          pourKey={pourKey}
+          reducedMotion={reducedMotion}
+          orientation={vertical ? 'vertical' : 'horizontal'}
+        />
+      </div>
 
-      {/* Ticks */}
+      {/* Ticks — a quiet measurement scale on the glass. */}
       {ticks &&
         [25, 50, 75].map((t) => (
           <div
             key={t}
-            className="pointer-events-none absolute left-0 right-0 h-px bg-white/10"
+            className="pointer-events-none absolute left-0 right-0 h-px bg-white/[0.07]"
             style={{ bottom: `${t}%` }}
           />
         ))}
+
+      {/* Etched goal line: a hairline tick at 100% with the goal figure, so the
+          fill has a verifiable destination. Vertical only (the tube's top). */}
+      {vertical && (
+        <>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute left-1.5 right-1.5 top-[9px] h-px bg-white/25"
+          />
+          <span
+            aria-hidden
+            className="tnum pointer-events-none absolute inset-x-0 top-[13px] text-center text-[8.5px] font-semibold leading-none tracking-wide text-white/45"
+            style={{ fontFamily: 'var(--font-mono)' }}
+          >
+            {formatUsd(goal)}
+          </span>
+        </>
+      )}
     </div>
   )
 
   if (!showReadout) {
+    // No outer bloom: glass refracts light inward, it doesn't emit a halo. The
+    // tube reads as a solid machined object, lit from within by the crisp liquid
+    // + a single specular streak — not floating in coral fog.
     return (
       <div className={`relative ${className ?? ''}`}>
-        {tube}
+        <div className="relative">{tube}</div>
         <Confetti active={burst} skin={skin} onDone={() => setBurst(false)} />
       </div>
     )
@@ -230,7 +228,7 @@ export function Thermometer({
                 className="animate-pulse-dot h-1.5 w-1.5 rounded-full"
                 style={{ background: accent.solid, color: accent.solid }}
               />
-              Raising now
+              {skin === 'potluck' ? 'Collecting now' : 'Raising now'}
             </span>
           )}
         </div>

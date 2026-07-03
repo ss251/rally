@@ -24,45 +24,61 @@ export interface ChainMeta {
   to: string
 }
 
-// Distinct, harmonious hues — each chain reads instantly in the stacked fill.
-// Base = electric blue, Arbitrum = cyan (separated from Base blue),
-// Optimism = rose (softened from OP red), Solana = violet.
+// The `color` field keeps each project's REAL brand hex (chips, dots, confetti,
+// official legend marks) — Base #0052FF, Arbitrum #12AAFF, Optimism #FF0420,
+// Solana #9945FF. The mercury-band gradient (`from`/`to`) is LUMINANCE-NORMALIZED
+// so all four bands sit in one perceptual band (OKLCH L≈0.61–0.73) — otherwise
+// Base (raw L≈0.53) reads as a dark navy and Optimism, once feathered into its
+// neighbours, muddied into brown "sediment". Normalized (hue preserved, only
+// L/chroma shifted): the two blues stay DISTINCT (Base = deeper royal H≈264,
+// Arbitrum = brighter cyan H≈233), Optimism reads as a confident vermillion, and
+// Solana keeps its purple→green identity across the band. `from` = lighter top
+// edge, `to` = saturated base; a hairline meniscus seam (drawn in LiquidColumn)
+// keeps adjacent bands crisp so nothing bleeds.
+//
+//   band 'to'  before → after (normalized):
+//     Base      #0052FF → #4A7BE9   (L 0.53 → 0.61)
+//     Arbitrum  #12AAFF → #0AA7E2   (L 0.71 → 0.69)
+//     Optimism  #FF0420 → #EF4841   (L 0.63 → 0.64, vermillion)
+//     Solana    #14F195 → #00C582   (green terminus, L 0.84 → 0.73)
+//   Solana 'from' (purple top) #9945FF → #A161E0 (L 0.60 → 0.62)
 export const CHAIN_META: Record<Chain, ChainMeta> = {
   base: {
     id: 'base',
     label: 'Base',
     short: 'BASE',
     domain: 6,
-    color: '#3B82F6',
-    from: '#60A5FA',
-    to: '#3B82F6',
+    color: '#0052FF',
+    from: '#6490EF',
+    to: '#4A7BE9',
   },
   arbitrum: {
     id: 'arbitrum',
     label: 'Arbitrum',
     short: 'ARB',
     domain: 3,
-    color: '#22D3EE',
-    from: '#67E8F9',
-    to: '#22D3EE',
+    color: '#12AAFF',
+    from: '#57B8E9',
+    to: '#0AA7E2',
   },
   optimism: {
     id: 'optimism',
     label: 'Optimism',
     short: 'OP',
     domain: 2,
-    color: '#FB7185',
-    from: '#FDA4AF',
-    to: '#FB7185',
+    color: '#FF0420',
+    from: '#FC675C',
+    to: '#EF4841',
   },
   solana: {
     id: 'solana',
     label: 'Solana',
     short: 'SOL',
     domain: 5,
-    color: '#A855F7',
-    from: '#C084FC',
-    to: '#A855F7',
+    color: '#9945FF',
+    // Band runs purple (top) → green (bottom); both normalized into the band.
+    from: '#A161E0',
+    to: '#00C582',
   },
 }
 
@@ -83,11 +99,11 @@ export interface ChainSegment {
 
 // ── Formatting ──────────────────────────────────────────────────────────────
 
-const usd = (max: number) =>
+const usd = (min: number, max: number) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 0,
+    minimumFractionDigits: min,
     maximumFractionDigits: max,
   })
 
@@ -101,8 +117,10 @@ const usdCompact = new Intl.NumberFormat('en-US', {
 /** `$1,240` or `$1.2k` (compact). Cents shown only when present. */
 export function formatUsd(n: number, opts?: { compact?: boolean }): string {
   if (opts?.compact) return usdCompact.format(n)
+  // Money is written with two decimals or none at all — "$6.50" or "$4,000",
+  // NEVER "$6.5" (a machine leaking through a product that custodies funds).
   const hasCents = Math.round(n * 100) % 100 !== 0
-  return usd(hasCents ? 2 : 0).format(n)
+  return (hasCents ? usd(2, 2) : usd(0, 0)).format(n)
 }
 
 /** Whole-number percent, clamped to [0, cap]. */
@@ -128,8 +146,11 @@ export function countdown(deadline: number, now: number): { label: string; urgen
   const days = Math.floor(mins / 1440)
   const hours = Math.floor((mins % 1440) / 60)
   const m = mins % 60
-  if (days >= 1) return { label: `${days}d ${hours}h left`, urgent: false, ended: false }
-  if (hours >= 1) return { label: `${hours}h ${m}m left`, urgent: hours < 6, ended: false }
+  // Suppress zero units — "3d left", not "3d 0h left".
+  if (days >= 1)
+    return { label: hours > 0 ? `${days}d ${hours}h left` : `${days}d left`, urgent: false, ended: false }
+  if (hours >= 1)
+    return { label: m > 0 ? `${hours}h ${m}m left` : `${hours}h left`, urgent: hours < 6, ended: false }
   return { label: `${m}m left`, urgent: true, ended: false }
 }
 
@@ -140,11 +161,14 @@ export function initials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
 
-/** Deterministic gradient for an avatar fallback, seeded by name. */
-export function avatarGradient(name: string): { from: string; to: string } {
+/** Deterministic gradient for an avatar fallback, seeded by name. Short names
+ *  can hash into near-identical hues (Ana/Ben/Sam all land in the same green
+ *  band) — pass a stable `slot` (seat / payout index) to rotate each one by
+ *  the golden angle so neighbours in a list stay visually distinct. */
+export function avatarGradient(name: string, slot = 0): { from: string; to: string } {
   let h = 0
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
-  const a = h % 360
+  const a = (h + slot * 137) % 360
   const b = (a + 40) % 360
   return { from: `hsl(${a} 70% 62%)`, to: `hsl(${b} 74% 48%)` }
 }

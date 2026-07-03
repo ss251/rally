@@ -14,6 +14,7 @@ import {
   type Skin,
 } from '#/design/chains'
 import { Thermometer } from './Thermometer'
+import { ChainIcon } from './ChainIcon'
 
 export interface Backer {
   name: string
@@ -45,6 +46,8 @@ interface CampaignCardProps {
   href?: string
   /** Called on card / CTA activation (wire to router). */
   onOpen?: (id: string) => void
+  /** Shorter cover — for tight spaces like the create-flow live preview. */
+  compact?: boolean
   className?: string
 }
 
@@ -99,7 +102,7 @@ function BackerStack({ backers, count }: { backers?: Backer[]; count: number }) 
  *
  * Presentational only — pass a `campaign` and wire `onOpen`/`href`.
  */
-export function CampaignCard({ campaign, href, onOpen, className }: CampaignCardProps) {
+export function CampaignCard({ campaign, href, onOpen, compact, className }: CampaignCardProps) {
   const now = useNow()
   const skin: Skin = campaign.mode ?? 'rally'
   const accent = ACCENT[skin]
@@ -126,7 +129,7 @@ export function CampaignCard({ campaign, href, onOpen, className }: CampaignCard
       style={{ borderRadius: 'var(--radius-card)', outlineColor: accent.solid }}
     >
       {/* Cover */}
-      <div className="relative h-28 overflow-hidden">
+      <div className={`relative overflow-hidden ${compact ? 'h-16' : 'h-28'}`}>
         {campaign.coverUrl ? (
           <img src={campaign.coverUrl} alt="" className="h-full w-full object-cover" />
         ) : (
@@ -198,12 +201,9 @@ export function CampaignCard({ campaign, href, onOpen, className }: CampaignCard
             <span className="mr-1 text-[10px] uppercase tracking-wide text-faint">from</span>
             {activeChains.length ? (
               activeChains.map((ch) => (
-                <span
-                  key={ch}
-                  title={CHAIN_META[ch].label}
-                  className="h-2.5 w-2.5 rounded-full ring-2 ring-ink-900"
-                  style={{ background: CHAIN_META[ch].color }}
-                />
+                <span key={ch} title={CHAIN_META[ch].label} className="flex">
+                  <ChainIcon chain={ch} size={15} />
+                </span>
               ))
             ) : (
               <span className="text-[10px] text-faint">any chain</span>

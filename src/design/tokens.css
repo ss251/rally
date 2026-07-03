@@ -13,13 +13,14 @@
    The chain hex values below mirror src/design/chains.ts — keep them in sync.
    ============================================================================ */
 
-@import "tailwindcss";
-
 /* Web fonts (graceful fallback to system stacks if offline). Clash Display is
    the characterful display face; Inter carries UI/body; JetBrains Mono renders
-   the money tickers with true tabular figures. */
+   the money tickers with true tabular figures. @import rules must precede all
+   other rules, so these sit above Tailwind's (which expands into rules). */
 @import url("https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap");
+
+@import "tailwindcss";
 
 @theme {
   /* ── Canvas: warm plum-charcoal, NOT crypto-black. The page is dusk; the
@@ -51,13 +52,25 @@
   --color-potluck-300: #ffc24b;
   --color-potluck-500: #ff5c9a;
   --color-potluck-600: #ff4d8d;
+  --color-potluck-glow: #ff6fa8;
 
-  /* ── Chain hues (prefixed `chain-` to avoid clobbering Tailwind's own
-        text-base / bg-base size utilities). Mirror chains.ts. ──────────── */
-  --color-chain-base: #3b82f6;
-  --color-chain-arbitrum: #22d3ee;
-  --color-chain-optimism: #fb7185;
-  --color-chain-solana: #a855f7;
+  /* ── Chain hues — REAL brand hex (prefixed `chain-` to avoid clobbering
+        Tailwind's own text-base / bg-base size utilities). Mirror chains.ts.
+        Base + Arbitrum are both brand-blue → a hairline (`--band-sep`) keeps
+        adjacent mercury bands legible. ─────────────────────────────────── */
+  --color-chain-base: #0052ff;       /* Base brand blue */
+  --color-chain-arbitrum: #12aaff;   /* Arbitrum brand blue */
+  --color-chain-optimism: #ff0420;   /* Optimism red */
+  --color-chain-solana: #9945ff;     /* Solana violet (band runs → #14f195) */
+  --color-chain-solana-2: #14f195;   /* Solana gradient terminus (green) */
+
+  /* Hairline drawn between stacked mercury bands (a glass meniscus: a bright
+     1px highlight over a 1px shadow) — reads as refraction, separates blues. */
+  --band-sep: linear-gradient(
+    var(--band-sep-angle, 180deg),
+    rgba(255, 255, 255, 0.5) 0 1px,
+    rgba(0, 0, 0, 0.32) 1px 2px
+  );
 
   --color-ok: #34d399;
   --color-warn: #fbbf24;
@@ -144,6 +157,11 @@
 html,
 body,
 #app { min-height: 100%; }
+html {
+  color-scheme: dark;
+  /* iOS: don't blue-flash taps; app-like feel. */
+  -webkit-tap-highlight-color: transparent;
+}
 body {
   margin: 0;
   font-family: var(--font-sans);
@@ -151,10 +169,37 @@ body {
   color: var(--color-paper);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* Standalone PWA: no rubber-band bounce past the shell. */
+  overscroll-behavior-y: none;
 }
+
+/* ── Safe-area primitives (notch / home-indicator aware) ─────────────────── */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+.pt-safe { padding-top: var(--safe-top); }
+.pb-safe { padding-bottom: var(--safe-bottom); }
+.px-safe { padding-left: var(--safe-left); padding-right: var(--safe-right); }
+/* pinned thumb-zone CTA region: hugs the home indicator, never under it. */
+.pb-safe-cta { padding-bottom: calc(var(--safe-bottom) + 1rem); }
 
 /* Tabular figures everywhere money is shown. */
 .tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+/* ── View Transitions API — route morphs (graceful cross-fade) ───────────── */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 320ms;
+  animation-timing-function: var(--ease-rally);
+}
+/* Reserve a name so a card can morph into its detail hero across routes.
+   Apply `view-transition-name: rally-hero` to the shared element on both
+   screens (must be unique + present on only one element at a time). */
+.vt-hero { view-transition-name: rally-hero; }
+.vt-card { view-transition-name: rally-card; }
 
 /* Accessibility floor: honor reduced-motion — kill ambient loops, keep the
    fill height transition (it's information, not decoration). */
@@ -165,5 +210,9 @@ body {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
   }
 }
