@@ -9,14 +9,19 @@
  *   → depositFor (relayer fronts testnet USDC — the honest demo pattern,
  *     same as the CCTP contribute fallback) → refundFor on a break.
  *
- * HONEST DEMO PATTERN: circles created here have the RELAYER as organizer, so
- * the server can mint org-signed EIP-712 invites ON DEMAND for member
- * addresses that only become known when an invitee logs in with their email
- * (Magic). The signature flow, verification, and every state transition run on
- * the REAL deployed RotatingVault. In production the organizer's own 7702
- * email wallet signs invites; that needs an online-organizer countersign flow
- * (documented next step). Claims are NEVER relayed — the contract pays
- * msg.sender only, so claiming goes through the client-side gasless path
+ * HONEST DEMO PATTERN — THE DEMO LANE ONLY: circles created here have the
+ * RELAYER as organizer, so the server can mint org-signed EIP-712 invites ON
+ * DEMAND for member addresses that only become known when an invitee logs in
+ * with their email (Magic). The signature flow, verification, and every state
+ * transition run on the REAL deployed RotatingVault. This lane is reached
+ * exclusively through the "demo friends" toggle on /circles/new — the Rally
+ * crew runs the demo, and the UI says so. REAL in-app creates are
+ * SELF-CUSTODIED (lib/circle-self-custody.ts): the creator's own 7702 email
+ * wallet is the organizer, signs every invite client-side, and alone can call
+ * start. For those circles this relayer can only SUBMIT already-signed
+ * invites (redeemSeat below) — it cannot mint one, and start/cancel revert
+ * for it on-chain. Claims are NEVER relayed — the contract pays msg.sender
+ * only, so claiming goes through the client-side gasless path
  * (lib/circle-gasless.ts).
  *
  * SERVER-ONLY: loads the relayer private key. Only ever reached through the
