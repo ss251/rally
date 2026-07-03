@@ -144,10 +144,12 @@ function CircleDetail() {
       )
     }
     if (c.status === 'broken') {
+      // Only promise money to someone we KNOW is owed it. A stranger (no
+      // session / not a member) gets the honest verb: check, don't collect.
       return (
         <button onClick={() => openSheet('refund')} className={ctaBtnClass} style={coralCta}>
           <CtaSheen />
-          {yourRefund > 0 ? `Get ${formatUsd(yourRefund)} back` : 'Get refunded'}
+          {yourRefund > 0 ? `Get ${formatUsd(yourRefund)} back` : 'Check your refund'}
         </button>
       )
     }
