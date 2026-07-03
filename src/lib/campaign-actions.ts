@@ -14,7 +14,11 @@ import type { CampaignMeta, CreateCampaignResult } from '#/lib/campaign-relayer'
 const isHexAddress = (a: unknown): a is Address =>
   typeof a === 'string' && /^0x[0-9a-fA-F]{40}$/.test(a)
 
-const isCampaignId = (v: unknown): v is string => typeof v === 'string' && /^[0-9]{1,10}$/.test(v)
+// NOTE: GET server-fn payloads round-trip through the search-param
+// serializer, which re-parses digits-only strings as numbers — so a campaign
+// id may arrive as `2` OR `'2'`. Accept both, normalize to string.
+const isCampaignId = (v: unknown): v is string | number =>
+  (typeof v === 'string' || typeof v === 'number') && /^[0-9]{1,10}$/.test(String(v))
 
 // ── createCampaign ───────────────────────────────────────────────────────────
 export interface CreateCampaignFnInput {
@@ -59,7 +63,7 @@ export const createCampaignServerFn = createServerFn({ method: 'POST' })
 export const getCampaignMetaServerFn = createServerFn({ method: 'GET' })
   .validator((data: { id: string }): { id: string } => {
     if (!data || !isCampaignId(data.id)) throw new Error('a valid campaign id is required')
-    return { id: data.id }
+    return { id: String(data.id) }
   })
   .handler(async ({ data }): Promise<CampaignMeta | null> => {
     const { getCampaignMeta } = await import('#/lib/campaign-relayer')

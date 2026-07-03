@@ -20,10 +20,16 @@ import { createServerFn } from '@tanstack/react-start'
 import type { Address } from 'viem'
 import type { FillContributionResult } from '#/lib/cctp/contribute-fill'
 
-/** Digits-only campaign id (matches route params); parsed server-side. */
+/** Digits-only campaign id (matches route params); parsed server-side.
+ *  Accepts string OR number — server-fn payload serialization re-parses
+ *  digits-only strings as numbers on the wire. */
 const parseCampaignId = (v: unknown): number | undefined => {
   if (v === undefined) return undefined
-  if (typeof v !== 'string' || !/^[0-9]{1,10}$/.test(v) || Number(v) < 1) {
+  if (
+    (typeof v !== 'string' && typeof v !== 'number') ||
+    !/^[0-9]{1,10}$/.test(String(v)) ||
+    Number(v) < 1
+  ) {
     throw new Error('a valid campaign id is required')
   }
   return Number(v)
