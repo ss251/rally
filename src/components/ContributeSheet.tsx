@@ -139,9 +139,14 @@ export function ContributeSheet({
             money's on. No wallet, no gas, no seed phrase.
           </p>
 
-          {/* Email */}
+          {/* Email — the nag lives on the field, not on the thesis line. */}
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium uppercase tracking-wide text-faint">Email</span>
+            <span className="flex items-baseline justify-between">
+              <span className="text-xs font-medium uppercase tracking-wide text-faint">Email</span>
+              {!/.+@.+\..+/.test(email) && (
+                <span className="text-[11px] text-faint">enter yours to chip in</span>
+              )}
+            </span>
             <input
               type="email"
               inputMode="email"
@@ -255,18 +260,13 @@ export function ContributeSheet({
             )}
           </button>
 
-          {/* One quiet line — teaches when idle, reassures at commitment. This
-              is the whole thesis, placed where a stranger decides to hand over
-              money: all-or-nothing, refunded automatically if the goal misses. */}
+          {/* One quiet line, UNCONDITIONAL — the whole thesis, placed where a
+              stranger decides to hand over money: all-or-nothing, refunded
+              automatically if the goal misses. It never yields to a form nag;
+              this safety line is what converts someone who owes us nothing. */}
           <p className="-mt-1 text-center text-[12.5px] leading-relaxed text-faint">
-            {!canSend && !inFlight ? (
-              'Enter your email to chip in.'
-            ) : (
-              <>
-                Hit the goal or everyone's refunded —{' '}
-                <span className="text-muted">automatically</span>.
-              </>
-            )}
+            Hit the goal or everyone's refunded —{' '}
+            <span className="text-muted">automatically</span>.
           </p>
         </div>
       )}

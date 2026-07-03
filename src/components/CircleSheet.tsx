@@ -186,9 +186,14 @@ export function CircleSheet({
             </div>
           )}
 
-          {/* Email */}
+          {/* Email — the nag lives on the field, not on the reassure line. */}
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium uppercase tracking-wide text-faint">Email</span>
+            <span className="flex items-baseline justify-between">
+              <span className="text-xs font-medium uppercase tracking-wide text-faint">Email</span>
+              {!/.+@.+\..+/.test(email) && (
+                <span className="text-[11px] text-faint">enter yours to continue</span>
+              )}
+            </span>
             <input
               type="email"
               inputMode="email"
@@ -250,8 +255,10 @@ export function CircleSheet({
             )}
           </button>
 
+          {/* The safety promise stays visible unconditionally — it's the line
+              that converts a stranger, so it never yields to a form nag. */}
           <p className="-mt-1 text-center text-[12.5px] leading-relaxed text-faint">
-            {!canSend && !inFlight ? 'Enter your email to continue.' : copy.reassure}
+            {copy.reassure}
           </p>
         </div>
       )}
