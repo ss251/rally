@@ -95,6 +95,13 @@ const KNOWN: Record<string, CampaignMetaView> = {
       '0xe8723d9b24a1a1d59eff5dd4e794c39b5c39ce89': 'Tomás',
     },
   },
+  // Created live through the product's own /create flow (tx 0xd554bd41…83fc) —
+  // pinned here because the off-chain title store is container-ephemeral and
+  // this campaign is cited in the submission docs as proof the rail is real.
+  '2': {
+    title: 'Coffee for the launch crew',
+    organizer: 'The launch crew',
+  },
 }
 
 const toUsd = (raw: bigint) => Number(raw) / 10 ** USDC_DECIMALS
