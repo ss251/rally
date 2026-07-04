@@ -43,3 +43,4 @@ RALLY_HUMAN_SETUP.md
 
 # Stray agent worktrees (may contain .env.local — never commit)
 .claude/worktrees/
+config/mcporter.json
