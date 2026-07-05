@@ -23,7 +23,9 @@ Founder mandate: "award-winning calibre, not a generic demo." Research reverse-e
 
 **Highest-leverage BUYS (founder $ decision):** (1) **SOUND — the #1 buy:** freelance sound designer for original score + SFX + mix (~$200–500 on Contra/Fiverr), OR premium licensed track (Epidemic Business $30/mo, ad-safe) + my own beat-synced UI SFX work. (2) Optional: ONE Veo 3.1 human b-roll hero shot (~$20, real friends splitting a dinner / group chip-in) to bookend with human emotion — the one thing Remotion+Screen-Studio can't manufacture. Everything else our stack does natively; don't spend the 2 weeks anywhere but concept + hero shot + sound.
 
-**Stack confirmed sufficient:** Screen Studio/Matte capture (real iOS, real iPhone frame) → Remotion composite (it ships PhoneFrame w/ Dynamic Island + status bar, animated cursor, spring TextOverlay, NumberTicker) → licensed soundtrack + beat-synced SFX. Optional Veo 3.1 for one human b-roll bookend.
+**Stack confirmed sufficient:** Screen Studio/Matte capture (real iOS, real iPhone frame) → Remotion composite (it ships PhoneFrame w/ Dynamic Island + status bar, animated cursor, spring TextOverlay, NumberTicker) → soundtrack + beat-synced SFX.
+
+**FOUNDER DECISIONS (2026-07-05):** (1) SOUND — research the audio stack properly first (GitHub/web/agent-reach, don't default-buy). (2) Human b-roll — NO, product-only (full "this is real" lean, zero AI-slop-tell risk). (3) BUILD ORDER — submission cut (~90–120s, the hybrid judges reward) FIRST, then the ~40s hero/social cut from the same footage.
 
 ---
 (Original Fable direction for Cut A follows — still valid, now scoped as the hero/social cut:)
