@@ -1,0 +1,12 @@
+# deps
+node_modules
+
+# derived Remotion static dir (mirrored from clips/ + assets/ + stills/ at render)
+public
+
+# capture scratch
+clips/raw
+recon
+
+# webm intermediates (we commit the .mp4 clips; webm are large + regenerable)
+clips/*.webm

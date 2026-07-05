@@ -1,0 +1,26 @@
+{
+  "name": "rally-demo-video",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Rally 60s demo video — repeatable Playwright (capture) -> Remotion (compose) pipeline. Isolated from the app's deps.",
+  "scripts": {
+    "capture": "node scripts/capture.mjs",
+    "render": "node scripts/render.mjs",
+    "still": "node scripts/stills.mjs",
+    "all": "node scripts/capture.mjs && node scripts/render.mjs",
+    "preview": "remotion studio src/index.ts"
+  },
+  "dependencies": {
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "remotion": "4.0.484",
+    "@remotion/cli": "4.0.484",
+    "@remotion/bundler": "4.0.484",
+    "@remotion/renderer": "4.0.484"
+  },
+  "devDependencies": {
+    "playwright": "1.61.1",
+    "@types/react": "19.2.0"
+  }
+}
