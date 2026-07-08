@@ -9,6 +9,7 @@ import { Thermometer } from '#/components/Thermometer'
 import { ContributorFeed } from '#/components/ContributorFeed'
 import { ChainIcon } from '#/components/ChainIcon'
 import { countdown, formatUsd, pct } from '#/design/chains'
+import { useCountUp } from '#/design/useCountUp'
 import { loadCampaign, mockCampaign, type CampaignView } from '#/lib/campaign'
 
 // The landing hero IS the product: the live on-chain campaign, filling. The
@@ -41,7 +42,14 @@ function Home() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const now = useNow()
 
-  const realPct = pct(c.raised, c.goal, 9999)
+  // The hero money + percent RISE (not snap) when a chip-in re-runs the loader,
+  // in the same ~700ms the tube pours — one synchronized "pour" beat. Derive the
+  // percent from the SAME animating figure so both climb together. The real
+  // c.raised still feeds the Thermometer, so the number and the liquid share the
+  // window. Snaps under OS reduced-motion (see useCountUp).
+  const animatedRaised = useCountUp(c.raised)
+  const displayRaised = Math.round(animatedRaised)
+  const realPct = pct(displayRaised, c.goal, 9999)
   const cd = now == null ? null : countdown(c.deadline, now)
   const topChain = c.segments[c.segments.length - 1]?.chain ?? 'base'
   const funded = c.status === 'funded'
@@ -128,7 +136,7 @@ function Home() {
                     className="tnum font-display text-figure font-semibold leading-none text-paper"
                     style={{ fontFamily: 'var(--font-display)' }}
                   >
-                    {formatUsd(c.raised)}
+                    {formatUsd(displayRaised)}
                   </span>
                   <span
                     className="tnum font-display text-2xl font-semibold leading-none"

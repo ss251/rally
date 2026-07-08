@@ -9,6 +9,7 @@ import { ContributorFeed } from '#/components/ContributorFeed'
 import { ShareLink } from '#/components/ShareLink'
 import { ChainIcon } from '#/components/ChainIcon'
 import { ACCENT, countdown, formatUsd, pct, type Skin } from '#/design/chains'
+import { useCountUp } from '#/design/useCountUp'
 import { loadCampaign, mockPotluckCampaign, type CampaignView } from '#/lib/campaign'
 
 export const Route = createFileRoute('/c/$id')({
@@ -53,7 +54,13 @@ function CampaignDetail() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const now = useNow()
 
-  const realPct = pct(c.raised, c.goal, 9999)
+  // Same synchronized "pour" beat as the landing: on a chip-in the loader
+  // re-reads and the hero money + percent RISE over ~700ms while the tube pours,
+  // instead of snapping. The percent is derived from the animating figure so
+  // both climb together; the Thermometer still gets the real c.raised.
+  const animatedRaised = useCountUp(c.raised)
+  const displayRaised = Math.round(animatedRaised)
+  const realPct = pct(displayRaised, c.goal, 9999)
   const cd = now == null ? null : countdown(c.deadline, now)
   const topChain = c.segments[c.segments.length - 1]?.chain ?? 'base'
   const hasBackers = c.contributors.length > 0
@@ -169,7 +176,7 @@ function CampaignDetail() {
                     className="tnum font-display text-figure font-semibold leading-none text-paper"
                     style={{ fontFamily: 'var(--font-display)' }}
                   >
-                    {formatUsd(c.raised)}
+                    {formatUsd(displayRaised)}
                   </span>
                   <span
                     className="tnum font-display text-2xl font-semibold leading-none"

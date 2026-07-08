@@ -9,7 +9,8 @@ import { Confetti } from '#/components/Confetti'
 import { RotationSchedule } from '#/components/RotationSchedule'
 import { RoundBar } from '#/components/RoundBar'
 import { ShareLink } from '#/components/ShareLink'
-import { countdown, formatUsd } from '#/design/chains'
+import { countdown, FOCUS_RING, formatUsd } from '#/design/chains'
+import { useCountUp } from '#/design/useCountUp'
 import { getMagicUser } from '#/lib/auth/magic'
 import {
   fetchLiveCircle,
@@ -74,6 +75,11 @@ function CircleDetail() {
   }, [])
 
   const n = c.memberTarget
+  // Keep the pot figure on the same rising-count treatment as the Pool hero, so
+  // any loader re-read that lands a larger pot climbs rather than snaps. (The
+  // per-round beat here is carried by the RoundBar filling; the pot itself is
+  // deposit × seats, steady across a round.)
+  const displayPot = Math.round(useCountUp(c.potUsd))
   const roundFunded = c.status !== 'filling' && c.fundedCount >= n
   const youMember = you
     ? (c.members.find((m) => m.address.toLowerCase() === you.toLowerCase()) ?? null)
@@ -397,7 +403,7 @@ function CircleDetail() {
                     className="tnum font-display text-figure font-semibold leading-none text-paper"
                     style={{ fontFamily: 'var(--font-display)' }}
                   >
-                    {formatUsd(c.potUsd)}
+                    {formatUsd(displayPot)}
                   </span>
                   <span
                     className="tnum font-display text-2xl font-semibold leading-none"
@@ -501,7 +507,7 @@ const coralCta: React.CSSProperties = {
 }
 
 const ctaBtnClass =
-  'relative w-full overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97]'
+  `relative w-full overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97] ${FOCUS_RING}`
 
 function CtaSheen() {
   return (

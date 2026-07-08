@@ -3,7 +3,7 @@ import { Check, ChevronDown, Loader2 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { BottomSheet } from './BottomSheet'
 import { Confetti } from './Confetti'
-import { CHAIN_META, formatUsd, type Chain } from '#/design/chains'
+import { CHAIN_META, FOCUS_RING, formatUsd, type Chain } from '#/design/chains'
 import { loginWithEmail } from '#/lib/auth/magic'
 import { tryGaslessBackerBurn } from '#/lib/backer-gasless'
 
@@ -70,6 +70,10 @@ export function ContributeSheet({
 }: ContributeSheetProps) {
   const [email, setEmail] = useState('')
   const [amount, setAmount] = useState(initialAmount)
+  // A typed custom amount. Non-empty ⇒ the preset chips deselect and `amount`
+  // is driven by this field, so a stranger who wants $42 isn't boxed into
+  // 10/25/100.
+  const [customAmount, setCustomAmount] = useState('')
   const [status, setStatus] = useState<Status>('idle')
   const [movedUsd, setMovedUsd] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -83,6 +87,7 @@ export function ContributeSheet({
         setStatus('idle')
         setEmail('')
         setAmount(initialAmount)
+        setCustomAmount('')
         setMovedUsd(null)
         setError(null)
       }, 250)
@@ -91,8 +96,8 @@ export function ContributeSheet({
   }, [open])
 
   const inFlight = status === 'authing' || status === 'sending'
-  const canSend =
-    /.+@.+\..+/.test(email) && amount > 0 && (status === 'idle' || status === 'error')
+  const emailValid = /.+@.+\..+/.test(email)
+  const canSend = emailValid && amount > 0 && (status === 'idle' || status === 'error')
 
   const send = async () => {
     if (!canSend) return
@@ -162,7 +167,7 @@ export function ContributeSheet({
           <label className="flex flex-col gap-1.5">
             <span className="flex items-baseline justify-between">
               <span className="text-xs font-medium uppercase tracking-wide text-faint">Email</span>
-              {!/.+@.+\..+/.test(email) && (
+              {!emailValid && (
                 <span className="text-xs text-faint">enter yours to chip in</span>
               )}
             </span>
@@ -174,7 +179,7 @@ export function ContributeSheet({
               value={email}
               disabled={inFlight}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60"
+              className={`w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60 ${FOCUS_RING}`}
             />
           </label>
 
@@ -183,13 +188,17 @@ export function ContributeSheet({
             <span className="text-xs font-medium uppercase tracking-wide text-faint">Amount</span>
             <div className="grid grid-cols-3 gap-2">
               {AMOUNTS.map((a) => {
-                const active = amount === a
+                // A preset reads as chosen only while no custom amount is typed.
+                const active = customAmount === '' && amount === a
                 return (
                   <button
                     key={a}
-                    onClick={() => setAmount(a)}
+                    onClick={() => {
+                      setAmount(a)
+                      setCustomAmount('')
+                    }}
                     disabled={inFlight}
-                    className="relative rounded-xl py-3 text-base font-semibold transition-colors disabled:opacity-60"
+                    className={`relative rounded-xl py-3 text-base font-semibold transition-colors disabled:opacity-60 ${FOCUS_RING}`}
                     style={
                       active
                         ? { background: 'rgba(255,255,255,0.10)', color: 'var(--color-paper)' }
@@ -208,6 +217,27 @@ export function ContributeSheet({
                   </button>
                 )
               })}
+            </div>
+            {/* Custom amount — nobody who wants $42 should hit a 10/25/100 wall.
+                Same field grammar as the create-flow goal input ($ lead, tabular
+                figures, decimal keypad); typing here drives `amount` and quietly
+                deselects the presets above. */}
+            <div className="relative">
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-muted">
+                $
+              </span>
+              <input
+                inputMode="decimal"
+                placeholder="Other amount"
+                value={customAmount}
+                disabled={inFlight}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/[^0-9.]/g, '')
+                  setCustomAmount(raw)
+                  setAmount(Math.max(0, Number(raw) || 0))
+                }}
+                className={`tnum w-full rounded-xl border border-white/10 bg-white/[0.04] py-3 pl-8 pr-4 text-base text-paper outline-none transition-colors placeholder:font-normal placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60 ${FOCUS_RING}`}
+              />
             </div>
             <div className="pt-0.5">
               <button
@@ -244,7 +274,7 @@ export function ContributeSheet({
           <button
             onClick={send}
             disabled={!canSend}
-            className="relative mt-1 flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-all duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
+            className={`relative mt-1 flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-all duration-150 ease-[var(--ease-spring)] active:scale-[0.97] ${FOCUS_RING}`}
             style={{
               background:
                 canSend || inFlight
@@ -274,6 +304,13 @@ export function ContributeSheet({
               </>
             ) : status === 'error' ? (
               <>Try again</>
+            ) : !emailValid ? (
+              // A disabled CTA should teach what's missing, not just sit gray
+              // repeating the amount — the email is the one thing between a
+              // stranger and chipping in.
+              <>Enter your email to chip in</>
+            ) : amount <= 0 ? (
+              <>Enter an amount</>
             ) : (
               <>Chip in {formatUsd(amount)}</>
             )}

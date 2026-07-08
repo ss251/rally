@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { RotateCw, Target } from 'lucide-react'
+import { FOCUS_RING } from '#/design/chains'
 
 /**
  * The two shapes of group money, one tap apart — Goals fill toward a target,
@@ -25,7 +26,7 @@ export function ModeSwitch({ active }: { active: 'goals' | 'circles' }) {
             key={key}
             to={to}
             aria-current={isActive ? 'page' : undefined}
-            className="relative flex items-center justify-center gap-2 rounded-[10px] py-2 text-[13px] font-semibold transition-colors"
+            className={`relative flex items-center justify-center gap-2 rounded-[10px] py-2 text-[13px] font-semibold transition-colors ${FOCUS_RING}`}
             style={{ color: isActive ? 'var(--color-paper)' : 'var(--color-faint)' }}
           >
             {isActive && (

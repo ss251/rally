@@ -5,7 +5,7 @@ import { motion } from 'motion/react'
 import { AppShell } from '#/components/AppShell'
 import { CampaignCard, type Campaign } from '#/components/CampaignCard'
 import { ShareLink } from '#/components/ShareLink'
-import type { Skin } from '#/design/chains'
+import { FOCUS_RING, type Skin } from '#/design/chains'
 import { loginWithEmail } from '#/lib/auth/magic'
 import { createCampaignServerFn } from '#/lib/campaign-actions'
 import { loadCampaign, type CampaignView } from '#/lib/campaign'
@@ -221,7 +221,7 @@ function CreateCampaign() {
               to="/c/$id"
               params={{ id: '1' }}
               search={{ skin: 'potluck' }}
-              className="relative flex w-full items-center justify-center overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
+              className={`relative flex w-full items-center justify-center overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97] ${FOCUS_RING}`}
               style={{
                 background: 'linear-gradient(180deg, #ff7db0, #ff5c9a 58%, #f0457f)',
                 boxShadow:
@@ -246,7 +246,7 @@ function CreateCampaign() {
           <button
             onClick={create}
             disabled={!canCreate}
-            className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-all duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
+            className={`relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-all duration-150 ease-[var(--ease-spring)] active:scale-[0.97] ${FOCUS_RING}`}
             style={{
               background:
                 canCreate || inFlight
@@ -311,7 +311,7 @@ function CreateCampaign() {
             placeholder={copy.titlePh}
             maxLength={60}
             disabled={inFlight}
-            className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60"
+            className={`w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60 ${FOCUS_RING}`}
           />
         </label>
 
@@ -329,7 +329,7 @@ function CreateCampaign() {
               value={email}
               disabled={inFlight}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60"
+              className={`w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60 ${FOCUS_RING}`}
             />
           </label>
         )}
@@ -349,7 +349,7 @@ function CreateCampaign() {
               inputMode="decimal"
               placeholder={copy.goalPh}
               disabled={inFlight}
-              className="tnum w-full rounded-xl border border-white/10 bg-white/[0.04] py-3.5 pl-8 pr-16 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60"
+              className={`tnum w-full rounded-xl border border-white/10 bg-white/[0.04] py-3.5 pl-8 pr-16 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60 ${FOCUS_RING}`}
             />
             <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-faint">
               USDC
@@ -368,7 +368,7 @@ function CreateCampaign() {
                   key={d.days}
                   onClick={() => setDays(d.days)}
                   disabled={inFlight}
-                  className="relative rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
+                  className={`relative rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 ${FOCUS_RING}`}
                   style={
                     active
                       ? { background: 'rgba(255,255,255,0.10)', color: 'var(--color-paper)' }
@@ -446,7 +446,7 @@ function ModeToggle({
             key={key}
             onClick={() => onChange(key)}
             disabled={disabled}
-            className="relative flex items-center justify-center gap-2 rounded-[10px] py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
+            className={`relative flex items-center justify-center gap-2 rounded-[10px] py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 ${FOCUS_RING}`}
             style={{ color: active ? 'var(--color-paper)' : 'var(--color-faint)' }}
           >
             {active && (

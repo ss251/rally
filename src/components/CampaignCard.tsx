@@ -136,7 +136,12 @@ export function CampaignCard({ campaign, href, onOpen, compact, className }: Cam
           <div
             className="h-full w-full animate-sheen"
             style={{
-              background: `radial-gradient(120% 140% at 15% 0%, ${accent.from}, transparent 55%), radial-gradient(120% 140% at 100% 100%, ${CHAIN_META.solana.color}, ${CHAIN_META.base.color})`,
+              // The cover wears the WARM brand ramp (coral→amber for rally,
+              // magenta→gold for potluck), not raw chain blue/purple — the
+              // artifact that lands in a group chat has to read human, not like
+              // a generic crypto gradient. Chain identity lives in the "from"
+              // badge row below, never in the cover wash.
+              background: `radial-gradient(120% 140% at 15% 0%, ${accent.from}, transparent 55%), radial-gradient(120% 140% at 100% 100%, ${accent.to}, ${accent.from})`,
             }}
           />
         )}

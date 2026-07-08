@@ -25,7 +25,7 @@ Founder mandate: "award-winning calibre, not a generic demo." Research reverse-e
 
 **Stack confirmed sufficient:** Screen Studio/Matte capture (real iOS, real iPhone frame) → Remotion composite (it ships PhoneFrame w/ Dynamic Island + status bar, animated cursor, spring TextOverlay, NumberTicker) → soundtrack + beat-synced SFX.
 
-**FOUNDER DECISIONS (2026-07-05):** (1) SOUND — research the audio stack properly first (GitHub/web/agent-reach, don't default-buy). (2) Human b-roll — NO, product-only (full "this is real" lean, zero AI-slop-tell risk). (3) BUILD ORDER — submission cut (~90–120s, the hybrid judges reward) FIRST, then the ~40s hero/social cut from the same footage.
+**FOUNDER DECISIONS (2026-07-05):** (1) SOUND — research the audio stack properly first (GitHub/web/agent-reach, don't default-buy). (2) Human b-roll — NO, product-only (full "this is real" lean, zero AI-slop-tell risk). (3) BUILD ORDER — submission cut (~90–120s, the hybrid judges reward) FIRST, then the ~40s hero/social cut from the same footage. **(4) DEMO NARRATION — FOUNDER runs the whole walkthrough himself (human-in-the-loop; gives judges confidence he knows his own product; 'we look at the end-user experience' is what scores). ⇒ NO AI VO for the submission cut — founder narrates live over his own screen recording. The SUBMISSION-SCRIPT.md draft becomes HIS talking-track to edit + speak, not a TTS input.**
 
 ---
 (Original Fable direction for Cut A follows — still valid, now scoped as the hero/social cut:)

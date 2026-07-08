@@ -74,6 +74,17 @@ export const Route = createRootRoute({
       { name: 'apple-mobile-web-app-title', content: 'Rally' },
     ],
     links: [
+      // Warm up the font origins in PARALLEL with the CSS fetch. The display
+      // face (Clash Display) loads via an @import nested inside tokens.css — a
+      // render-blocking waterfall (HTML → CSS → @import → font) that can FOUT
+      // the hero headline in a system fallback on a cold first paint. These
+      // preconnects open the TLS handshakes up front so the Clash Display h1
+      // paints markedly sooner. The @import stays (it's the real load + offline
+      // fallback); display=swap is already set.
+      { rel: 'preconnect', href: 'https://api.fontshare.com', crossOrigin: 'anonymous' },
+      { rel: 'preconnect', href: 'https://cdn.fontshare.com', crossOrigin: 'anonymous' },
+      { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+      { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: 'anonymous' },
       { rel: 'stylesheet', href: appCss },
       { rel: 'manifest', href: '/manifest.webmanifest' },
       // favicon.svg + the PNGs are the pixel-engineered small rungs of the

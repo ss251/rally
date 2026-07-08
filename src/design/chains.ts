@@ -97,6 +97,16 @@ export interface ChainSegment {
   amount: number
 }
 
+/**
+ * One keyboard-focus treatment for every actionable control (CTAs, choice
+ * chips, inputs, mode links): a warm 2px accent ring, drawn ONLY on
+ * `:focus-visible` so mouse/tap interaction is visually unchanged. Mirrors the
+ * ring CampaignCard already carries — append to a control's className so the
+ * whole surface answers the Tab key with one consistent state.
+ */
+export const FOCUS_RING =
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:[outline-color:var(--color-rally-500)]'
+
 // ── Formatting ──────────────────────────────────────────────────────────────
 
 const usd = (min: number, max: number) =>
