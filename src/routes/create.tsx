@@ -276,6 +276,16 @@ function CreateCampaign() {
               </>
             ) : status === 'error' ? (
               <>Try again</>
+            ) : !canCreate ? (
+              // The resting CTA teaches the ONE thing still missing (same
+              // grammar as the contribute sheet) instead of sitting gray.
+              <>
+                {title.trim().length <= 1
+                  ? 'Name your rally to start'
+                  : !/.+@.+\..+/.test(email)
+                    ? 'Add your payout email'
+                    : 'Set a goal amount'}
+              </>
             ) : (
               <>{copy.verb}</>
             )}

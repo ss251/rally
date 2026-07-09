@@ -222,12 +222,34 @@ export function LiquidColumn({
         cum += frac
       })
 
-      // Cylinder volume: gently darken the left & right glass edges.
+      // Liquid depth: light enters at the surface and dies toward the pool —
+      // a vertical ramp over the whole column (hues untouched, only luminance).
+      // This is what separates "liquid in glass" from "flat colored slab".
+      const depth = ctx.createLinearGradient(0, surfaceY, 0, h)
+      depth.addColorStop(0, 'rgba(255,255,255,0.12)')
+      depth.addColorStop(0.3, 'rgba(255,255,255,0)')
+      depth.addColorStop(0.8, 'rgba(4,2,10,0.08)')
+      depth.addColorStop(1, 'rgba(4,2,10,0.2)')
+      ctx.fillStyle = depth
+      ctx.fillRect(0, surfaceY - bulge - 2, w, h - surfaceY + bulge + 2)
+
+      // Sub-surface glow: a breath of the surface chain's own light just under
+      // the meniscus (screen), so the instrument reads lit from within.
+      ctx.save()
+      ctx.globalCompositeOperation = 'screen'
+      const sub = ctx.createLinearGradient(0, surfaceY, 0, surfaceY + Math.min(18, liquidH))
+      sub.addColorStop(0, hexA(topColor, 0.34))
+      sub.addColorStop(1, hexA(topColor, 0))
+      ctx.fillStyle = sub
+      ctx.fillRect(0, surfaceY - bulge, w, Math.min(18, liquidH) + bulge)
+      ctx.restore()
+
+      // Cylinder volume: the glass walls curve away — a firm edge falloff.
       const edge = ctx.createLinearGradient(0, 0, w, 0)
-      edge.addColorStop(0, 'rgba(6,3,10,0.30)')
-      edge.addColorStop(0.16, 'rgba(6,3,10,0)')
-      edge.addColorStop(0.84, 'rgba(6,3,10,0)')
-      edge.addColorStop(1, 'rgba(6,3,10,0.26)')
+      edge.addColorStop(0, 'rgba(6,3,10,0.44)')
+      edge.addColorStop(0.2, 'rgba(6,3,10,0)')
+      edge.addColorStop(0.8, 'rgba(6,3,10,0)')
+      edge.addColorStop(1, 'rgba(6,3,10,0.4)')
       ctx.fillStyle = edge
       ctx.fillRect(0, surfaceY - bulge - 2, w, h)
 
@@ -255,6 +277,13 @@ export function LiquidColumn({
 
       // Single specular streak down the glass (one implied light, left-of-centre).
       paintSpecularV(ctx, w, h)
+
+      // Machined rim: a 1px inner light on each glass wall, full height —
+      // the refraction line that makes the tube's edge read as ground glass.
+      ctx.fillStyle = 'rgba(255,255,255,0.1)'
+      ctx.fillRect(1, 0, 1, h)
+      ctx.fillStyle = 'rgba(255,255,255,0.07)'
+      ctx.fillRect(w - 2, 0, 1, h)
 
       // Convex meniscus highlight riding the surface (crisp, no bloom).
       ctx.save()
@@ -419,12 +448,17 @@ export function LiquidColumn({
   )
 }
 
-/** One soft vertical light streak (cylinder specular), left of centre. */
+/** Cylinder specular: one firm light streak left of centre + a whisper of a
+ *  counter-reflection near the right wall (a lit glass cylinder always has
+ *  both — the second one is what tricks the eye into roundness). */
 function paintSpecularV(ctx: CanvasRenderingContext2D, w: number, h: number) {
   const spec = ctx.createLinearGradient(0, 0, w, 0)
-  spec.addColorStop(0.14, 'rgba(255,255,255,0)')
-  spec.addColorStop(0.29, 'rgba(255,255,255,0.19)')
-  spec.addColorStop(0.45, 'rgba(255,255,255,0)')
+  spec.addColorStop(0.16, 'rgba(255,255,255,0)')
+  spec.addColorStop(0.28, 'rgba(255,255,255,0.28)')
+  spec.addColorStop(0.4, 'rgba(255,255,255,0)')
+  spec.addColorStop(0.82, 'rgba(255,255,255,0)')
+  spec.addColorStop(0.9, 'rgba(255,255,255,0.08)')
+  spec.addColorStop(0.97, 'rgba(255,255,255,0)')
   ctx.save()
   ctx.globalCompositeOperation = 'screen'
   ctx.fillStyle = spec
