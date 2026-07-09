@@ -170,8 +170,15 @@ const OPTICAL: Record<Chain, number> = {
 
 interface ChainIconProps {
   chain: Chain
-  /** Rendered square size in px. Keep small (12–18) so it sits like a glyph. */
+  /** Rendered square size in px (the CONTAINER size when `contained`). */
   size?: number
+  /**
+   * Wrap the mark in the shared identity container: one rounded surface, one
+   * ring, one optical size for all four marks — so the solid Base square, the
+   * Optimism disc, the Arbitrum hex and the Solana bars sit as one family in
+   * legends and meta rows instead of four differently-shaped strays.
+   */
+  contained?: boolean
   className?: string
 }
 
@@ -179,8 +186,19 @@ interface ChainIconProps {
  * The single source for a chain's visual mark. Drop it anywhere a chain used to
  * be a colored dot (legend rows, feed badges). Presentational only.
  */
-export function ChainIcon({ chain, size = 16, className }: ChainIconProps): ReactElement {
+export function ChainIcon({ chain, size = 16, contained, className }: ChainIconProps): ReactElement {
   const Mark = MARK[chain]
+  if (contained) {
+    const inner = Math.round(size * 0.62 * OPTICAL[chain])
+    return (
+      <span
+        className={`inline-flex shrink-0 items-center justify-center rounded-md bg-white/[0.06] ring-1 ring-inset ring-white/10 ${className ?? ''}`}
+        style={{ width: size, height: size }}
+      >
+        <Mark size={inner} />
+      </span>
+    )
+  }
   const px = Math.round(size * OPTICAL[chain])
   return <Mark size={px} className={className} />
 }

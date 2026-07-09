@@ -109,11 +109,13 @@ const shortAddr = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`
 
 /**
  * A backer's display name is ALWAYS human — a known crew name when we have
- * one, else a warm anonymous label carrying the chain their money came from.
- * Never a hex address on the money screen.
+ * one, else a warm anonymous label. Never a hex address on the money screen.
+ * The name does NOT repeat the chain: the feed row's chain badge is the one
+ * carrier of that identity ("A friend · from Base" next to a BASE chip said
+ * the same thing twice).
  */
-function backerName(meta: CampaignMetaView, addr: string, chain: Chain): string {
-  return meta.knownBackers?.[addr.toLowerCase()] ?? `A friend · from ${CHAIN_META[chain].label}`
+function backerName(meta: CampaignMetaView, addr: string, _chain: Chain): string {
+  return meta.knownBackers?.[addr.toLowerCase()] ?? 'A friend'
 }
 
 function deriveStatus(raised: number, goal: number, deadlineMs: number): CampaignStatus {

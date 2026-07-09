@@ -155,7 +155,7 @@ function Home() {
                 <div className="flex flex-col gap-1.5">
                   {c.segments.map((s) => (
                     <span key={s.chain} className="flex items-center gap-2 text-[13px] text-muted">
-                      <ChainIcon chain={s.chain} size={16} />
+                      <ChainIcon chain={s.chain} size={20} contained />
                       <span className="capitalize text-paper/80">{s.chain}</span>
                       <span className="tnum ml-auto text-faint">{formatUsd(s.amount)}</span>
                     </span>

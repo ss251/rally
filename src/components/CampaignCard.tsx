@@ -134,18 +134,18 @@ export function CampaignCard({ campaign, href, onOpen, compact, className }: Cam
           <img src={campaign.coverUrl} alt="" className="h-full w-full object-cover" />
         ) : (
           <div
-            className="h-full w-full animate-sheen"
+            className="h-full w-full"
             style={{
-              // The cover wears the WARM brand ramp (coral→amber for rally,
-              // magenta→gold for potluck), not raw chain blue/purple — the
-              // artifact that lands in a group chat has to read human, not like
-              // a generic crypto gradient. Chain identity lives in the "from"
-              // badge row below, never in the cover wash.
-              background: `radial-gradient(120% 140% at 15% 0%, ${accent.from}, transparent 55%), radial-gradient(120% 140% at 100% 100%, ${accent.to}, ${accent.from})`,
+              // A quiet dusk sky, not a paint smear: the card's cover is plum
+              // night with ONE breath of the skin's warmth kissing a corner
+              // (≈14% alpha). Full-strength accent ramps here read as mud once
+              // the ink fade lands on top — and the cover must stay calmer
+              // than the thermometer, which is the actual light source.
+              background: `radial-gradient(90% 130% at 84% -24%, ${accent.from}24, transparent 62%), linear-gradient(180deg, #261b34 0%, #1b1226 100%)`,
             }}
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-ink-900 via-ink-900/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink-900 via-ink-900/20 to-transparent" />
 
         {/* Mode + status chips */}
         <div className="absolute left-3 top-3 flex items-center gap-2">
@@ -204,7 +204,7 @@ export function CampaignCard({ campaign, href, onOpen, compact, className }: Cam
             {activeChains.length ? (
               activeChains.map((ch) => (
                 <span key={ch} title={CHAIN_META[ch].label} className="flex">
-                  <ChainIcon chain={ch} size={15} />
+                  <ChainIcon chain={ch} size={20} contained />
                 </span>
               ))
             ) : (
