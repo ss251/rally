@@ -20,6 +20,9 @@ interface BottomSheetProps {
 // Heavy, rubbery spring — the sheet has mass (Design Bible §2: the sheet is
 // heavy/rubbery, a chip is light/snappy). Interruptible: grab it mid-flight.
 const SHEET_SPRING = { type: 'spring', stiffness: 420, damping: 44, mass: 0.9 } as const
+// Exit is ASYMMETRIC: dismissal is the system responding, so it's faster than
+// the entrance and rides the iOS drawer curve (Ionic) instead of a spring.
+const SHEET_EXIT = { duration: 0.26, ease: [0.32, 0.72, 0, 1] } as const
 
 /**
  * Gesture-native bottom sheet — drag-to-dismiss with rubber-banding at the top
@@ -33,7 +36,9 @@ export function BottomSheet({
   children,
   title,
   dismissOffset = 0.35,
-  dismissVelocity = 700,
+  // A quick flick should be enough — don't demand a long drag (momentum
+  // dismissal; Motion reports velocity in px/s).
+  dismissVelocity = 500,
   className,
 }: BottomSheetProps) {
   const y = useMotionValue(0)
@@ -82,7 +87,7 @@ export function BottomSheet({
             style={{ y }}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
-            exit={{ y: '100%' }}
+            exit={{ y: '100%', transition: SHEET_EXIT }}
             transition={SHEET_SPRING}
             drag="y"
             dragConstraints={{ top: 0, bottom: 0 }}

@@ -193,7 +193,7 @@ function CreateCampaign() {
             <Link
               to="/c/$id"
               params={{ id: c.id }}
-              className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-center text-base font-semibold text-paper transition-transform active:scale-[0.98]"
+              className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-center text-base font-semibold text-paper transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.98]"
             >
               Open the rally →
             </Link>
@@ -221,7 +221,7 @@ function CreateCampaign() {
               to="/c/$id"
               params={{ id: '1' }}
               search={{ skin: 'potluck' }}
-              className={`relative flex w-full items-center justify-center overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97] ${FOCUS_RING}`}
+              className={`relative flex w-full items-center justify-center overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97] ${FOCUS_RING}`}
               style={{
                 background: 'linear-gradient(180deg, #ff7db0, #ff5c9a 58%, #f0457f)',
                 boxShadow:
@@ -246,7 +246,7 @@ function CreateCampaign() {
           <button
             onClick={create}
             disabled={!canCreate}
-            className={`relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-all duration-150 ease-[var(--ease-spring)] active:scale-[0.97] ${FOCUS_RING}`}
+            className={`relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-[transform,background-color,color,box-shadow] duration-150 ease-[var(--ease-rally)] active:scale-[0.97] ${FOCUS_RING}`}
             style={{
               background:
                 canCreate || inFlight
@@ -419,7 +419,7 @@ function CreateHeader() {
         <Link
           to="/"
           aria-label="Back"
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-colors active:scale-95 hover:text-paper"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-[color,background-color,transform] duration-150 ease-[var(--ease-rally)] active:scale-95 hover:text-paper"
         >
           <ArrowLeft size={18} />
         </Link>

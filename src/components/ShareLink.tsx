@@ -52,7 +52,7 @@ export function ShareLink({ url, variant = 'ghost', label = 'Copy link', classNa
   return (
     <button
       onClick={copy}
-      className={`relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97] ${
+      className={`relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97] ${
         primary ? 'text-ink-950' : 'border border-white/10 bg-white/[0.04] text-paper'
       } ${className ?? ''}`}
       style={

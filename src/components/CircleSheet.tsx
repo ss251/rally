@@ -214,7 +214,7 @@ export function CircleSheet({
           <button
             onClick={send}
             disabled={!canSend && !inFlight}
-            className="relative mt-1 flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-all duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
+            className="relative mt-1 flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-[transform,background-color,color,box-shadow] duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
             style={{
               background:
                 canSend || inFlight
@@ -321,7 +321,7 @@ function SuccessView({
       </div>
       <button
         onClick={onDone}
-        className="mt-1 w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-base font-semibold text-paper transition-colors active:scale-[0.98]"
+        className="mt-1 w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-base font-semibold text-paper transition-[color,background-color,transform] duration-150 ease-[var(--ease-rally)] active:scale-[0.98]"
       >
         {onDoneLabel}
       </button>

@@ -108,10 +108,16 @@ export function ContributorFeed({
   const total = Math.max(totalCount ?? 0, sorted.length)
   const overflow = total - visible.length
 
-  // Track which ids are freshly arrived to animate only them.
+  // Track which ids are freshly arrived to animate only them. The FIRST pass
+  // (page load) only seeds the set: firing the arrival event for every row at
+  // once would signal "everything is new", which is false — the load batch
+  // gets a quick staggered rise instead (see the row markup).
   const seen = useRef<Set<string>>(new Set())
+  const mounted = useRef(false)
   const [enteredThisPass, setEntered] = useState<Set<string>>(new Set())
   useEffect(() => {
+    const isFirst = !mounted.current
+    mounted.current = true
     const fresh = new Set<string>()
     for (const c of visible) {
       if (!seen.current.has(c.id)) {
@@ -119,7 +125,7 @@ export function ContributorFeed({
         seen.current.add(c.id)
       }
     }
-    if (fresh.size) setEntered(fresh)
+    if (!isFirst && fresh.size) setEntered(fresh)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contributors])
 
@@ -140,17 +146,19 @@ export function ContributorFeed({
       </header>
 
       <ul className="flex flex-col gap-2">
-        {visible.map((c) => {
+        {visible.map((c, i) => {
           const fresh = enteredThisPass.has(c.id)
           return (
             <li
               key={c.id}
-              // The arrival event: a fresh row springs in warm-lit and DECAYS to
-              // an ordinary citizen over ~3s (newness is time, not a badge —
-              // roast #2). Settled rows all share one resting surface.
+              // Two entrances, two meanings. Page load: a quick staggered rise
+              // (50ms/row — the list settling into place). A LIVE arrival: the
+              // arrival event — springs in warm-lit, decays to ordinary over
+              // ~3s (newness is time, not a badge — roast #2).
               className={`flex items-center gap-3 rounded-2xl border border-line bg-surface p-2.5 pr-3.5 ${
-                fresh ? 'animate-arrive' : ''
+                fresh ? 'animate-arrive' : 'animate-rise'
               }`}
+              style={fresh ? undefined : { animationDelay: `${Math.min(i, 6) * 50}ms` }}
             >
               <Avatar c={c} />
               <div className="min-w-0 flex-1">

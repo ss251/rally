@@ -82,7 +82,7 @@ function CampaignDetail() {
               <Link
                 to="/"
                 aria-label="Back"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-colors active:scale-95 hover:text-paper"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-[color,background-color,transform] duration-150 ease-[var(--ease-rally)] active:scale-95 hover:text-paper"
               >
                 <ArrowLeft size={18} />
               </Link>
@@ -102,7 +102,7 @@ function CampaignDetail() {
           <div className="flex flex-col gap-2.5">
             <button
               onClick={() => setSheetOpen(true)}
-              className="relative w-full overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
+              className="relative w-full overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
               style={{
                 background: isPotluck
                   ? 'linear-gradient(180deg, #ff7db0, #ff5c9a 58%, #f0457f)'
@@ -274,7 +274,7 @@ function CampaignNotFound() {
             <Link
               to="/"
               aria-label="Back"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-colors active:scale-95 hover:text-paper"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-[color,background-color,transform] duration-150 ease-[var(--ease-rally)] active:scale-95 hover:text-paper"
             >
               <ArrowLeft size={18} />
             </Link>
@@ -286,7 +286,7 @@ function CampaignNotFound() {
         <div className="flex flex-col gap-2.5">
           <Link
             to="/create"
-            className="relative flex w-full items-center justify-center overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
+            className="relative flex w-full items-center justify-center overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
             style={{
               background:
                 'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
@@ -304,7 +304,7 @@ function CampaignNotFound() {
           <Link
             to="/c/$id"
             params={{ id: '1' }}
-            className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-center text-base font-semibold text-paper transition-transform active:scale-[0.98]"
+            className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-center text-base font-semibold text-paper transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.98]"
           >
             See one filling live →
           </Link>

@@ -215,8 +215,8 @@ function CreateCircle() {
               params={{ id: created.circleId }}
               className={
                 hasSeats
-                  ? 'w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-center text-base font-semibold text-paper transition-transform active:scale-[0.98]'
-                  : 'relative w-full overflow-hidden rounded-full py-4 text-center text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97]'
+                  ? 'w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-center text-base font-semibold text-paper transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.98]'
+                  : 'relative w-full overflow-hidden rounded-full py-4 text-center text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97]'
               }
               style={
                 hasSeats
@@ -253,7 +253,7 @@ function CreateCircle() {
         <button
           onClick={create}
           disabled={!canCreate}
-          className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-all duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
+          className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-[transform,background-color,color,box-shadow] duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
           style={{
             background:
               canCreate || inFlight
@@ -492,9 +492,10 @@ function CreateCircle() {
             className="relative h-6 w-10 shrink-0 rounded-full transition-colors"
             style={{ background: demoFill ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.12)' }}
           >
+            {/* The knob travels on transform (GPU), never `left` (layout). */}
             <span
-              className="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all"
-              style={{ left: demoFill ? 18 : 2 }}
+              className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-150 ease-[var(--ease-rally)]"
+              style={{ transform: demoFill ? 'translateX(16px)' : 'translateX(0)' }}
             />
           </span>
         </button>
@@ -531,7 +532,7 @@ function CreateHeader() {
         <Link
           to="/circles"
           aria-label="Back"
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-colors active:scale-95 hover:text-paper"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-[color,background-color,transform] duration-150 ease-[var(--ease-rally)] active:scale-95 hover:text-paper"
         >
           <ArrowLeft size={18} />
         </Link>

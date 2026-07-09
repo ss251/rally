@@ -127,7 +127,7 @@ function InvitePage() {
           </div>
           <button
             onClick={() => navigate({ to: '/circle/$id', params: { id: circleId } })}
-            className="mt-2 w-full rounded-full py-4 text-base font-semibold text-ink-950 transition-transform active:scale-[0.97]"
+            className="mt-2 w-full rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
             style={{
               background:
                 'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
@@ -149,7 +149,7 @@ function InvitePage() {
         <button
           onClick={join}
           disabled={!canJoin && !inFlight}
-          className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97] disabled:opacity-45"
+          className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97] disabled:opacity-45"
           style={{
             background:
               canJoin || inFlight
@@ -253,7 +253,7 @@ function InviteHeader() {
         <Link
           to="/circles"
           aria-label="Back"
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-colors active:scale-95 hover:text-paper"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-[color,background-color,transform] duration-150 ease-[var(--ease-rally)] active:scale-95 hover:text-paper"
         >
           <ArrowLeft size={18} />
         </Link>

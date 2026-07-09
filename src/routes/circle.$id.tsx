@@ -164,7 +164,7 @@ function CircleDetail() {
       return (
         <Link
           to="/circles/new"
-          className="relative w-full overflow-hidden rounded-full py-4 text-center text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
+          className="relative w-full overflow-hidden rounded-full py-4 text-center text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
           style={coralCta}
         >
           <CtaSheen />
@@ -223,7 +223,7 @@ function CircleDetail() {
       return (
         <Link
           to="/circles/new"
-          className="relative w-full overflow-hidden rounded-full py-4 text-center text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
+          className="relative w-full overflow-hidden rounded-full py-4 text-center text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
           style={coralCta}
         >
           <CtaSheen />
@@ -279,7 +279,7 @@ function CircleDetail() {
               <Link
                 to="/circles"
                 aria-label="Back"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-colors active:scale-95 hover:text-paper"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-[color,background-color,transform] duration-150 ease-[var(--ease-rally)] active:scale-95 hover:text-paper"
               >
                 <ArrowLeft size={18} />
               </Link>
@@ -307,7 +307,7 @@ function CircleDetail() {
                 <button
                   onClick={demoFill}
                   disabled={demoFilling}
-                  className="flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-sm font-semibold text-paper transition-transform active:scale-[0.98] disabled:opacity-60"
+                  className="flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-sm font-semibold text-paper transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.98] disabled:opacity-60"
                 >
                   {demoFilling ? (
                     <>
@@ -507,7 +507,7 @@ const coralCta: React.CSSProperties = {
 }
 
 const ctaBtnClass =
-  `relative w-full overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97] ${FOCUS_RING}`
+  `relative w-full overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97] ${FOCUS_RING}`
 
 function CtaSheen() {
   return (
