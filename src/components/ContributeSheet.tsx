@@ -339,6 +339,16 @@ function SuccessView({
   campaignTitle: string
   onDone: () => void
 }) {
+  // One quiet haptic tick, same frame as the check appearing — the money
+  // landed. The ONLY haptic in the app: feedback reserved for the moment
+  // that earns it, fired together with its visual so the senses agree.
+  useEffect(() => {
+    try {
+      navigator.vibrate?.(10)
+    } catch {
+      // haptics are a bonus, never a requirement
+    }
+  }, [])
   return (
     <div className="relative flex flex-col items-center gap-4 py-4 text-center">
       <Confetti active skin="rally" particleCount={110} />

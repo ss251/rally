@@ -239,6 +239,15 @@ h3,
 .vt-hero { view-transition-name: rally-hero; }
 .vt-card { view-transition-name: rally-card; }
 
+/* Honor reduced-transparency: the translucent chrome (frosted header, sheet,
+   glass tube) goes solid — same hierarchy, no see-through material. */
+@media (prefers-reduced-transparency: reduce) {
+  [class*='backdrop-blur'] {
+    backdrop-filter: none !important;
+    background-color: var(--color-ink-950) !important;
+  }
+}
+
 /* Accessibility floor: honor reduced-motion — kill ambient loops, keep the
    fill height transition (it's information, not decoration). */
 @media (prefers-reduced-motion: reduce) {
