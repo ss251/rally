@@ -136,10 +136,11 @@ export function Thermometer({
     prevSeg.current = segments
   }, [raised, realPct, segments, surfaceColor, onGoalReached])
 
-  // The glass tube itself.
+  // The glass tube itself. The layered inset shadow = depth below the rim +
+  // a 1px machined rim light where the glass catches the sky.
   const tube = (
     <div
-      className="relative overflow-hidden border border-white/10 bg-white/[0.03] shadow-[inset_0_2px_18px_rgba(0,0,0,0.55)] backdrop-blur-sm"
+      className="relative overflow-hidden border border-white/10 bg-white/[0.03] shadow-[inset_0_2px_18px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-sm"
       style={{
         borderRadius: 'var(--radius-tube)',
         ...(vertical
@@ -216,17 +217,16 @@ export function Thermometer({
       <div className={`flex flex-1 flex-col ${vertical ? 'justify-between py-1' : ''}`}>
         <div className="flex items-baseline gap-2">
           {funded || celebrate ? (
-            <span
-              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold text-ink-950"
-              style={{ background: `linear-gradient(90deg, ${accent.from}, ${accent.to})` }}
-            >
+            // Quiet win chip — coral stays reserved for the CTA even in victory.
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.1] px-2.5 py-1 text-xs font-semibold text-paper">
               <Check size={13} strokeWidth={3} /> Goal met
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
+              {/* Warm-white heartbeat — status is never painted in the CTA color. */}
               <span
                 className="animate-pulse-dot h-1.5 w-1.5 rounded-full"
-                style={{ background: accent.solid, color: accent.solid }}
+                style={{ background: 'rgba(255,241,232,0.82)', color: 'rgba(255,241,232,0.82)' }}
               />
               {skin === 'potluck' ? 'Collecting now' : 'Raising now'}
             </span>
@@ -243,12 +243,7 @@ export function Thermometer({
             </span>
             <span
               className="tnum font-display text-2xl font-semibold leading-none"
-              style={{
-                background: `linear-gradient(90deg, ${accent.from}, ${accent.to})`,
-                WebkitBackgroundClip: 'text',
-                backgroundClip: 'text',
-                color: 'transparent',
-              }}
+              style={{ color: 'rgba(255,240,233,0.72)' }}
             >
               {realPct}%
             </span>

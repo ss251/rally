@@ -97,6 +97,16 @@ export interface ChainSegment {
   amount: number
 }
 
+/**
+ * One keyboard-focus treatment for every actionable control (CTAs, choice
+ * chips, inputs, mode links): a warm 2px accent ring, drawn ONLY on
+ * `:focus-visible` so mouse/tap interaction is visually unchanged. Mirrors the
+ * ring CampaignCard already carries — append to a control's className so the
+ * whole surface answers the Tab key with one consistent state.
+ */
+export const FOCUS_RING =
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:[outline-color:var(--color-rally-500)]'
+
 // ── Formatting ──────────────────────────────────────────────────────────────
 
 const usd = (min: number, max: number) =>
@@ -164,11 +174,14 @@ export function initials(name: string): string {
 /** Deterministic gradient for an avatar fallback, seeded by name. Short names
  *  can hash into near-identical hues (Ana/Ben/Sam all land in the same green
  *  band) — pass a stable `slot` (seat / payout index) to rotate each one by
- *  the golden angle so neighbours in a list stay visually distinct. */
+ *  the golden angle so neighbours in a list stay visually distinct.
+ *  Deliberately DESATURATED: avatars are supporting cast on the dusk canvas —
+ *  hue still tells people apart, but nothing in a list row may outshine the
+ *  thermometer (the screen's one light source). */
 export function avatarGradient(name: string, slot = 0): { from: string; to: string } {
   let h = 0
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
   const a = (h + slot * 137) % 360
   const b = (a + 40) % 360
-  return { from: `hsl(${a} 70% 62%)`, to: `hsl(${b} 74% 48%)` }
+  return { from: `hsl(${a} 32% 40%)`, to: `hsl(${b} 34% 27%)` }
 }

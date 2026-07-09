@@ -5,7 +5,7 @@ import { motion } from 'motion/react'
 import { AppShell } from '#/components/AppShell'
 import { CampaignCard, type Campaign } from '#/components/CampaignCard'
 import { ShareLink } from '#/components/ShareLink'
-import type { Skin } from '#/design/chains'
+import { FOCUS_RING, type Skin } from '#/design/chains'
 import { loginWithEmail } from '#/lib/auth/magic'
 import { createCampaignServerFn } from '#/lib/campaign-actions'
 import { loadCampaign, type CampaignView } from '#/lib/campaign'
@@ -48,7 +48,7 @@ const COPY: Record<Skin, { titlePh: string; goalLabel: string; goalPh: string; v
     kicker: 'A goal bar your friends fill together.',
   },
   potluck: {
-    titlePh: 'Priya’s surprise send-off',
+    titlePh: 'Kate’s surprise send-off',
     goalLabel: 'Gift pool',
     goalPh: '600',
     verb: 'Preview the potluck',
@@ -166,7 +166,7 @@ function CreateCampaign() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
-              className="mt-1.5 text-[1.9rem] font-semibold leading-tight tracking-tight text-paper"
+              className="mt-1.5 text-display font-semibold text-paper"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               Drop this in the group chat
@@ -193,14 +193,14 @@ function CreateCampaign() {
             <Link
               to="/c/$id"
               params={{ id: c.id }}
-              className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-center text-base font-semibold text-paper transition-transform active:scale-[0.98]"
+              className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-center text-base font-semibold text-paper transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.98]"
             >
               Open the rally →
             </Link>
           </div>
 
           {c.live && (
-            <p className="text-center text-[12.5px] leading-relaxed text-faint">
+            <p className="text-center text-[13px] leading-relaxed text-faint">
               Fund #{c.id}, live on Arbitrum — the bar fills the moment
               money lands.
             </p>
@@ -221,7 +221,7 @@ function CreateCampaign() {
               to="/c/$id"
               params={{ id: '1' }}
               search={{ skin: 'potluck' }}
-              className="relative flex w-full items-center justify-center overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
+              className={`relative flex w-full items-center justify-center overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97] ${FOCUS_RING}`}
               style={{
                 background: 'linear-gradient(180deg, #ff7db0, #ff5c9a 58%, #f0457f)',
                 boxShadow:
@@ -235,7 +235,7 @@ function CreateCampaign() {
               />
               {copy.verb} →
             </Link>
-            <p className="text-center text-[12.5px] leading-relaxed text-faint">
+            <p className="text-center text-[13px] leading-relaxed text-faint">
               A live preview of the gift skin — potluck creation ships next.
             </p>
           </div>
@@ -246,7 +246,7 @@ function CreateCampaign() {
           <button
             onClick={create}
             disabled={!canCreate}
-            className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-all duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
+            className={`relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-[transform,background-color,color,box-shadow] duration-150 ease-[var(--ease-rally)] active:scale-[0.97] ${FOCUS_RING}`}
             style={{
               background:
                 canCreate || inFlight
@@ -276,6 +276,16 @@ function CreateCampaign() {
               </>
             ) : status === 'error' ? (
               <>Try again</>
+            ) : !canCreate ? (
+              // The resting CTA teaches the ONE thing still missing (same
+              // grammar as the contribute sheet) instead of sitting gray.
+              <>
+                {title.trim().length <= 1
+                  ? 'Name your rally to start'
+                  : !/.+@.+\..+/.test(email)
+                    ? 'Add your payout email'
+                    : 'Set a goal amount'}
+              </>
             ) : (
               <>{copy.verb}</>
             )}
@@ -286,7 +296,7 @@ function CreateCampaign() {
       <div className="flex flex-col gap-6 pt-4">
         <div>
           <h1
-            className="text-[2rem] font-semibold leading-[1.05] tracking-tight text-paper"
+            className="text-display font-semibold text-paper"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             Start something
@@ -311,7 +321,7 @@ function CreateCampaign() {
             placeholder={copy.titlePh}
             maxLength={60}
             disabled={inFlight}
-            className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60"
+            className={`w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60 ${FOCUS_RING}`}
           />
         </label>
 
@@ -329,7 +339,7 @@ function CreateCampaign() {
               value={email}
               disabled={inFlight}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60"
+              className={`w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60 ${FOCUS_RING}`}
             />
           </label>
         )}
@@ -349,7 +359,7 @@ function CreateCampaign() {
               inputMode="decimal"
               placeholder={copy.goalPh}
               disabled={inFlight}
-              className="tnum w-full rounded-xl border border-white/10 bg-white/[0.04] py-3.5 pl-8 pr-16 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60"
+              className={`tnum w-full rounded-xl border border-white/10 bg-white/[0.04] py-3.5 pl-8 pr-16 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60 ${FOCUS_RING}`}
             />
             <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-faint">
               USDC
@@ -368,7 +378,7 @@ function CreateCampaign() {
                   key={d.days}
                   onClick={() => setDays(d.days)}
                   disabled={inFlight}
-                  className="relative rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
+                  className={`relative rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 ${FOCUS_RING}`}
                   style={
                     active
                       ? { background: 'rgba(255,255,255,0.10)', color: 'var(--color-paper)' }
@@ -395,7 +405,7 @@ function CreateCampaign() {
         </div>
 
         {status === 'error' && error && (
-          <p className="-mt-2 text-[13px] leading-relaxed text-warn">{error}</p>
+          <p className="-mt-2 text-[13px] font-medium leading-relaxed text-warn">{error}</p>
         )}
       </div>
     </AppShell>
@@ -409,7 +419,7 @@ function CreateHeader() {
         <Link
           to="/"
           aria-label="Back"
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-colors active:scale-95 hover:text-paper"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-[color,background-color,transform] duration-150 ease-[var(--ease-rally)] active:scale-95 hover:text-paper"
         >
           <ArrowLeft size={18} />
         </Link>
@@ -446,7 +456,7 @@ function ModeToggle({
             key={key}
             onClick={() => onChange(key)}
             disabled={disabled}
-            className="relative flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
+            className={`relative flex items-center justify-center gap-2 rounded-[10px] py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 ${FOCUS_RING}`}
             style={{ color: active ? 'var(--color-paper)' : 'var(--color-faint)' }}
           >
             {active && (
@@ -454,7 +464,8 @@ function ModeToggle({
               // a quiet white inset ring — the accent stays reserved for the CTA.
               <motion.span
                 layoutId="mode-toggle-pill"
-                className="absolute inset-0 rounded-xl"
+                // Concentric with the frame: 16px row radius − 6px inset = 10px.
+                className="absolute inset-0 rounded-[10px]"
                 style={{
                   background: 'rgba(255,255,255,0.10)',
                   boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,0.45)',

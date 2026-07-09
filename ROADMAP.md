@@ -23,8 +23,8 @@ The ZeroDev subtrack judges SRA use at 30%. An SRA is a universal multi-chain de
 One open rubric question is with the organizers: does the General track *require* Particle's Universal Accounts SDK, or merely reward it? Rally already has the substance the criterion describes — a real Type-4 7702 transaction and a live cross-chain value flow — via ZeroDev + CCTP on testnet (Particle UA is mainnet-only, and Rally spends no real money). If UA is required, the submission goes all-in on the Arbitrum bounty + Magic bonus, where the fit is strongest; if it's merely rewarded, General stays in play.
 
 ### 3. Circles finish line
-- **Self-custodied organizer signing** — circles created in-app today use the concierge relayer as the onchain organizer; move the EIP-712 invite signing to the organizer's own embedded wallet.
-- **A human end-to-end pass** on the Magic-OTP → gasless deposit path for Circles (the same rail is already proven for Goals).
+- ~~**Self-custodied organizer signing**~~ **Shipped** — real in-app creates now send `createCircle` from the creator's own 7702 kernel (organizer = their EOA), sign every EIP-712 seat invite with their key in the browser, and gate `start` behind their wallet. The relayer only organizes the demo-friends lane, and the UI says so. Next iteration: an online-organizer countersign flow so an invite can bind the joiner's own wallet address at redemption time (today open seats are pre-bound to per-seat addresses derived on the creator's device — the same pre-derived-member pattern as the demo lane).
+- **A human end-to-end pass** on the Magic-OTP → gasless deposit path for Circles (the same rail is already proven for Goals), now including the self-custodied create (Magic `signTypedData` invite signing).
 - **Polish loop** on the create-success and claim celebrations.
 
 ### 4. Demo hardening

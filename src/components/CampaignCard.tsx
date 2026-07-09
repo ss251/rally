@@ -79,7 +79,7 @@ function BackerStack({ backers, count }: { backers?: Backer[]; count: number }) 
           ) : (
             <span
               key={i}
-              className="flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-bold text-white ring-2 ring-ink-900"
+              className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white ring-2 ring-ink-900"
               style={{ background: `linear-gradient(135deg, ${g.from}, ${g.to})` }}
               aria-hidden="true"
             >
@@ -125,7 +125,7 @@ export function CampaignCard({ campaign, href, onOpen, compact, className }: Cam
     <Wrapper
       {...wrapperProps}
       onClick={handleOpen}
-      className={`group block overflow-hidden border border-white/10 bg-ink-900 text-left no-underline shadow-[0_18px_50px_-24px_rgba(0,0,0,0.9)] transition-transform duration-300 ease-[var(--ease-rally)] hover:-translate-y-1 hover:border-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${className ?? ''}`}
+      className={`group block overflow-hidden border border-white/10 bg-ink-900 text-left no-underline shadow-[0_18px_50px_-24px_rgba(0,0,0,0.9)] transition-transform duration-300 ease-[var(--ease-rally)] hover:-translate-y-1 hover:border-white/20 active:scale-[0.985] active:duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${className ?? ''}`}
       style={{ borderRadius: 'var(--radius-card)', outlineColor: accent.solid }}
     >
       {/* Cover */}
@@ -134,13 +134,18 @@ export function CampaignCard({ campaign, href, onOpen, compact, className }: Cam
           <img src={campaign.coverUrl} alt="" className="h-full w-full object-cover" />
         ) : (
           <div
-            className="h-full w-full animate-sheen"
+            className="h-full w-full"
             style={{
-              background: `radial-gradient(120% 140% at 15% 0%, ${accent.from}, transparent 55%), radial-gradient(120% 140% at 100% 100%, ${CHAIN_META.solana.color}, ${CHAIN_META.base.color})`,
+              // A quiet dusk sky, not a paint smear: the card's cover is plum
+              // night with ONE breath of the skin's warmth kissing a corner
+              // (≈14% alpha). Full-strength accent ramps here read as mud once
+              // the ink fade lands on top — and the cover must stay calmer
+              // than the thermometer, which is the actual light source.
+              background: `radial-gradient(90% 130% at 84% -24%, ${accent.from}24, transparent 62%), linear-gradient(180deg, #261b34 0%, #1b1226 100%)`,
             }}
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-ink-900 via-ink-900/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink-900 via-ink-900/20 to-transparent" />
 
         {/* Mode + status chips */}
         <div className="absolute left-3 top-3 flex items-center gap-2">
@@ -150,10 +155,7 @@ export function CampaignCard({ campaign, href, onOpen, compact, className }: Cam
             </span>
           )}
           {funded && (
-            <span
-              className="rounded-full px-2 py-1 text-[10px] font-bold text-ink-950"
-              style={{ background: `linear-gradient(90deg, ${accent.from}, ${accent.to})` }}
-            >
+            <span className="rounded-full bg-white/[0.14] px-2 py-1 text-[10px] font-bold text-paper backdrop-blur">
               FUNDED
             </span>
           )}
@@ -188,7 +190,7 @@ export function CampaignCard({ campaign, href, onOpen, compact, className }: Cam
           <BackerStack backers={campaign.backers} count={campaign.backerCount} />
           <span
             className={`tnum inline-flex items-center gap-1 text-xs ${
-              cd?.urgent ? 'text-warn' : 'text-muted'
+              cd?.urgent ? 'font-medium text-warn' : 'text-muted'
             }`}
           >
             <Clock size={12} /> {cd == null ? '—' : cd.label}
@@ -202,17 +204,16 @@ export function CampaignCard({ campaign, href, onOpen, compact, className }: Cam
             {activeChains.length ? (
               activeChains.map((ch) => (
                 <span key={ch} title={CHAIN_META[ch].label} className="flex">
-                  <ChainIcon chain={ch} size={15} />
+                  <ChainIcon chain={ch} size={20} contained />
                 </span>
               ))
             ) : (
               <span className="text-[10px] text-faint">any chain</span>
             )}
           </div>
-          <span
-            className="inline-flex items-center gap-1 text-sm font-semibold transition-transform group-hover:translate-x-0.5"
-            style={{ color: accent.solid }}
-          >
+          {/* Paper, not coral — the card's whole surface is the press target,
+              and coral is reserved for the screen's one real CTA. */}
+          <span className="inline-flex items-center gap-1 text-sm font-semibold text-paper transition-transform group-hover:translate-x-0.5">
             {funded ? 'View rally' : 'Chip in'}
             <ArrowUpRight size={15} strokeWidth={2.5} />
           </span>

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 interface AppShellProps {
   children: ReactNode
@@ -11,6 +11,26 @@ interface AppShellProps {
 }
 
 /**
+ * The pinned CTA zone's real rendered height (it varies: one button, button +
+ * ghost link, button + helper line…). The scroll region pads by THIS + 24px so
+ * the last row of content can always scroll fully clear of the buttons —
+ * a docked CTA must never decapitate content (design roast #3).
+ */
+function useMeasuredHeight<T extends HTMLElement>(): [React.RefObject<T | null>, number] {
+  const ref = useRef<T>(null)
+  const [h, setH] = useState(0)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setH(el.offsetHeight))
+    ro.observe(el)
+    setH(el.offsetHeight)
+    return () => ro.disconnect()
+  }, [])
+  return [ref, h]
+}
+
+/**
  * Rally's mobile-first frame. A single centered column (max ~480px) on the dusk
  * canvas with an ambient bloom, notch-aware safe-area padding, and an optional
  * pinned thumb-zone CTA region that never sits under the home indicator.
@@ -19,6 +39,7 @@ interface AppShellProps {
  * (held at a party), never a stretched dashboard.
  */
 export function AppShell({ children, cta, header, className }: AppShellProps) {
+  const [ctaRef, ctaHeight] = useMeasuredHeight<HTMLDivElement>()
   return (
     <div className="relative flex min-h-[100dvh] justify-center">
       {/* No decorative background gradient. The only light in Rally comes from
@@ -30,24 +51,28 @@ export function AppShell({ children, cta, header, className }: AppShellProps) {
           </header>
         )}
 
-        {/* Scroll region. Bottom padding leaves room for the pinned CTA. */}
+        {/* Scroll region. Bottom padding = the MEASURED pinned-CTA height + 24px
+            breathing room (pb-48 fallback until the first measurement lands). */}
         <main
           className={`flex-1 px-5 ${header ? '' : 'pt-safe'} ${
-            cta ? 'pb-48' : 'pb-safe'
+            cta ? (ctaHeight ? '' : 'pb-48') : 'pb-safe'
           } ${className ?? ''}`}
+          style={cta && ctaHeight ? { paddingBottom: ctaHeight + 24 } : undefined}
         >
           {children}
         </main>
 
-        {/* Thumb-zone CTA region — pinned, frosted, safe-area aware. */}
+        {/* Thumb-zone CTA region — pinned, safe-area aware, over its own scrim
+            so scrolled content dips into shadow before it reaches the buttons. */}
         {cta && (
           <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center">
             <div className="pointer-events-auto w-full max-w-[480px] px-safe">
               <div
-                className="pb-safe-cta px-5 pt-12"
+                ref={ctaRef}
+                className="pb-safe-cta px-5 pt-10"
                 style={{
                   background:
-                    'linear-gradient(180deg, transparent 0%, var(--color-ink-950) 38%)',
+                    'linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--color-ink-950) 86%, transparent) 26%, var(--color-ink-950) 52%)',
                 }}
               >
                 {cta}

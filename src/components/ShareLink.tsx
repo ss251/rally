@@ -5,8 +5,10 @@ import { motion, AnimatePresence } from 'motion/react'
 interface ShareLinkProps {
   /** The URL to copy. When omitted, copies the current page URL at click time. */
   url?: string
-  /** primary = coral (the hero artifact action); ghost = quiet secondary. */
-  variant?: 'primary' | 'ghost'
+  /** primary = coral (the hero artifact action); ghost = quiet secondary
+   *  button; text = Pools' text-link anatomy ("or start your own rally →") for
+   *  use under a primary CTA without adding a second button of chrome. */
+  variant?: 'primary' | 'ghost' | 'text'
   /** Button label before copy. */
   label?: string
   className?: string
@@ -36,10 +38,21 @@ export function ShareLink({ url, variant = 'ghost', label = 'Copy link', classNa
 
   const primary = variant === 'primary'
 
+  if (variant === 'text') {
+    return (
+      <button
+        onClick={copy}
+        className={`w-full py-1 text-center text-sm font-medium text-muted transition-colors hover:text-paper ${className ?? ''}`}
+      >
+        {copied ? 'Copied to clipboard ✓' : `${label} →`}
+      </button>
+    )
+  }
+
   return (
     <button
       onClick={copy}
-      className={`relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97] ${
+      className={`relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97] ${
         primary ? 'text-ink-950' : 'border border-white/10 bg-white/[0.04] text-paper'
       } ${className ?? ''}`}
       style={

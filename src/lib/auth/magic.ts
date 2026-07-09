@@ -28,8 +28,10 @@ import {
   type Address,
   type Chain,
   type Hex,
+  type LocalAccount,
   type WalletClient,
 } from 'viem';
+import { toAccount } from 'viem/accounts';
 import { arbitrumSepolia, baseSepolia, optimismSepolia } from 'viem/chains';
 
 export type Magic = MagicBase<[EVMExtension]>;
@@ -172,13 +174,124 @@ export async function logout(): Promise<void> {
 }
 
 // -----------------------------------------------------------------------------
-// viem interop — the Magic EOA as a viem wallet client
+// viem interop — the Magic EOA as a viem *LocalAccount*
 // -----------------------------------------------------------------------------
 /**
- * A viem WalletClient backed by Magic's EIP-1193 provider, bound to `chainId`.
- * This is what we hand to ZeroDev as the 7702 signer (its `.account` signs the
- * userOp hash). The account address == the Magic EOA == the resulting smart
- * account address (that is the whole point of 7702).
+ * Normalise whatever `magic.wallet.sign7702Authorization` returns ({ r, s, v })
+ * into the tuple viem/ZeroDev expect for a signed EIP-7702 authorization.
+ * EIP-7702 authorities recover from (r, s, yParity), so we derive yParity from
+ * Magic's v (27/28 -> 0/1, or a raw 0/1 passed through).
+ */
+function normalizeMagicAuthorization(
+  raw: { r: Hex; s: Hex; v?: bigint | number; yParity?: number },
+  tuple: { address: Address; chainId: number; nonce: number },
+): SignedAuthorization {
+  let yParity: number;
+  if (raw.yParity !== undefined) {
+    yParity = Number(raw.yParity);
+  } else {
+    const vNum = typeof raw.v === 'bigint' ? Number(raw.v) : Number(raw.v ?? 27);
+    yParity = vNum >= 27 ? vNum - 27 : vNum;
+  }
+  return {
+    address: tuple.address,
+    chainId: tuple.chainId,
+    nonce: tuple.nonce,
+    r: raw.r,
+    s: raw.s,
+    yParity,
+    v: BigInt(yParity + 27),
+  };
+}
+
+/**
+ * The CRUX of the Magic -> ZeroDev 7702 fix.
+ *
+ * Magic's `rpcProvider` is a plain EIP-1193 provider, so a viem WalletClient
+ * built over it produces a *json-rpc account* (`{ address, type: 'json-rpc' }`)
+ * — which has neither `signMessage`-as-a-method nor, crucially, a
+ * `signAuthorization`. When ZeroDev's `createKernelAccount({ eip7702Account })`
+ * ran `toSigner()` over that bare json-rpc account it dereferenced
+ * `walletClient.account.address` on a value that had no `.account`, throwing
+ * `Cannot read properties of undefined (reading 'address')`. And even past that,
+ * viem's `signAuthorization` action *explicitly rejects* json-rpc accounts
+ * (`AccountTypeNotSupportedError`) — a raw provider simply cannot sign a raw
+ * secp256k1 EIP-7702 authorization tuple.
+ *
+ * The fix is to hand ZeroDev a real viem `LocalAccount` (`type: 'local'`, which
+ * `toSigner` returns as-is) whose three signers are wired to Magic:
+ *   - signMessage / signTypedData  -> the Magic provider (personal_sign /
+ *     eth_signTypedData_v4) — this is what signs the ERC-4337 userOp hash and
+ *     the EIP-712 circle invites.
+ *   - signAuthorization            -> Magic's *native* 7702 RPC,
+ *     `magic.wallet.sign7702Authorization`, which is the only way an embedded
+ *     Magic key can produce a 7702 authorization (verified against Magic's
+ *     Particle `ua-7702-magic-demo`). ZeroDev/viem compute the correct
+ *     sponsored-path nonce (`getTransactionCount(pending)`, NO +1 because the
+ *     bundler — not the EOA — sends the type-4 tx) and pass it here.
+ */
+export function magicLocalAccount(params: {
+  magic: Magic;
+  chain: Chain;
+  address: Address;
+}): LocalAccount {
+  const { magic, chain, address } = params;
+
+  // Inner json-rpc walletClient purely to reuse viem's message/typed-data
+  // encoding over the Magic provider (personal_sign / eth_signTypedData_v4).
+  const rpcWallet = createWalletClient({
+    account: address,
+    chain,
+    transport: custom(magic.rpcProvider as any),
+  });
+
+  return toAccount({
+    address,
+    async signMessage({ message }) {
+      return rpcWallet.signMessage({ message });
+    },
+    async signTypedData(typedData) {
+      return rpcWallet.signTypedData(typedData as any);
+    },
+    async signTransaction() {
+      // 7702 smart accounts never sign raw transactions themselves.
+      throw new Error('Magic 7702 signer does not sign raw transactions.');
+    },
+    async signAuthorization(authorization) {
+      // viem/ZeroDev hand us { address (delegate impl), chainId, nonce }.
+      const contractAddress = authorization.address as Address;
+      const chainId = Number(authorization.chainId ?? chain.id);
+      const nonce = Number(authorization.nonce);
+      const wallet = (magic as any).wallet;
+      if (!wallet || typeof wallet.sign7702Authorization !== 'function') {
+        throw new Error(
+          'This email wallet cannot sign an EIP-7702 authorization ' +
+            '(magic.wallet.sign7702Authorization unavailable). Update magic-sdk ' +
+            'or delegate this wallet to the ZeroDev kernel once before going gasless.',
+        );
+      }
+      // Magic cannot sign a chainId==0 (chain-agnostic) authorization — always
+      // a concrete chainId (matches the connected chain).
+      const raw = await wallet.sign7702Authorization({
+        contractAddress,
+        chainId,
+        nonce,
+      });
+      return normalizeMagicAuthorization(raw, {
+        address: contractAddress,
+        chainId,
+        nonce,
+      }) as any;
+    },
+  });
+}
+
+/**
+ * A viem WalletClient backed by Magic, bound to `chainId`, whose `.account` is a
+ * real `LocalAccount` (see `magicLocalAccount`) — NOT a bare json-rpc account.
+ * This is what we hand to ZeroDev as the 7702 signer: `.account` signs the userOp
+ * hash AND the 7702 authorization. The account address == the Magic EOA == the
+ * resulting smart-account address (the whole point of 7702).
  */
 export async function getMagicWalletClient(
   chainId: RallyChainId,
@@ -194,8 +307,10 @@ export async function getMagicWalletClient(
     method: 'eth_accounts',
   });
 
+  const account = magicLocalAccount({ magic, chain, address: address as Address });
+
   return createWalletClient({
-    account: address as Address,
+    account,
     chain,
     transport: custom(magic.rpcProvider as any),
   });
@@ -251,17 +366,11 @@ export async function signMagic7702Authorization(params: {
     nonce: params.nonce,
   });
 
-  const vNum = typeof auth.v === 'bigint' ? Number(auth.v) : Number(auth.v ?? 27);
-  const yParity = vNum >= 27 ? vNum - 27 : vNum; // 27/28 -> 0/1
-  return {
+  return normalizeMagicAuthorization(auth, {
     address: (auth.address ?? params.contractAddress) as Address,
     chainId: params.chainId,
     nonce: params.nonce,
-    r: auth.r as Hex,
-    s: auth.s as Hex,
-    yParity,
-    v: BigInt(vNum),
-  };
+  });
 }
 
 /**

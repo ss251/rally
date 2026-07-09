@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, Check, Loader2 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { AppShell } from '#/components/AppShell'
+import { Brand } from '#/components/Brand'
 import { Confetti } from '#/components/Confetti'
 import { formatUsd } from '#/design/chains'
 import { loginWithEmail } from '#/lib/auth/magic'
@@ -42,7 +43,10 @@ export const Route = createFileRoute('/invite')({
   // Best-effort live read for the invite card; the screen still works if the
   // circle can't be read (deposit shown as "—").
   loader: async ({ deps }): Promise<CircleView | null> => {
-    if (!deps.c) return null
+    // A bare /invite has no seat to offer — "You've got a seat in a circle"
+    // with a dash for the amount reads broken, not designed. Send the
+    // parameterless visitor to the Circles landing instead.
+    if (!deps.c) throw redirect({ to: '/circles' })
     return fetchLiveCircle(String(deps.c), deps.t).catch(() => null)
   },
   component: InvitePage,
@@ -126,7 +130,7 @@ function InvitePage() {
           </div>
           <button
             onClick={() => navigate({ to: '/circle/$id', params: { id: circleId } })}
-            className="mt-2 w-full rounded-full py-4 text-base font-semibold text-ink-950 transition-transform active:scale-[0.97]"
+            className="mt-2 w-full rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
             style={{
               background:
                 'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
@@ -148,7 +152,7 @@ function InvitePage() {
         <button
           onClick={join}
           disabled={!canJoin && !inFlight}
-          className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97] disabled:opacity-45"
+          className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97] disabled:opacity-45"
           style={{
             background:
               canJoin || inFlight
@@ -188,8 +192,8 @@ function InvitePage() {
         <div>
           <p className="text-sm text-faint">You’ve got a seat in</p>
           <h1
-            className="mt-1.5 text-[2.15rem] font-semibold leading-[1.04] tracking-[-0.01em] text-paper"
-            style={{ fontFamily: 'var(--font-display)', wordSpacing: '0.08em' }}
+            className="mt-1.5 text-display font-semibold text-paper"
+            style={{ fontFamily: 'var(--font-display)' }}
           >
             {title}
           </h1>
@@ -234,10 +238,10 @@ function InvitePage() {
         </label>
 
         {status === 'error' && error && (
-          <p className="-mt-2 text-[13px] leading-relaxed text-warn">{error}</p>
+          <p className="-mt-2 text-[13px] font-medium leading-relaxed text-warn">{error}</p>
         )}
 
-        <p className="text-center text-[12.5px] leading-relaxed text-faint">
+        <p className="text-center text-[13px] leading-relaxed text-faint">
           No wallet, no gas, no seed phrase — just your email.
         </p>
       </div>
@@ -252,20 +256,15 @@ function InviteHeader() {
         <Link
           to="/circles"
           aria-label="Back"
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-colors active:scale-95 hover:text-paper"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-[color,background-color,transform] duration-150 ease-[var(--ease-rally)] active:scale-95 hover:text-paper"
         >
           <ArrowLeft size={18} />
         </Link>
-        <span
-          className="text-lg font-semibold tracking-tight text-paper"
-          style={{ fontFamily: 'var(--font-display)' }}
-        >
-          Rally <span className="text-muted">Circles</span>
-        </span>
+        <Brand sub="Circles" />
       </div>
       {/* Static dot; two-word status vocabulary: Demo | Live on Arbitrum.
           Invites always redeem against the live RotatingVault. */}
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-faint">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs font-medium text-faint">
         <span
           className="h-1.5 w-1.5 rounded-full"
           style={{ background: 'rgba(255,241,232,0.82)' }}

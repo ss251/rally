@@ -3,9 +3,32 @@ import { Check, ChevronDown, Loader2 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { BottomSheet } from './BottomSheet'
 import { Confetti } from './Confetti'
-import { CHAIN_META, formatUsd, type Chain } from '#/design/chains'
+import { CHAIN_META, FOCUS_RING, formatUsd, type Chain } from '#/design/chains'
 import { loginWithEmail } from '#/lib/auth/magic'
 import { tryGaslessBackerBurn } from '#/lib/backer-gasless'
+
+// Money errors must read like a product, never like a stack trace. Raw
+// viem/RPC reverts (with contract addresses and calldata) reached this sheet
+// live on 2026-07-03 — map the known failure shapes to human words and give
+// everything else one honest fallback. The full error still lands in the
+// console for us.
+function friendlyMoneyError(e: unknown): string {
+  const raw = e instanceof Error ? e.message : String(e ?? '')
+  // eslint-disable-next-line no-console
+  console.error('[chip-in]', raw)
+  const m = raw.toLowerCase()
+  if (m.includes('allowance') || m.includes('insufficient') || m.includes('exceeds'))
+    return 'The money rail hiccuped — nothing left your account. Try again in a few seconds.'
+  if (m.includes('deadline') || m.includes('ended'))
+    return 'This rally already ended — nothing was sent.'
+  if (m.includes('withdrawn'))
+    return 'This rally already paid out — nothing was sent.'
+  if (m.includes('timeout') || m.includes('network') || m.includes('fetch'))
+    return 'The network hiccuped — nothing left your account. Try again.'
+  if (m.includes('denied') || m.includes('rejected'))
+    return 'The request was cancelled — nothing was sent.'
+  return 'Something went wrong on our side — nothing left your account. Try again.'
+}
 import { contributeServerFn, completeContributionServerFn } from '#/lib/contribute'
 
 interface ContributeSheetProps {
@@ -47,6 +70,10 @@ export function ContributeSheet({
 }: ContributeSheetProps) {
   const [email, setEmail] = useState('')
   const [amount, setAmount] = useState(initialAmount)
+  // A typed custom amount. Non-empty ⇒ the preset chips deselect and `amount`
+  // is driven by this field, so a stranger who wants $42 isn't boxed into
+  // 10/25/100.
+  const [customAmount, setCustomAmount] = useState('')
   const [status, setStatus] = useState<Status>('idle')
   const [movedUsd, setMovedUsd] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -60,6 +87,7 @@ export function ContributeSheet({
         setStatus('idle')
         setEmail('')
         setAmount(initialAmount)
+        setCustomAmount('')
         setMovedUsd(null)
         setError(null)
       }, 250)
@@ -68,8 +96,8 @@ export function ContributeSheet({
   }, [open])
 
   const inFlight = status === 'authing' || status === 'sending'
-  const canSend =
-    /.+@.+\..+/.test(email) && amount > 0 && (status === 'idle' || status === 'error')
+  const emailValid = /.+@.+\..+/.test(email)
+  const canSend = emailValid && amount > 0 && (status === 'idle' || status === 'error')
 
   const send = async () => {
     if (!canSend) return
@@ -119,11 +147,7 @@ export function ContributeSheet({
       // 3. Bar rises for real — re-read the live GoalVault.
       onContributed?.()
     } catch (e) {
-      setError(
-        e instanceof Error && e.message
-          ? e.message
-          : 'Something went wrong. Please try again.',
-      )
+      setError(friendlyMoneyError(e))
       setStatus('error')
     }
   }
@@ -143,8 +167,8 @@ export function ContributeSheet({
           <label className="flex flex-col gap-1.5">
             <span className="flex items-baseline justify-between">
               <span className="text-xs font-medium uppercase tracking-wide text-faint">Email</span>
-              {!/.+@.+\..+/.test(email) && (
-                <span className="text-[11px] text-faint">enter yours to chip in</span>
+              {!emailValid && (
+                <span className="text-xs text-faint">enter yours to chip in</span>
               )}
             </span>
             <input
@@ -155,7 +179,7 @@ export function ContributeSheet({
               value={email}
               disabled={inFlight}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60"
+              className={`w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-base text-paper outline-none transition-colors placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60 ${FOCUS_RING}`}
             />
           </label>
 
@@ -164,13 +188,17 @@ export function ContributeSheet({
             <span className="text-xs font-medium uppercase tracking-wide text-faint">Amount</span>
             <div className="grid grid-cols-3 gap-2">
               {AMOUNTS.map((a) => {
-                const active = amount === a
+                // A preset reads as chosen only while no custom amount is typed.
+                const active = customAmount === '' && amount === a
                 return (
                   <button
                     key={a}
-                    onClick={() => setAmount(a)}
+                    onClick={() => {
+                      setAmount(a)
+                      setCustomAmount('')
+                    }}
                     disabled={inFlight}
-                    className="relative rounded-xl py-3 text-base font-semibold transition-colors disabled:opacity-60"
+                    className={`relative rounded-xl py-3 text-base font-semibold transition-colors disabled:opacity-60 ${FOCUS_RING}`}
                     style={
                       active
                         ? { background: 'rgba(255,255,255,0.10)', color: 'var(--color-paper)' }
@@ -190,6 +218,27 @@ export function ContributeSheet({
                 )
               })}
             </div>
+            {/* Custom amount — nobody who wants $42 should hit a 10/25/100 wall.
+                Same field grammar as the create-flow goal input ($ lead, tabular
+                figures, decimal keypad); typing here drives `amount` and quietly
+                deselects the presets above. */}
+            <div className="relative">
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-muted">
+                $
+              </span>
+              <input
+                inputMode="decimal"
+                placeholder="Other amount"
+                value={customAmount}
+                disabled={inFlight}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/[^0-9.]/g, '')
+                  setCustomAmount(raw)
+                  setAmount(Math.max(0, Number(raw) || 0))
+                }}
+                className={`tnum w-full rounded-xl border border-white/10 bg-white/[0.04] py-3 pl-8 pr-4 text-base text-paper outline-none transition-colors placeholder:font-normal placeholder:text-faint focus:border-white/30 focus:bg-white/[0.06] disabled:opacity-60 ${FOCUS_RING}`}
+              />
+            </div>
             <div className="pt-0.5">
               <button
                 type="button"
@@ -208,7 +257,7 @@ export function ContributeSheet({
                 />
               </button>
               {fromOpen && (
-                <p className="mt-1.5 max-w-[19rem] text-[12.5px] leading-relaxed text-faint">
+                <p className="mt-1.5 max-w-[19rem] text-[13px] leading-relaxed text-faint">
                   We detect the chain your USDC is already on and move it for you — no
                   network switching, no bridge to figure out.
                 </p>
@@ -218,14 +267,14 @@ export function ContributeSheet({
 
           {/* Error line — honest, quiet. */}
           {status === 'error' && error && (
-            <p className="-mb-1 text-[13px] leading-relaxed text-warn">{error}</p>
+            <p className="-mb-1 text-[13px] font-medium leading-relaxed text-warn">{error}</p>
           )}
 
           {/* CTA */}
           <button
             onClick={send}
             disabled={!canSend}
-            className="relative mt-1 flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-all duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
+            className={`relative mt-1 flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-[transform,background-color,color,box-shadow] duration-150 ease-[var(--ease-rally)] active:scale-[0.97] ${FOCUS_RING}`}
             style={{
               background:
                 canSend || inFlight
@@ -255,6 +304,13 @@ export function ContributeSheet({
               </>
             ) : status === 'error' ? (
               <>Try again</>
+            ) : !emailValid ? (
+              // A disabled CTA should teach what's missing, not just sit gray
+              // repeating the amount — the email is the one thing between a
+              // stranger and chipping in.
+              <>Enter your email to chip in</>
+            ) : amount <= 0 ? (
+              <>Enter an amount</>
             ) : (
               <>Chip in {formatUsd(amount)}</>
             )}
@@ -264,7 +320,7 @@ export function ContributeSheet({
               stranger decides to hand over money: all-or-nothing, refunded
               automatically if the goal misses. It never yields to a form nag;
               this safety line is what converts someone who owes us nothing. */}
-          <p className="-mt-1 text-center text-[12.5px] leading-relaxed text-faint">
+          <p className="-mt-1 text-center text-[13px] leading-relaxed text-faint">
             Hit the goal or everyone's refunded —{' '}
             <span className="text-muted">automatically</span>.
           </p>
@@ -283,6 +339,16 @@ function SuccessView({
   campaignTitle: string
   onDone: () => void
 }) {
+  // One quiet haptic tick, same frame as the check appearing — the money
+  // landed. The ONLY haptic in the app: feedback reserved for the moment
+  // that earns it, fired together with its visual so the senses agree.
+  useEffect(() => {
+    try {
+      navigator.vibrate?.(10)
+    } catch {
+      // haptics are a bonus, never a requirement
+    }
+  }, [])
   return (
     <div className="relative flex flex-col items-center gap-4 py-4 text-center">
       <Confetti active skin="rally" particleCount={110} />
@@ -311,7 +377,7 @@ function SuccessView({
       </div>
       <button
         onClick={onDone}
-        className="mt-1 w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-base font-semibold text-paper transition-colors active:scale-[0.98]"
+        className="mt-1 w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-base font-semibold text-paper transition-[color,background-color,transform] duration-150 ease-[var(--ease-rally)] active:scale-[0.98]"
       >
         Back to the rally
       </button>

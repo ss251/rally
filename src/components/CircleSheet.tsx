@@ -191,7 +191,7 @@ export function CircleSheet({
             <span className="flex items-baseline justify-between">
               <span className="text-xs font-medium uppercase tracking-wide text-faint">Email</span>
               {!/.+@.+\..+/.test(email) && (
-                <span className="text-[11px] text-faint">enter yours to continue</span>
+                <span className="text-xs text-faint">enter yours to continue</span>
               )}
             </span>
             <input
@@ -207,14 +207,14 @@ export function CircleSheet({
           </label>
 
           {status === 'error' && error && (
-            <p className="-mb-1 text-[13px] leading-relaxed text-warn">{error}</p>
+            <p className="-mb-1 text-[13px] font-medium leading-relaxed text-warn">{error}</p>
           )}
 
           {/* CTA */}
           <button
             onClick={send}
             disabled={!canSend && !inFlight}
-            className="relative mt-1 flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-all duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
+            className="relative mt-1 flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-base font-semibold transition-[transform,background-color,color,box-shadow] duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
             style={{
               background:
                 canSend || inFlight
@@ -257,7 +257,7 @@ export function CircleSheet({
 
           {/* The safety promise stays visible unconditionally — it's the line
               that converts a stranger, so it never yields to a form nag. */}
-          <p className="-mt-1 text-center text-[12.5px] leading-relaxed text-faint">
+          <p className="-mt-1 text-center text-[13px] leading-relaxed text-faint">
             {copy.reassure}
           </p>
         </div>
@@ -321,7 +321,7 @@ function SuccessView({
       </div>
       <button
         onClick={onDone}
-        className="mt-1 w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-base font-semibold text-paper transition-colors active:scale-[0.98]"
+        className="mt-1 w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-base font-semibold text-paper transition-[color,background-color,transform] duration-150 ease-[var(--ease-rally)] active:scale-[0.98]"
       >
         {onDoneLabel}
       </button>

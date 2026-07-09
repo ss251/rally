@@ -6,7 +6,7 @@
  *
  *   4 seats · $1 each round · 21-day rounds
  *   seat 0 = the relayer ("Sam" in the UI's KNOWN labels)
- *   seats 1–3 = derived demo members (Maya, Tomás, Priya)
+ *   seats 1–3 = derived demo members (Maya, Tom, Emma)
  *   round 0 funded 3-of-4 (the demo members are in; Sam's chip-in is the
  *   live moment left for the demo) — the round bar renders mid-fill.
  *

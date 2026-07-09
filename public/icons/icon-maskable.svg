@@ -1,31 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
-  <defs>
-    <linearGradient id="bgm" x1="0" y1="0" x2="0" y2="512" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#20172b"/>
-      <stop offset="1" stop-color="#130d1a"/>
-    </linearGradient>
-    <linearGradient id="mercm" x1="0" y1="376" x2="0" y2="238" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#ff6b4a"/>
-      <stop offset="1" stop-color="#ffc36b"/>
-    </linearGradient>
-    <radialGradient id="glowm" cx="256" cy="340" r="130" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#ff8a5b" stop-opacity="0.5"/>
-      <stop offset="1" stop-color="#ff8a5b" stop-opacity="0"/>
-    </radialGradient>
-    <clipPath id="tubem">
-      <rect x="209" y="168" width="94" height="208" rx="47"/>
-    </clipPath>
-  </defs>
-
-  <!-- full-bleed dusk so any maskable crop stays on-brand -->
-  <rect width="512" height="512" fill="url(#bgm)"/>
-  <circle cx="256" cy="340" r="130" fill="url(#glowm)"/>
-
-  <!-- glyph kept inside the maskable safe zone (central ~62%) -->
-  <rect x="209" y="168" width="94" height="208" rx="47" fill="#ffffff" fill-opacity="0.04"/>
-  <g clip-path="url(#tubem)">
-    <rect x="209" y="247" width="94" height="140" fill="url(#mercm)"/>
-    <rect x="209" y="246" width="94" height="3" fill="#ffffff" fill-opacity="0.85"/>
-  </g>
-  <rect x="209" y="168" width="94" height="208" rx="47" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="2"/>
+  <!-- Rally mark, maskable: full-bleed dusk; glyph (R=150) inside the 80% safe zone.
+       Same construction as icon.svg — see docs/design/MARK.md. -->
+  <rect width="512" height="512" fill="#130d1a"/>
+  <circle cx="256" cy="256" r="137.5" stroke="#f6f1f9" stroke-width="25"/>
+  <path d="M 139.33 256.00 A 116.67 116.67 0 1 0 357.04 197.67 Z" fill="#ff7a50"/>
 </svg>

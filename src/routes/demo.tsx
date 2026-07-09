@@ -1,5 +1,6 @@
 import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import { AppShell } from '#/components/AppShell'
+import { Brand } from '#/components/Brand'
 import { CampaignCard, type Campaign } from '#/components/CampaignCard'
 
 export const Route = createFileRoute('/demo')({
@@ -29,13 +30,13 @@ const RALLY: Campaign = {
     { chain: 'optimism', amount: 400 },
     { chain: 'solana', amount: 600 },
   ],
-  backers: [{ name: 'Maya' }, { name: 'Tomás Vidal' }, { name: 'Priya' }, { name: 'Wei' }],
+  backers: [{ name: 'Maya' }, { name: 'Tom Vidal' }, { name: 'Emma' }, { name: 'Chris' }],
   mode: 'rally',
 }
 
 const POTLUCK: Campaign = {
   id: '2',
-  title: 'Aisha’s surprise send-off',
+  title: 'Kate’s surprise send-off',
   organizer: 'The design team',
   raised: 620,
   goal: 800,
@@ -47,7 +48,7 @@ const POTLUCK: Campaign = {
     { chain: 'optimism', amount: 80 },
     { chain: 'solana', amount: 100 },
   ],
-  backers: [{ name: 'Diego' }, { name: 'Hannah Ito' }, { name: 'Marcus' }, { name: 'Yuki' }],
+  backers: [{ name: 'Diego' }, { name: 'Hannah Cole' }, { name: 'Marcus' }, { name: 'Jordan' }],
   mode: 'potluck',
 }
 
@@ -56,20 +57,15 @@ function Demo() {
     <AppShell
       header={
         <div className="flex w-full items-center justify-between">
-          <span
-            className="text-lg font-semibold tracking-tight text-paper"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Rally
-          </span>
-          <span className="text-[11px] font-medium text-faint">Share cards</span>
+          <Brand />
+          <span className="text-xs font-medium text-faint">Share cards</span>
         </div>
       }
     >
       <div className="flex flex-col gap-6 pt-4">
         <div>
           <h1
-            className="text-[1.7rem] font-semibold leading-tight tracking-tight text-paper"
+            className="text-display font-semibold text-paper"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             One link, dropped in the chat

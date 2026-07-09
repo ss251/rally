@@ -41,6 +41,7 @@ import {
   type Hex,
   type WalletClient,
 } from 'viem';
+import { getCode } from 'viem/actions';
 import {
   RALLY_CHAINS,
   type RallyChainId,
@@ -97,16 +98,33 @@ export function getKernelImplementationAddress(): Address {
 // -----------------------------------------------------------------------------
 export type RallyKernelClient = KernelAccountClient;
 
+/** Is `code` a live EIP-7702 delegation to the ZeroDev kernel implementation? */
+function isDelegatedToKernel(code: Hex | undefined, impl: Address): boolean {
+  if (!code || code.length === 0) return false;
+  return code.toLowerCase().startsWith(`0xef0100${impl.slice(2).toLowerCase()}`);
+}
+
 /**
- * Build a gasless 7702 Kernel client over the Magic EOA.
+ * Build a gasless 7702 Kernel client over the backer's EOA (Magic email wallet
+ * in prod; a scripted LocalAccount in the proof scripts).
  *
- * Two authorization paths:
- *  - AUTO (default): pass only `eip7702Account`; ZeroDev asks the account to
- *    sign the authorization itself. Cleanest — works IF Magic's provider answers
- *    viem's signAuthorization (eth_signAuthorization). Test this on day one.
- *  - MANUAL (fallback): pre-sign with `signMagic7702Authorization()` and pass it
- *    as `presignedAuth`. Use this if AUTO throws "method not supported". See the
- *    README footgun section.
+ * The 7702 authorization is obtained through whichever path the signer supports
+ * — ZeroDev/viem always compute the correct sponsored nonce and hand it to the
+ * signer:
+ *  - PROVIDER-BACKED (Magic): `getMagicWalletClient` returns a viem LocalAccount
+ *    whose `signAuthorization` routes to Magic's native
+ *    `wallet.sign7702Authorization` RPC. This is the real fix — a bare json-rpc
+ *    provider CANNOT sign a raw 7702 authorization (viem rejects it), and the
+ *    old code fed exactly such an account to ZeroDev and crashed in `toSigner`.
+ *  - LOCAL KEY (proof scripts): a `privateKeyToAccount` signs the authorization
+ *    natively via viem — unchanged.
+ *  - MANUAL: pre-sign with `signMagic7702Authorization()` and pass `presignedAuth`.
+ *  - ALREADY DELEGATED: if the EOA already delegates to the kernel impl
+ *    (`0xef0100…`), no authorization is signed at all — ZeroDev skips it.
+ *
+ * If the EOA is NOT yet delegated AND the signer cannot produce an authorization
+ * AND no `presignedAuth` was given, we fail EARLY with a human-readable error
+ * instead of deep inside a userOp send.
  *
  * @param magicWallet viem WalletClient from getMagicWalletClient(chainId)
  * @param chainId     the CCTP *source* chain the backer is contributing from
@@ -123,9 +141,51 @@ export async function createRallyKernelClient(params: {
 
   const publicClient = createPublicClient({ chain, transport: http(rpc) });
 
-  // The Magic wallet client's account is the 7702 signer / root validator.
-  const eip7702Account = magicWallet.account;
-  if (!eip7702Account) throw new Error('Magic wallet client has no account.');
+  // The wallet client's account is the 7702 signer / root validator.
+  const signerAccount = magicWallet.account;
+  if (!signerAccount) throw new Error('Wallet client has no account.');
+  const eoa = signerAccount.address as Address;
+
+  // A LocalAccount (Magic-backed wrapper OR a scripted key) carries
+  // `signAuthorization`; a bare json-rpc account does not. For the latter we
+  // must hand ZeroDev the *walletClient* (not the account) so `toSigner` wraps
+  // the provider instead of dereferencing a missing `.account`.
+  const canSignAuthorization =
+    typeof (signerAccount as { signAuthorization?: unknown }).signAuthorization === 'function';
+  const eip7702Account = canSignAuthorization ? signerAccount : magicWallet;
+  console.info('[rally/7702] resolving signer', {
+    chainId,
+    eoa,
+    accountType: (signerAccount as { type?: string }).type,
+    canSignAuthorization,
+  });
+
+  // Is the EOA already delegated to the kernel? If so, no authorization needed.
+  const impl = getKernelImplementationAddress();
+  const code = (await getCode(publicClient, { address: eoa })) as Hex | undefined;
+  const alreadyDelegated = isDelegatedToKernel(code, impl);
+  console.info('[rally/7702] delegation check', {
+    eoa,
+    kernelImplementation: impl,
+    alreadyDelegated,
+  });
+
+  if (!alreadyDelegated && !presignedAuth && !canSignAuthorization) {
+    throw new Error(
+      `This wallet (${eoa}) is not yet delegated to the ZeroDev kernel and its ` +
+        `provider cannot sign an EIP-7702 authorization. Use a Magic email wallet ` +
+        `(getMagicWalletClient) or pass a presignedAuth from signMagic7702Authorization().`,
+    );
+  }
+
+  const authPath = presignedAuth
+    ? 'manual-presigned'
+    : alreadyDelegated
+      ? 'already-delegated'
+      : canSignAuthorization
+        ? 'provider-backed'
+        : 'none';
+  console.info('[rally/7702] building kernel account', { authPath });
 
   const account = await createKernelAccount(publicClient, {
     eip7702Account: eip7702Account as any,
@@ -149,6 +209,11 @@ export async function createRallyKernelClient(params: {
       estimateFeesPerGas: async ({ bundlerClient }) =>
         getUserOperationGasPrice(bundlerClient),
     },
+  });
+
+  console.info('[rally/7702] kernel client ready', {
+    smartAccount: account.address,
+    authPath,
   });
 
   return kernelClient as RallyKernelClient;

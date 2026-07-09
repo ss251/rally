@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { createFileRoute, Link, notFound, useRouter } from '@tanstack/react-router'
 import { ArrowLeft, Gift } from 'lucide-react'
 import { AppShell } from '#/components/AppShell'
+import { Brand } from '#/components/Brand'
 import { ContributeSheet } from '#/components/ContributeSheet'
 import { Thermometer } from '#/components/Thermometer'
 import { ContributorFeed } from '#/components/ContributorFeed'
 import { ShareLink } from '#/components/ShareLink'
 import { ChainIcon } from '#/components/ChainIcon'
 import { ACCENT, countdown, formatUsd, pct, type Skin } from '#/design/chains'
+import { useCountUp } from '#/design/useCountUp'
 import { loadCampaign, mockPotluckCampaign, type CampaignView } from '#/lib/campaign'
 
 export const Route = createFileRoute('/c/$id')({
@@ -52,7 +54,13 @@ function CampaignDetail() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const now = useNow()
 
-  const realPct = pct(c.raised, c.goal, 9999)
+  // Same synchronized "pour" beat as the landing: on a chip-in the loader
+  // re-reads and the hero money + percent RISE over ~700ms while the tube pours,
+  // instead of snapping. The percent is derived from the animating figure so
+  // both climb together; the Thermometer still gets the real c.raised.
+  const animatedRaised = useCountUp(c.raised)
+  const displayRaised = Math.round(animatedRaised * 100) / 100 // keep the cents — hero and chain rows must agree
+  const realPct = pct(displayRaised, c.goal, 9999)
   const cd = now == null ? null : countdown(c.deadline, now)
   const topChain = c.segments[c.segments.length - 1]?.chain ?? 'base'
   const hasBackers = c.contributors.length > 0
@@ -74,19 +82,14 @@ function CampaignDetail() {
               <Link
                 to="/"
                 aria-label="Back"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-colors active:scale-95 hover:text-paper"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-[color,background-color,transform] duration-150 ease-[var(--ease-rally)] active:scale-95 hover:text-paper"
               >
                 <ArrowLeft size={18} />
               </Link>
-              <span
-                className="text-lg font-semibold tracking-tight text-paper"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                Rally
-              </span>
+              <Brand />
             </div>
             {/* Static dot; two-word status vocabulary: Demo | Live on Arbitrum. */}
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-faint">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs font-medium text-faint">
               <span
                 className="h-1.5 w-1.5 rounded-full"
                 style={{ background: 'rgba(255,241,232,0.82)' }}
@@ -99,7 +102,7 @@ function CampaignDetail() {
           <div className="flex flex-col gap-2.5">
             <button
               onClick={() => setSheetOpen(true)}
-              className="relative w-full overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
+              className="relative w-full overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
               style={{
                 background: isPotluck
                   ? 'linear-gradient(180deg, #ff7db0, #ff5c9a 58%, #f0457f)'
@@ -123,7 +126,7 @@ function CampaignDetail() {
           <div>
             {isPotluck && (
               <span
-                className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold text-ink-950"
+                className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold text-ink-950"
                 style={{ background: `linear-gradient(90deg, ${accent.from}, ${accent.to})` }}
               >
                 <Gift size={12} strokeWidth={2.5} /> Group gift
@@ -133,8 +136,8 @@ function CampaignDetail() {
               {c.organizer} {isPotluck ? 'is collecting for' : 'is rallying for'}
             </p>
             <h1
-              className="mt-1.5 text-[2.15rem] font-semibold leading-[1.04] tracking-[-0.01em] text-paper"
-              style={{ fontFamily: 'var(--font-display)', wordSpacing: '0.08em' }}
+              className="mt-1.5 text-display font-semibold text-paper"
+              style={{ fontFamily: 'var(--font-display)' }}
             >
               {c.title}
             </h1>
@@ -168,12 +171,12 @@ function CampaignDetail() {
                     : 'Raising now'}
               </span>
               <div>
-                <div className="flex items-end gap-2.5">
+                <div className="flex items-baseline gap-2.5">
                   <span
                     className="tnum font-display text-figure font-semibold leading-none text-paper"
                     style={{ fontFamily: 'var(--font-display)' }}
                   >
-                    {formatUsd(c.raised)}
+                    {formatUsd(displayRaised)}
                   </span>
                   <span
                     className="tnum font-display text-2xl font-semibold leading-none"
@@ -191,7 +194,7 @@ function CampaignDetail() {
                 <div className="flex flex-col gap-1.5">
                   {c.segments.map((s) => (
                     <span key={s.chain} className="flex items-center gap-2 text-[13px] text-muted">
-                      <ChainIcon chain={s.chain} size={16} />
+                      <ChainIcon chain={s.chain} size={20} contained />
                       <span className="capitalize text-paper/80">{s.chain}</span>
                       <span className="tnum ml-auto text-faint">{formatUsd(s.amount)}</span>
                     </span>
@@ -204,7 +207,8 @@ function CampaignDetail() {
                   {c.backerCount} {c.backerCount === 1 ? 'backer' : 'backers'}
                 </span>
                 <span className="text-faint">·</span>
-                <span className={cd?.urgent ? 'text-warn' : undefined}>
+                {/* Urgency survives the black test as weight, not only amber. */}
+                <span className={cd?.urgent ? 'font-medium text-warn' : undefined}>
                   {cd == null ? 'open' : cd.label}
                 </span>
               </div>
@@ -270,16 +274,11 @@ function CampaignNotFound() {
             <Link
               to="/"
               aria-label="Back"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-colors active:scale-95 hover:text-paper"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-[color,background-color,transform] duration-150 ease-[var(--ease-rally)] active:scale-95 hover:text-paper"
             >
               <ArrowLeft size={18} />
             </Link>
-            <span
-              className="text-lg font-semibold tracking-tight text-paper"
-              style={{ fontFamily: 'var(--font-display)' }}
-            >
-              Rally
-            </span>
+            <Brand />
           </div>
         </div>
       }
@@ -287,7 +286,7 @@ function CampaignNotFound() {
         <div className="flex flex-col gap-2.5">
           <Link
             to="/create"
-            className="relative flex w-full items-center justify-center overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-spring)] active:scale-[0.97]"
+            className="relative flex w-full items-center justify-center overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
             style={{
               background:
                 'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
@@ -305,14 +304,14 @@ function CampaignNotFound() {
           <Link
             to="/c/$id"
             params={{ id: '1' }}
-            className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-center text-base font-semibold text-paper transition-transform active:scale-[0.98]"
+            className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-center text-base font-semibold text-paper transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.98]"
           >
             See one filling live →
           </Link>
         </div>
       }
     >
-      <div className="flex flex-col items-center gap-7 pt-14 text-center">
+      <div className="flex flex-col items-center gap-6 pt-14 text-center">
         {/* An empty glass tube — no goal etched, because no fund lives here. */}
         <div
           aria-hidden
@@ -321,7 +320,7 @@ function CampaignNotFound() {
         />
         <div>
           <h1
-            className="text-[1.9rem] font-semibold leading-tight tracking-tight text-paper"
+            className="text-display font-semibold text-paper"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             This rally doesn’t exist yet
