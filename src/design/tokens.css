@@ -128,7 +128,7 @@
   --animate-rise: rise 0.7s var(--ease-rally) both;  /* skeleton entrance */
   --animate-slide-in: slideIn 0.5s var(--ease-spring) both; /* feed rows */
   --animate-pulse-dot: pulseDot 1.8s ease-in-out infinite;  /* the heartbeat */
-  --animate-sheen: sheen 3.5s ease-in-out infinite;  /* card cover bloom */
+  --animate-arrive: arrive 3s var(--ease-rally) both; /* feed arrival event */
 }
 
 /* ── Keyframes ─────────────────────────────────────────────────────────── */
@@ -144,15 +144,37 @@
   from { opacity: 0; transform: translateY(-8px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+/* The arrival event (design roast #2): a new contribution springs in warm-lit,
+   holds its moment, then DECAYS to an ordinary citizen — newness is time, so
+   it fades; it is never a permanent badge. */
+@keyframes arrive {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+  13% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+  45% {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    background-color: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+}
 @keyframes pulseDot {
   0%,
   100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
   70% { opacity: 0.7; box-shadow: 0 0 0 6px transparent; }
-}
-@keyframes sheen {
-  0%,
-  100% { opacity: 0.35; }
-  50% { opacity: 0.7; }
 }
 
 /* ── Base ──────────────────────────────────────────────────────────────── */

@@ -123,8 +123,6 @@ export function ContributorFeed({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contributors])
 
-  const topId = visible[0]?.id
-
   return (
     <section className={`flex flex-col ${className ?? ''}`} aria-label="Contributors">
       <header className="mb-3 flex items-center justify-between">
@@ -144,20 +142,15 @@ export function ContributorFeed({
       <ul className="flex flex-col gap-2">
         {visible.map((c) => {
           const fresh = enteredThisPass.has(c.id)
-          const isTop = c.id === topId
           return (
             <li
               key={c.id}
-              className={`flex items-center gap-3 rounded-2xl border p-2.5 pr-3.5 transition-colors ${
-                fresh ? 'animate-slide-in' : ''
+              // The arrival event: a fresh row springs in warm-lit and DECAYS to
+              // an ordinary citizen over ~3s (newness is time, not a badge —
+              // roast #2). Settled rows all share one resting surface.
+              className={`flex items-center gap-3 rounded-2xl border border-line bg-surface p-2.5 pr-3.5 ${
+                fresh ? 'animate-arrive' : ''
               }`}
-              style={{
-                borderColor: isTop ? 'rgba(255,255,255,0.16)' : 'var(--color-line)',
-                background: isTop ? 'rgba(255,255,255,0.05)' : 'var(--color-surface)',
-                // Neutral lift only — the "just arrived" emphasis is the pour
-                // event (row slide + tube fill), not a static coral marker.
-                boxShadow: isTop ? 'inset 0 1px 0 rgba(255,255,255,0.06)' : undefined,
-              }}
             >
               <Avatar c={c} />
               <div className="min-w-0 flex-1">
