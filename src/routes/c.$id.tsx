@@ -59,7 +59,7 @@ function CampaignDetail() {
   // instead of snapping. The percent is derived from the animating figure so
   // both climb together; the Thermometer still gets the real c.raised.
   const animatedRaised = useCountUp(c.raised)
-  const displayRaised = Math.round(animatedRaised)
+  const displayRaised = Math.round(animatedRaised * 100) / 100 // keep the cents — hero and chain rows must agree
   const realPct = pct(displayRaised, c.goal, 9999)
   const cd = now == null ? null : countdown(c.deadline, now)
   const topChain = c.segments[c.segments.length - 1]?.chain ?? 'base'
@@ -137,7 +137,7 @@ function CampaignDetail() {
             </p>
             <h1
               className="mt-1.5 text-display font-semibold text-paper"
-              style={{ fontFamily: 'var(--font-display)', wordSpacing: '0.08em' }}
+              style={{ fontFamily: 'var(--font-display)' }}
             >
               {c.title}
             </h1>

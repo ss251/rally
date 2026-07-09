@@ -190,7 +190,7 @@ function InvitePage() {
           <p className="text-sm text-faint">You’ve got a seat in</p>
           <h1
             className="mt-1.5 text-display font-semibold text-paper"
-            style={{ fontFamily: 'var(--font-display)', wordSpacing: '0.08em' }}
+            style={{ fontFamily: 'var(--font-display)' }}
           >
             {title}
           </h1>

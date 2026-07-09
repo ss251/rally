@@ -192,6 +192,19 @@ body {
 /* Tabular figures everywhere money is shown. */
 .tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 
+/* Clash Display's word spaces run so tight that headlines fuse ("Startsomething").
+   Restore true word gaps on EVERY surface set in the display face: headings,
+   the .font-display utility, and inline style="font-family: var(--font-display)"
+   call sites (the attribute selector matches the literal token name). Tight
+   letter tracking stays; words never merge. */
+h1,
+h2,
+h3,
+.font-display,
+[style*="--font-display"] {
+  word-spacing: 0.06em;
+}
+
 /* ── View Transitions API — route morphs (graceful cross-fade) ───────────── */
 ::view-transition-old(root),
 ::view-transition-new(root) {

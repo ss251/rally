@@ -48,7 +48,9 @@ function Home() {
   // c.raised still feeds the Thermometer, so the number and the liquid share the
   // window. Snaps under OS reduced-motion (see useCountUp).
   const animatedRaised = useCountUp(c.raised)
-  const displayRaised = Math.round(animatedRaised)
+  // Keep the cents: rounding to a whole dollar here made the hero read "$16"
+  // while the Base row right under it said "$16.50" — two truths on one screen.
+  const displayRaised = Math.round(animatedRaised * 100) / 100
   const realPct = pct(displayRaised, c.goal, 9999)
   const cd = now == null ? null : countdown(c.deadline, now)
   const topChain = c.segments[c.segments.length - 1]?.chain ?? 'base'
@@ -104,7 +106,7 @@ function Home() {
             <p className="text-sm text-faint">{c.organizer} is rallying for</p>
             <h1
               className="mt-1.5 text-display font-semibold text-paper"
-              style={{ fontFamily: 'var(--font-display)', wordSpacing: '0.08em' }}
+              style={{ fontFamily: 'var(--font-display)' }}
             >
               {c.title}
             </h1>

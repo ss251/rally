@@ -69,7 +69,7 @@ function CirclesHome() {
           <p className="text-sm text-faint">{DEMO.organizer} is running</p>
           <h1
             className="mt-1.5 text-display font-semibold text-paper"
-            style={{ fontFamily: 'var(--font-display)', wordSpacing: '0.08em' }}
+            style={{ fontFamily: 'var(--font-display)' }}
           >
             {DEMO.title}
           </h1>
