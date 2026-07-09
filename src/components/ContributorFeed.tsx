@@ -19,8 +19,9 @@ export interface Contributor {
   chain: Chain
   /** Optional gift note — surfaced prominently in the Potluck skin. */
   note?: string
-  /** Epoch ms. */
-  timestamp: number
+  /** Epoch ms — the REAL block time when known. Absent = no age is shown;
+   *  the feed never invents a time for on-chain money. */
+  timestamp?: number
 }
 
 interface ContributorFeedProps {
@@ -103,7 +104,7 @@ export function ContributorFeed({
   const now = useNow()
   const isPotluck = skin === 'potluck'
 
-  const sorted = [...contributors].sort((a, b) => b.timestamp - a.timestamp)
+  const sorted = [...contributors].sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0))
   const visible = sorted.slice(0, maxVisible)
   const total = Math.max(totalCount ?? 0, sorted.length)
   const overflow = total - visible.length
@@ -168,12 +169,22 @@ export function ContributorFeed({
                 </div>
                 {isPotluck && c.note ? (
                   <p className="truncate text-xs text-muted">“{c.note}”</p>
-                ) : (
+                ) : c.timestamp != null || c.note ? (
+                  // The age is shown ONLY when it's the real block time — a row
+                  // with no resolvable time shows none (never an invented one).
                   <p className="text-xs text-faint">
-                    {now == null ? 'just now' : timeAgo(c.timestamp, now)}
-                    {c.note ? <span className="text-muted"> · “{c.note}”</span> : null}
+                    {c.timestamp != null
+                      ? now == null
+                        ? 'just now'
+                        : timeAgo(c.timestamp, now)
+                      : null}
+                    {c.note ? (
+                      <span className="text-muted">
+                        {c.timestamp != null ? ' · ' : ''}“{c.note}”
+                      </span>
+                    ) : null}
                   </p>
-                )}
+                ) : null}
               </div>
               <span className="tnum shrink-0 text-sm font-bold text-paper">
                 +{formatUsd(c.amount)}

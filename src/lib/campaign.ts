@@ -191,6 +191,23 @@ export async function fetchLiveCampaign(id: string): Promise<CampaignView | null
       fromBlock: DEPLOY_BLOCK,
       toBlock: 'latest',
     })
+
+    // REAL ages for real money: resolve block timestamps (one bounded, parallel,
+    // best-effort pass over the unique blocks). A row whose block can't be read
+    // simply shows no age — the feed never invents a time for an on-chain fact.
+    const blockNumbers = [...new Set(logs.map((l) => l.blockNumber).filter((b) => b != null))]
+    const blockTimes = new Map<bigint, number>()
+    await Promise.all(
+      blockNumbers.slice(0, 24).map(async (bn) => {
+        try {
+          const block = await client.getBlock({ blockNumber: bn! })
+          blockTimes.set(bn!, Number(block.timestamp) * 1000)
+        } catch {
+          // best-effort — the row renders without an age
+        }
+      }),
+    )
+
     for (const log of logs) {
       const backer = log.args.backer as string
       const amount = toUsd(log.args.amount as bigint)
@@ -203,7 +220,7 @@ export async function fetchLiveCampaign(id: string): Promise<CampaignView | null
         name: backerName(meta, backer, chain),
         amount,
         chain,
-        timestamp: Date.now(), // block time not fetched to keep RPC calls minimal
+        timestamp: log.blockNumber != null ? blockTimes.get(log.blockNumber) : undefined,
       })
     }
   } catch {
@@ -233,9 +250,9 @@ export async function fetchLiveCampaign(id: string): Promise<CampaignView | null
     deadline,
     backerCount,
     segments,
-    contributors: contributors
-      .sort((a, b) => b.amount - a.amount)
-      .map((c, i) => ({ ...c, timestamp: Date.now() - i * 90_000 })),
+    // Newest money first — by the REAL block time. Rows without a resolvable
+    // time sink to the end in log order; nothing is ever back-dated for looks.
+    contributors: contributors.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0)),
     status: deriveStatus(raised, goal, deadline),
     live: true,
     creator: shortAddr(creator),
