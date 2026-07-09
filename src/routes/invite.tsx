@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, Check, Loader2 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { AppShell } from '#/components/AppShell'
@@ -43,7 +43,10 @@ export const Route = createFileRoute('/invite')({
   // Best-effort live read for the invite card; the screen still works if the
   // circle can't be read (deposit shown as "—").
   loader: async ({ deps }): Promise<CircleView | null> => {
-    if (!deps.c) return null
+    // A bare /invite has no seat to offer — "You've got a seat in a circle"
+    // with a dash for the amount reads broken, not designed. Send the
+    // parameterless visitor to the Circles landing instead.
+    if (!deps.c) throw redirect({ to: '/circles' })
     return fetchLiveCircle(String(deps.c), deps.t).catch(() => null)
   },
   component: InvitePage,
