@@ -49,18 +49,20 @@ export function RotationSchedule({ rounds, className }: RotationScheduleProps) {
                   →
                 </span>
               )}
+              {/* Emphasis is warm-white lift, never the CTA's coral — the same
+                  "raised row" grammar as the feed's newest contribution. */}
               <span
                 className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
                 style={
                   current
                     ? {
-                        borderColor: 'rgba(255,122,80,0.4)',
-                        background: 'rgba(255,122,80,0.12)',
+                        borderColor: 'rgba(255,255,255,0.32)',
+                        background: 'rgba(255,255,255,0.09)',
                         color: 'var(--color-paper)',
                       }
                     : ready
                       ? {
-                          borderColor: 'rgba(255,122,80,0.35)',
+                          borderColor: 'rgba(255,255,255,0.22)',
                           background: 'rgba(255,255,255,0.03)',
                           color: 'var(--color-paper)',
                         }
@@ -80,11 +82,11 @@ export function RotationSchedule({ rounds, className }: RotationScheduleProps) {
                 {current && (
                   <span
                     className="animate-pulse-dot h-1.5 w-1.5 rounded-full"
-                    style={{ background: 'var(--color-rally-500)', color: 'var(--color-rally-500)' }}
+                    style={{ background: 'rgba(255,241,232,0.82)', color: 'rgba(255,241,232,0.82)' }}
                   />
                 )}
-                {claimed && <Check size={11} strokeWidth={3} style={{ color: 'var(--color-rally-500)' }} />}
-                {ready && <Check size={11} strokeWidth={3} style={{ color: 'var(--color-rally-500)' }} />}
+                {claimed && <Check size={11} strokeWidth={3} className="text-muted" />}
+                {ready && <Check size={11} strokeWidth={3} style={{ color: 'rgba(255,241,232,0.9)' }} />}
                 {failed && <X size={11} strokeWidth={3} />}
                 {r.payeeName}
               </span>

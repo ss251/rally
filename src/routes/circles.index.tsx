@@ -137,7 +137,7 @@ function CirclesHome() {
             <div key={text} className="flex items-center gap-3">
               {/* Same icon-chip anatomy as the Circles row on the Goals landing. */}
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.03]">
-                <Icon size={16} strokeWidth={2.25} style={{ color: 'var(--color-rally-500)' }} />
+                <Icon size={16} strokeWidth={2.25} className="text-muted" />
               </span>
               <p className="text-[13px] leading-relaxed text-muted">{text}</p>
             </div>

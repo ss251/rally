@@ -83,8 +83,9 @@ export function CircleMembers({
               key={m.seat}
               className="flex items-center gap-3 rounded-2xl border p-2.5 pr-3.5"
               style={{
-                borderColor: highlight ? 'rgba(255,122,80,0.35)' : 'var(--color-line)',
-                background: highlight ? 'rgba(255,122,80,0.07)' : 'var(--color-surface)',
+                // Warm-white lift for the payee row — coral stays with the CTA.
+                borderColor: highlight ? 'rgba(255,255,255,0.18)' : 'var(--color-line)',
+                background: highlight ? 'rgba(255,255,255,0.05)' : 'var(--color-surface)',
                 boxShadow: highlight ? 'inset 0 1px 0 rgba(255,255,255,0.06)' : undefined,
               }}
             >
@@ -95,10 +96,7 @@ export function CircleMembers({
                     {open ? 'Open seat' : name}
                   </span>
                   {highlight && (
-                    <span
-                      className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-                      style={{ color: 'var(--color-rally-500)', background: 'rgba(255,122,80,0.12)' }}
-                    >
+                    <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.1] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-paper">
                       <Crown size={11} strokeWidth={2.5} /> this pot
                     </span>
                   )}
@@ -119,7 +117,7 @@ export function CircleMembers({
                 <span className="shrink-0 text-xs text-faint">{open ? '' : 'in'}</span>
               ) : m.fundedThisRound ? (
                 <span className="flex shrink-0 items-center gap-1.5 text-sm font-bold text-paper">
-                  <Check size={14} strokeWidth={3} style={{ color: 'var(--color-rally-500)' }} />
+                  <Check size={14} strokeWidth={3} style={{ color: 'rgba(255,241,232,0.9)' }} />
                   <span className="tnum">+{formatUsd(depositUsd)}</span>
                 </span>
               ) : (

@@ -155,10 +155,7 @@ export function CampaignCard({ campaign, href, onOpen, compact, className }: Cam
             </span>
           )}
           {funded && (
-            <span
-              className="rounded-full px-2 py-1 text-[10px] font-bold text-ink-950"
-              style={{ background: `linear-gradient(90deg, ${accent.from}, ${accent.to})` }}
-            >
+            <span className="rounded-full bg-white/[0.14] px-2 py-1 text-[10px] font-bold text-paper backdrop-blur">
               FUNDED
             </span>
           )}
@@ -214,10 +211,9 @@ export function CampaignCard({ campaign, href, onOpen, compact, className }: Cam
               <span className="text-[10px] text-faint">any chain</span>
             )}
           </div>
-          <span
-            className="inline-flex items-center gap-1 text-sm font-semibold transition-transform group-hover:translate-x-0.5"
-            style={{ color: accent.solid }}
-          >
+          {/* Paper, not coral — the card's whole surface is the press target,
+              and coral is reserved for the screen's one real CTA. */}
+          <span className="inline-flex items-center gap-1 text-sm font-semibold text-paper transition-transform group-hover:translate-x-0.5">
             {funded ? 'View rally' : 'Chip in'}
             <ArrowUpRight size={15} strokeWidth={2.5} />
           </span>

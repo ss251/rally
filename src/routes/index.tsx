@@ -206,15 +206,14 @@ function Home() {
           >
             <span className="flex items-center gap-3">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.03]">
-                <RotateCw size={16} strokeWidth={2.25} style={{ color: 'var(--color-rally-500)' }} />
+                <RotateCw size={16} strokeWidth={2.25} className="text-muted" />
               </span>
               <span>
                 <span className="flex items-center gap-2 text-sm font-semibold text-paper">
                   Circles
-                  <span
-                    className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-                    style={{ color: 'var(--color-rally-500)', background: 'rgba(255,122,80,0.12)' }}
-                  >
+                  {/* Neutral tag — coral means "press me", and this row's press
+                      target is the whole row, not the badge. */}
+                  <span className="rounded-full border border-white/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
                     New
                   </span>
                 </span>
