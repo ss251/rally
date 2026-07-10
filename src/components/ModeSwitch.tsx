@@ -26,7 +26,7 @@ export function ModeSwitch({ active }: { active: 'goals' | 'circles' }) {
             key={key}
             to={to}
             aria-current={isActive ? 'page' : undefined}
-            className={`relative flex items-center justify-center gap-2 rounded-[10px] py-2 text-[13px] font-semibold transition-colors ${FOCUS_RING}`}
+            className={`relative flex items-center justify-center gap-2 rounded-[10px] py-2 text-[13px] font-semibold transition-[color,transform] duration-150 ease-[var(--ease-rally)] active:scale-[0.97] ${FOCUS_RING}`}
             style={{ color: isActive ? 'var(--color-paper)' : 'var(--color-faint)' }}
           >
             {isActive && (

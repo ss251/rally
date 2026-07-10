@@ -125,7 +125,7 @@ export function CampaignCard({ campaign, href, onOpen, compact, className }: Cam
     <Wrapper
       {...wrapperProps}
       onClick={handleOpen}
-      className={`group block overflow-hidden border border-white/10 bg-ink-900 text-left no-underline shadow-[0_18px_50px_-24px_rgba(0,0,0,0.9)] transition-transform duration-300 ease-[var(--ease-rally)] hover:-translate-y-1 hover:border-white/20 active:scale-[0.985] active:duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${className ?? ''}`}
+      className={`group block overflow-hidden border border-white/10 bg-ink-900 text-left no-underline shadow-[0_18px_50px_-24px_rgba(0,0,0,0.9)] transition-transform duration-200 ease-[var(--ease-rally)] hover:-translate-y-1 hover:border-white/20 active:scale-[0.985] active:duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${className ?? ''}`}
       style={{ borderRadius: 'var(--radius-card)', outlineColor: accent.solid }}
     >
       {/* Cover */}

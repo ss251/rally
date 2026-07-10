@@ -268,11 +268,11 @@ function CreateCampaign() {
             )}
             {status === 'authing' ? (
               <>
-                <Loader2 size={18} className="animate-spin" /> Check your email…
+                <Loader2 size={18} className="animate-spin [animation-duration:0.6s]" /> Check your email…
               </>
             ) : status === 'creating' ? (
               <>
-                <Loader2 size={18} className="animate-spin" /> Opening the fund…
+                <Loader2 size={18} className="animate-spin [animation-duration:0.6s]" /> Opening the fund…
               </>
             ) : status === 'error' ? (
               <>Try again</>
