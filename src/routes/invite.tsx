@@ -105,7 +105,7 @@ function InvitePage() {
         <div className="relative flex flex-col items-center gap-4 pt-16 text-center">
           <Confetti active skin="rally" particleCount={110} />
           <motion.div
-            initial={{ scale: 0.4, opacity: 0 }}
+            initial={{ scale: 0.85, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 480, damping: 20 }}
             className="flex h-16 w-16 items-center justify-center rounded-full"
@@ -174,11 +174,11 @@ function InvitePage() {
           )}
           {status === 'authing' ? (
             <>
-              <Loader2 size={18} className="animate-spin" /> Check your email…
+              <Loader2 size={18} className="animate-spin [animation-duration:0.6s]" /> Check your email…
             </>
           ) : status === 'joining' ? (
             <>
-              <Loader2 size={18} className="animate-spin" /> Taking your seat…
+              <Loader2 size={18} className="animate-spin [animation-duration:0.6s]" /> Taking your seat…
             </>
           ) : status === 'error' ? (
             <>Try again</>

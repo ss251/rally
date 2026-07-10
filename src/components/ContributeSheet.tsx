@@ -296,11 +296,11 @@ export function ContributeSheet({
             )}
             {status === 'authing' ? (
               <>
-                <Loader2 size={18} className="animate-spin" /> Check your email…
+                <Loader2 size={18} className="animate-spin [animation-duration:0.6s]" /> Check your email…
               </>
             ) : status === 'sending' ? (
               <>
-                <Loader2 size={18} className="animate-spin" /> Sending…
+                <Loader2 size={18} className="animate-spin [animation-duration:0.6s]" /> Sending…
               </>
             ) : status === 'error' ? (
               <>Try again</>
@@ -350,10 +350,17 @@ function SuccessView({
     }
   }, [])
   return (
-    <div className="relative flex flex-col items-center gap-4 py-4 text-center">
+    // The phase swap is a hard conditional — a 6px rise bridges it so success
+    // arrives instead of teleporting in (the check's spring rides on top).
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18, ease: 'easeOut' }}
+      className="relative flex flex-col items-center gap-4 py-4 text-center"
+    >
       <Confetti active skin="rally" particleCount={110} />
       <motion.div
-        initial={{ scale: 0.4, opacity: 0 }}
+        initial={{ scale: 0.85, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 480, damping: 20 }}
         className="flex h-16 w-16 items-center justify-center rounded-full"
@@ -381,7 +388,7 @@ function SuccessView({
       >
         Back to the rally
       </button>
-    </div>
+    </motion.div>
   )
 }
 

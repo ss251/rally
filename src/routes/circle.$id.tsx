@@ -181,7 +181,7 @@ function CircleDetail() {
               <CtaSheen />
               {starting ? (
                 <span className="flex items-center justify-center gap-2">
-                  <Loader2 size={18} className="animate-spin" /> Starting the rotation…
+                  <Loader2 size={18} className="animate-spin [animation-duration:0.6s]" /> Starting the rotation…
                 </span>
               ) : (
                 <>Start the circle — everyone’s in</>
@@ -311,7 +311,7 @@ function CircleDetail() {
                 >
                   {demoFilling ? (
                     <>
-                      <Loader2 size={16} className="animate-spin" /> The crew is chipping in…
+                      <Loader2 size={16} className="animate-spin [animation-duration:0.6s]" /> The crew is chipping in…
                     </>
                   ) : (
                     <>
@@ -573,7 +573,7 @@ function OrganizerInviteButton({
         <CtaSheen />
         {state === 'signing' ? (
           <span className="flex items-center justify-center gap-2">
-            <Loader2 size={18} className="animate-spin" /> Signing seat {seat + 1}’s invite…
+            <Loader2 size={18} className="animate-spin [animation-duration:0.6s]" /> Signing seat {seat + 1}’s invite…
           </span>
         ) : state === 'copied' ? (
           <>Invite signed + copied ✓</>

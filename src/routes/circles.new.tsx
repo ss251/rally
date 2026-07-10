@@ -128,7 +128,7 @@ function CreateCircle() {
 
           <div className="flex flex-col items-center text-center">
             <motion.div
-              initial={{ scale: 0.4, opacity: 0 }}
+              initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 480, damping: 20 }}
               className="flex h-16 w-16 items-center justify-center rounded-full"
@@ -195,20 +195,29 @@ function CreateCircle() {
                 Share these with the crew — one per seat
               </span>
             )}
-            {created.openSeats.map((seat) => (
-              <ShareLink
+            {created.openSeats.map((seat, i) => (
+              // Cascade, don't dump: 50ms per seat reads as "here are your N
+              // invites", one at a time. Decorative only — links are live from
+              // frame one.
+              <motion.div
                 key={seat}
-                variant={seat === created.openSeats[0] ? 'primary' : 'ghost'}
-                url={inviteLinkFor(
-                  created.circleId,
-                  seat,
-                  title.trim(),
-                  // Self-custodied lane: the link carries the creator-signed
-                  // EIP-712 invite inline, so no Rally key is ever involved.
-                  created.invites?.find((i) => i.seat === seat),
-                )}
-                label={`Copy seat ${seat + 1}’s invite`}
-              />
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.24 + i * 0.05, duration: 0.25, ease: 'easeOut' }}
+              >
+                <ShareLink
+                  variant={seat === created.openSeats[0] ? 'primary' : 'ghost'}
+                  url={inviteLinkFor(
+                    created.circleId,
+                    seat,
+                    title.trim(),
+                    // Self-custodied lane: the link carries the creator-signed
+                    // EIP-712 invite inline, so no Rally key is ever involved.
+                    created.invites?.find((i) => i.seat === seat),
+                  )}
+                  label={`Copy seat ${seat + 1}’s invite`}
+                />
+              </motion.div>
             ))}
             <Link
               to="/circle/$id"
@@ -275,20 +284,20 @@ function CreateCircle() {
           )}
           {status === 'authing' ? (
             <>
-              <Loader2 size={18} className="animate-spin" /> Check your email…
+              <Loader2 size={18} className="animate-spin [animation-duration:0.6s]" /> Check your email…
             </>
           ) : status === 'creating' ? (
             <>
-              <Loader2 size={18} className="animate-spin" />
+              <Loader2 size={18} className="animate-spin [animation-duration:0.6s]" />
               {demoFill ? 'Setting up the circle…' : 'Creating on-chain — you’re the organizer…'}
             </>
           ) : status === 'signing' ? (
             <>
-              <Loader2 size={18} className="animate-spin" /> Signing the crew’s invites…
+              <Loader2 size={18} className="animate-spin [animation-duration:0.6s]" /> Signing the crew’s invites…
             </>
           ) : status === 'seating' ? (
             <>
-              <Loader2 size={18} className="animate-spin" /> Taking seat 1…
+              <Loader2 size={18} className="animate-spin [animation-duration:0.6s]" /> Taking seat 1…
             </>
           ) : status === 'error' ? (
             <>Try again</>
