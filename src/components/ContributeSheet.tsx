@@ -30,6 +30,54 @@ function friendlyMoneyError(e: unknown): string {
   return 'Something went wrong on our side — nothing left your account. Try again.'
 }
 import { contributeServerFn, completeContributionServerFn } from '#/lib/contribute'
+import {
+  dispenserStatusServerFn,
+  beginClaimServerFn,
+  type DispenserStatus,
+} from '#/lib/dispense-actions'
+
+interface DispenseMessage {
+  source?: string
+  ok?: boolean
+  amountUsd?: number
+  reason?: 'already-claimed' | 'treasury-empty' | 'error'
+  message?: string
+}
+
+/** Open GitHub's authorize page in a popup and resolve when the callback tab
+ *  posts the claim result back (or the user closes the window). */
+function openClaimPopup(url: string): Promise<DispenseMessage> {
+  return new Promise((resolve) => {
+    const w = window.open(url, 'rally-github', 'width=520,height=720,noopener=no')
+    let settled = false
+    const done = (r: DispenseMessage) => {
+      if (settled) return
+      settled = true
+      window.removeEventListener('message', onMsg)
+      clearInterval(poll)
+      resolve(r)
+    }
+    const onMsg = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return
+      const d = e.data as DispenseMessage
+      if (d?.source !== 'rally-dispenser') return
+      done(d)
+    }
+    window.addEventListener('message', onMsg)
+    const poll = setInterval(() => {
+      if (w?.closed) done({ ok: false, reason: 'error', message: 'window closed' })
+    }, 600)
+  })
+}
+
+function claimFailMessage(r: DispenseMessage): string {
+  if (r.reason === 'already-claimed')
+    return 'This GitHub account already claimed its starter funds. Sign in with a different account, or fund your wallet directly.'
+  if (r.reason === 'treasury-empty')
+    return 'The testnet faucet is empty right now — check back in a bit.'
+  if (r.message === 'window closed') return 'GitHub sign-in was cancelled — nothing happened.'
+  return 'GitHub sign-in didn’t complete — you can try again.'
+}
 
 interface ContributeSheetProps {
   open: boolean
@@ -51,7 +99,7 @@ interface ContributeSheetProps {
 // back to the demo relayer, which caps the move to its finite testnet treasury
 // and reports the real amount moved — the UI shows what actually landed.
 const AMOUNTS = [10, 25, 100]
-type Status = 'idle' | 'authing' | 'sending' | 'done' | 'error'
+type Status = 'idle' | 'authing' | 'sending' | 'needs-funds' | 'funding' | 'done' | 'error'
 
 /**
  * The money moment. Email login (real Magic OTP) + amount → REAL gasless
@@ -79,6 +127,17 @@ export function ContributeSheet({
   const [error, setError] = useState<string | null>(null)
   const [fromOpen, setFromOpen] = useState(false)
   const chain = CHAIN_META[fromChain]
+  // The backer's embedded-wallet address, learned at login — needed to bind the
+  // GitHub faucet grant to the wallet that will spend it.
+  const [walletAddr, setWalletAddr] = useState<string | null>(null)
+  const [dispenser, setDispenser] = useState<DispenserStatus | null>(null)
+
+  // Learn once whether the faucet is available, so the empty-wallet path can
+  // decide instantly (offer GitHub) instead of stalling mid-flow.
+  useEffect(() => {
+    if (!open || dispenser) return
+    dispenserStatusServerFn().then(setDispenser).catch(() => setDispenser({ enabled: false, claimUsd: 0, fallback: 'none' }))
+  }, [open, dispenser])
 
   // Reset the flow whenever the sheet closes.
   useEffect(() => {
@@ -90,12 +149,13 @@ export function ContributeSheet({
         setCustomAmount('')
         setMovedUsd(null)
         setError(null)
+        setWalletAddr(null)
       }, 250)
       return () => clearTimeout(t)
     }
   }, [open])
 
-  const inFlight = status === 'authing' || status === 'sending'
+  const inFlight = status === 'authing' || status === 'sending' || status === 'funding'
   const emailValid = /.+@.+\..+/.test(email)
   const canSend = emailValid && amount > 0 && (status === 'idle' || status === 'error')
 
@@ -107,6 +167,7 @@ export function ContributeSheet({
       //    code from their inbox. Resolves to the backer's embedded-wallet EOA.
       setStatus('authing')
       const user = await loginWithEmail(email)
+      setWalletAddr(user.address)
 
       setStatus('sending')
 
@@ -122,11 +183,10 @@ export function ContributeSheet({
       //    the honest relayer-funded server path below. The UI does NOT expose
       //    which path ran; the difference is only in who paid — see the code +
       //    lib/backer-gasless.ts / lib/cctp/complete-fill.ts.
-      let res
       const gasless = await tryGaslessBackerBurn({ amountUsd: amount })
       if (gasless.funded) {
         // Backer burned their own USDC gaslessly — finish it server-side.
-        res = await completeContributionServerFn({
+        const res = await completeContributionServerFn({
           data: {
             backer: gasless.backer,
             burnTxHash: gasless.burnTx,
@@ -134,28 +194,132 @@ export function ContributeSheet({
             campaignId,
           },
         })
-      } else {
-        // Fresh/empty wallet → relayer fronts the source USDC (capped to its
-        // finite testnet treasury), recorded under the backer's real address.
-        res = await contributeServerFn({
-          data: { backer: user.address, amountUsd: amount, campaignId },
-        })
+        finish(res.movedUsd)
+        return
       }
 
-      setMovedUsd(res.movedUsd)
-      setStatus('done')
-      // 3. Bar rises for real — re-read the live GoalVault.
-      onContributed?.()
+      // Fresh/empty wallet. The honest product path: offer the GitHub-gated
+      // testnet faucet so the backer funds THEIR OWN wallet, then spends it.
+      const ds = dispenser ?? (await dispenserStatusServerFn())
+      setDispenser(ds)
+      if (ds.enabled && ds.fallback !== 'relayer') {
+        setStatus('needs-funds')
+        return
+      }
+
+      // Fallback (faucet off, or kill-switch DISPENSER_FALLBACK=relayer): the
+      // old demo behavior — relayer fronts the source USDC, capped to its
+      // finite treasury, recorded under the backer's real address.
+      const res = await contributeServerFn({
+        data: { backer: user.address, amountUsd: amount, campaignId },
+      })
+      finish(res.movedUsd)
     } catch (e) {
       setError(friendlyMoneyError(e))
       setStatus('error')
     }
   }
 
+  const finish = (moved: number) => {
+    setMovedUsd(moved)
+    setStatus('done')
+    onContributed?.()
+  }
+
+  // The GitHub faucet round-trip: sign a wallet-bound state, pop GitHub, and on
+  // a granted claim retry the REAL gasless burn (now the wallet holds funds).
+  const claimAndSend = async () => {
+    if (!walletAddr) return
+    setError(null)
+    setStatus('funding')
+    try {
+      const { authorizeUrl } = await beginClaimServerFn({ data: { wallet: walletAddr } })
+      const claim = await openClaimPopup(authorizeUrl)
+      if (!claim.ok) {
+        setError(claimFailMessage(claim))
+        setStatus('needs-funds')
+        return
+      }
+
+      // Funds are landing — spend up to what the faucet granted, from the
+      // backer's own wallet, gaslessly. Retry through RPC lag.
+      setStatus('sending')
+      const spend = Math.min(amount, claim.amountUsd ?? dispenser?.claimUsd ?? amount)
+      let gasless = await tryGaslessBackerBurn({ amountUsd: spend })
+      for (let i = 0; i < 5 && !gasless.funded; i++) {
+        await new Promise((r) => setTimeout(r, 2000))
+        gasless = await tryGaslessBackerBurn({ amountUsd: spend })
+      }
+      if (!gasless.funded) throw new Error('the faucet funds are still settling — try again in a moment')
+
+      const res = await completeContributionServerFn({
+        data: {
+          backer: gasless.backer,
+          burnTxHash: gasless.burnTx,
+          sourceDomain: gasless.sourceDomain,
+          campaignId,
+        },
+      })
+      finish(res.movedUsd)
+    } catch (e) {
+      setError(friendlyMoneyError(e))
+      setStatus('error')
+    }
+  }
+
+  const grant = dispenser?.claimUsd ?? 5
+
   return (
     <BottomSheet open={open} onClose={onClose} title={status === 'done' ? undefined : 'Chip in'}>
       {status === 'done' ? (
         <SuccessView amount={movedUsd ?? amount} campaignTitle={campaignTitle} onDone={onClose} />
+      ) : status === 'needs-funds' || status === 'funding' ? (
+        <div className="flex flex-col gap-5 pb-2">
+          <div className="flex flex-col gap-2">
+            <h3 className="text-lg font-semibold text-paper" style={{ fontFamily: 'var(--font-display)' }}>
+              First time? Grab test funds
+            </h3>
+            <p className="text-[15px] leading-relaxed text-muted">
+              Rally runs on test money while it's pre-launch. Verify once with GitHub and we'll
+              put <span className="font-medium text-paper">${grant}</span> of testnet USDC in
+              your wallet — then it's <span className="font-medium text-paper">your</span> money
+              moving, gaslessly, from Base to Arbitrum.
+            </p>
+          </div>
+
+          {error ? (
+            <p className="-mt-1 text-[13px] font-medium leading-relaxed text-warn">{error}</p>
+          ) : null}
+
+          <button
+            onClick={claimAndSend}
+            disabled={status === 'funding'}
+            className={`relative flex w-full items-center justify-center gap-2.5 rounded-full py-4 text-base font-semibold transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97] disabled:opacity-70 ${FOCUS_RING}`}
+            style={{
+              background: 'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
+              color: 'var(--color-ink-950)',
+              boxShadow:
+                'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
+            }}
+          >
+            {status === 'funding' ? (
+              <>
+                <Loader2 size={18} className="animate-spin" /> Waiting for GitHub…
+              </>
+            ) : (
+              <>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.21.09 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.34-5.47-5.95 0-1.31.47-2.39 1.24-3.23-.13-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.92 1.24 3.23 0 4.62-2.81 5.64-5.49 5.94.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.82.58C20.56 22.29 24 17.8 24 12.5 24 5.87 18.63.5 12 .5z" />
+                </svg>
+                Verify with GitHub · get ${grant}
+              </>
+            )}
+          </button>
+
+          <p className="text-center text-xs text-faint">
+            One grant per GitHub account. Testnet only — no real money, ever.
+          </p>
+        </div>
       ) : (
         <div className="flex flex-col gap-5 pb-2">
           <p className="-mt-1 text-[15px] leading-relaxed text-muted">
@@ -258,8 +422,8 @@ export function ContributeSheet({
               </button>
               {fromOpen && (
                 <p className="mt-1.5 max-w-[19rem] text-[13px] leading-relaxed text-faint">
-                  We detect the chain your USDC is already on and move it for you — no
-                  network switching, no bridge to figure out.
+                  Your USDC moves as a Circle CCTP transfer and lands on Arbitrum — no network
+                  to switch, no bridge to figure out.
                 </p>
               )}
             </div>

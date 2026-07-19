@@ -50,7 +50,7 @@ async function main() {
   }
   const ch = await wallet.writeContract({ address: GOAL_VAULT, abi: VAULT, functionName: 'contribute', args: [CAMPAIGN_ID, AMOUNT], chain: arbitrumSepolia })
   const rc = await pub.waitForTransactionReceipt({ hash: ch })
-  const c = (await pub.readContract({ address: GOAL_VAULT, abi: VAULT, functionName: 'getCampaign', args: [CAMPAIGN_ID] })) as any[]
+  const c = (await pub.readContract({ address: GOAL_VAULT, abi: VAULT, functionName: 'getCampaign', args: [CAMPAIGN_ID] })) as unknown as any[]
   console.log(`contribute: https://sepolia.arbiscan.io/tx/${ch}  status ${rc.status}`)
   console.log(`raised now: ${formatUnits(c[4] as bigint, 6)} / ${formatUnits(c[2] as bigint, 6)} USDC`)
 }

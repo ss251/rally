@@ -12,6 +12,6 @@ const res = await completeContribution({
   backer: '0x842d1acaE94E06B1a8a1577124E1F3367dE8cB2d',
   burnTxHash: '0x5430241f4e81bb383acfaad86f0cdf7d45ee8cc0896b78405572db2543259e0d',
   sourceDomain: 6,
-  campaignId: 4n,
+  campaignId: 4,
 })
 console.log(JSON.stringify(res, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2))
