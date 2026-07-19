@@ -4,7 +4,7 @@
  *  seats so the round sits at 2-of-3 — the user's chip-in completes it on camera.
  *    bunx tsx scripts/demo-stage-circle.ts
  */
-import { createPublicClient, createWalletClient, http, formatUnits, type Hex } from 'viem'
+import { createPublicClient, createWalletClient, http, type Hex } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { arbitrumSepolia } from 'viem/chains'
 import { readFileSync } from 'node:fs'
@@ -50,7 +50,7 @@ async function main() {
   // 3. Fund round 0 for the two demo seats only (2-of-3 — the user's is the last).
   const demoSeats = circle.seats.filter((s: any) => s.demo && s.member)
   for (const s of demoSeats) {
-    const r = await depositForMember({ circleId: BigInt(circle.circleId), member: s.member })
+    const r = await depositForMember({ circleId: BigInt(circle.circleId), member: s.member as `0x${string}` })
     console.log(`seat ${s.seat} funded: ${(r as any).tx ?? JSON.stringify(r)}`)
   }
 }

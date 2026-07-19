@@ -62,7 +62,6 @@ function CampaignDetail() {
   const displayRaised = Math.round(animatedRaised * 100) / 100 // keep the cents — hero and chain rows must agree
   const realPct = pct(displayRaised, c.goal, 9999)
   const cd = now == null ? null : countdown(c.deadline, now)
-  const topChain = c.segments[c.segments.length - 1]?.chain ?? 'base'
   const hasBackers = c.contributors.length > 0
   const funded = c.status === 'funded'
   const ctaLabel = isPotluck

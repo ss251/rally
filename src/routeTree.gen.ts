@@ -14,6 +14,7 @@ import { Route as DemoRouteImport } from './routes/demo'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CirclesIndexRouteImport } from './routes/circles.index'
+import { Route as OauthGithubRouteImport } from './routes/oauth.github'
 import { Route as CirclesNewRouteImport } from './routes/circles.new'
 import { Route as CircleIdRouteImport } from './routes/circle.$id'
 import { Route as CIdRouteImport } from './routes/c.$id'
@@ -43,6 +44,11 @@ const CirclesIndexRoute = CirclesIndexRouteImport.update({
   path: '/circles/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OauthGithubRoute = OauthGithubRouteImport.update({
+  id: '/oauth/github',
+  path: '/oauth/github',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CirclesNewRoute = CirclesNewRouteImport.update({
   id: '/circles/new',
   path: '/circles/new',
@@ -67,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/c/$id': typeof CIdRoute
   '/circle/$id': typeof CircleIdRoute
   '/circles/new': typeof CirclesNewRoute
+  '/oauth/github': typeof OauthGithubRoute
   '/circles/': typeof CirclesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -77,6 +84,7 @@ export interface FileRoutesByTo {
   '/c/$id': typeof CIdRoute
   '/circle/$id': typeof CircleIdRoute
   '/circles/new': typeof CirclesNewRoute
+  '/oauth/github': typeof OauthGithubRoute
   '/circles': typeof CirclesIndexRoute
 }
 export interface FileRoutesById {
@@ -88,6 +96,7 @@ export interface FileRoutesById {
   '/c/$id': typeof CIdRoute
   '/circle/$id': typeof CircleIdRoute
   '/circles/new': typeof CirclesNewRoute
+  '/oauth/github': typeof OauthGithubRoute
   '/circles/': typeof CirclesIndexRoute
 }
 export interface FileRouteTypes {
@@ -100,6 +109,7 @@ export interface FileRouteTypes {
     | '/c/$id'
     | '/circle/$id'
     | '/circles/new'
+    | '/oauth/github'
     | '/circles/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -110,6 +120,7 @@ export interface FileRouteTypes {
     | '/c/$id'
     | '/circle/$id'
     | '/circles/new'
+    | '/oauth/github'
     | '/circles'
   id:
     | '__root__'
@@ -120,6 +131,7 @@ export interface FileRouteTypes {
     | '/c/$id'
     | '/circle/$id'
     | '/circles/new'
+    | '/oauth/github'
     | '/circles/'
   fileRoutesById: FileRoutesById
 }
@@ -131,6 +143,7 @@ export interface RootRouteChildren {
   CIdRoute: typeof CIdRoute
   CircleIdRoute: typeof CircleIdRoute
   CirclesNewRoute: typeof CirclesNewRoute
+  OauthGithubRoute: typeof OauthGithubRoute
   CirclesIndexRoute: typeof CirclesIndexRoute
 }
 
@@ -171,6 +184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CirclesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/oauth/github': {
+      id: '/oauth/github'
+      path: '/oauth/github'
+      fullPath: '/oauth/github'
+      preLoaderRoute: typeof OauthGithubRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/circles/new': {
       id: '/circles/new'
       path: '/circles/new'
@@ -203,6 +223,7 @@ const rootRouteChildren: RootRouteChildren = {
   CIdRoute: CIdRoute,
   CircleIdRoute: CircleIdRoute,
   CirclesNewRoute: CirclesNewRoute,
+  OauthGithubRoute: OauthGithubRoute,
   CirclesIndexRoute: CirclesIndexRoute,
 }
 export const routeTree = rootRouteImport

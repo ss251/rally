@@ -9,7 +9,6 @@
 
 import { createPublicClient, http, parseAbiItem, type Address } from 'viem'
 import {
-  CHAIN_META,
   CHAIN_ORDER,
   type Chain,
   type ChainSegment,
