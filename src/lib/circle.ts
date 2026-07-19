@@ -299,6 +299,13 @@ const KNOWN: Record<string, { title: string; organizer: string; seatNames: strin
     organizer: 'Rally',
     seatNames: ['Ana', 'Ben'],
   },
+  // The 2-min film's live circle (2026-07-19): seat 0 = the founder's Magic
+  // wallet (round-0 payee, claims on camera), seats 1–2 demo members.
+  '6': {
+    title: 'The trip fund',
+    organizer: 'Your crew',
+    seatNames: ['You', 'Priya', 'Marco'],
+  },
 }
 
 const ZERO_ADDR = '0x0000000000000000000000000000000000000000'

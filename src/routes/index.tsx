@@ -232,7 +232,7 @@ function Home() {
         onClose={() => setSheetOpen(false)}
         campaignTitle={c.title}
         campaignId={HERO_CAMPAIGN_ID}
-        fromChain={topChain}
+        fromChain="base"
         initialAmount={25}
         // The money just landed on-chain — re-run the loader so THIS bar,
         // the one they're looking at, visibly rises.

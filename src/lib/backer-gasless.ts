@@ -37,6 +37,7 @@ import {
   sendGaslessCctpContribution,
 } from '#/lib/auth/zerodev'
 import { CCTP_V2_TESTNET, EVM_CHAINS, CctpDomain } from '#/lib/cctp/addresses'
+import { getBurnFee } from '#/lib/cctp/cctp'
 import { GOAL_VAULT } from '#/lib/campaign'
 
 const BASE = EVM_CHAINS.baseSepolia // CCTP source, domain 6
@@ -127,8 +128,25 @@ export async function tryGaslessBackerBurn(params: {
     chainId: baseSepolia.id,
   })
 
-  // 4. Fast-transfer maxFee (bps of amount; safe fallback 1 bps, min 1 unit).
-  let maxFee = amount / 10_000n
+  // 4. Fast-transfer maxFee. Circle's fast tier (finalityThreshold 1000) now
+  // carries a real minimum fee — a maxFee below it does NOT fail, it silently
+  // degrades the burn to standard finality (~15 min; iris reports
+  // delayReason: insufficient_fee). Ask the fee API and pad 2x; fall back to
+  // 3 bps if the endpoint is unreachable (current floor is 1.3 bps).
+  let feeBps = 3
+  try {
+    const tiers = (await getBurnFee(
+      CctpDomain.BASE_SEPOLIA,
+      CctpDomain.ARBITRUM_SEPOLIA,
+    )) as Array<{ finalityThreshold: number; minimumFee: number }>
+    const fast = tiers.find((t) => t.finalityThreshold === 1000)
+    if (fast && Number.isFinite(fast.minimumFee)) {
+      feeBps = Math.max(Math.ceil(fast.minimumFee * 2), 1)
+    }
+  } catch {
+    // fee endpoint down — keep the static fallback
+  }
+  let maxFee = (amount * BigInt(feeBps) + 9_999n) / 10_000n
   if (maxFee === 0n) maxFee = 1n
 
   // 5. The money moment: approve + depositForBurn as ONE sponsored UserOp.

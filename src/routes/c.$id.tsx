@@ -250,7 +250,7 @@ function CampaignDetail() {
         onClose={() => setSheetOpen(false)}
         campaignTitle={c.title}
         campaignId={c.id}
-        fromChain={topChain}
+        fromChain="base"
         initialAmount={25}
         // A real contribution just landed on-chain — re-run the loader so the
         // GoalVault read refreshes and the thermometer rises for real.
