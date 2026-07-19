@@ -102,6 +102,32 @@ const KNOWN: Record<string, CampaignMetaView> = {
     title: 'Coffee for the launch crew',
     organizer: 'The launch crew',
   },
+  // Both created live through /create on 2026-07-18 (the demo-video session) —
+  // pinned for the same reason: a redeploy wipes the ephemeral title store.
+  '3': {
+    title: 'Dinner for the demo crew',
+    organizer: 'Sailesh',
+  },
+  '4': {
+    title: 'Coffee for the crew',
+    organizer: 'Sailesh',
+  },
+  '5': {
+    title: 'Coffee for the crew',
+    organizer: 'Sailesh',
+  },
+  // The 2-min film's hero campaign (2026-07-19) — a $12 goal filled by three
+  // real chains: Arbitrum (native contribute), Optimism + Base (real CCTP).
+  // knownBackers name each chain's wallet so the feed reads as three people.
+  '6': {
+    title: 'Send the crew to Lisbon',
+    organizer: 'The Lisbon crew',
+    knownBackers: {
+      '0x6a63bdd548715b4dac5e2ee62a6d4085c2d393b1': 'Sam', // Arbitrum-native band
+      '0xf0fe5731ef41e101f1fd37cf481bb2bb8117d74f': 'Maya', // Optimism CCTP band
+      '0x842d1acae94e06b1a8a1577124e1f3367de8cb2d': 'You', // Base — the live chip-in
+    },
+  },
 }
 
 const toUsd = (raw: bigint) => Number(raw) / 10 ** USDC_DECIMALS
