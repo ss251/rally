@@ -37,6 +37,8 @@ class Gen:
         self.elements: list[dict] = []
         self.n = 0
         self.rng = random.Random(21)
+        # Excalidraw stores children in scene coords; frameId only groups/clips.
+        self.frame_origin: dict[str, tuple[float, float]] = {}
 
     def uid(self, prefix: str = "e") -> str:
         self.n += 1
@@ -56,6 +58,9 @@ class Gen:
         frame_id: str | None,
         extra: dict | None = None,
     ) -> dict:
+        if frame_id and frame_id in self.frame_origin:
+            ox, oy = self.frame_origin[frame_id]
+            x, y = x + ox, y + oy
         el = {
             "id": self.uid(typ[:2]),
             "type": typ,
@@ -90,7 +95,7 @@ class Gen:
         return el
 
     def frame(self, x: float, y: float, w: float, h: float, name: str) -> dict:
-        return self.base(
+        el = self.base(
             "frame",
             x,
             y,
@@ -104,6 +109,8 @@ class Gen:
                 "roundness": None,
             },
         )
+        self.frame_origin[el["id"]] = (x, y)
+        return el
 
     def text(
         self,
@@ -251,13 +258,14 @@ class Gen:
             y1 = a["y"] + a["height"] if dy > 0 else a["y"]
             x2 = bx
             y2 = b["y"] if dy > 0 else b["y"] + b["height"]
+        # x1/y1 are already scene coords (from boxed elements). Do not re-offset.
         el = self.base(
             "arrow",
             x1,
             y1,
             0,
             0,
-            frame_id=frame_id,
+            frame_id=None,
             extra={
                 "width": abs(x2 - x1) or 1,
                 "height": abs(y2 - y1) or 1,
@@ -272,11 +280,13 @@ class Gen:
                 "elbowed": False,
             },
         )
+        el["frameId"] = frame_id
         a["boundElements"].append({"id": el["id"], "type": "arrow"})
         b["boundElements"].append({"id": el["id"], "type": "arrow"})
         if label:
             mx, my = (x1 + x2) / 2, (y1 + y2) / 2
-            self.text(mx - 40, my - 14, label, size=13, color=MUTED, frame_id=frame_id)
+            t = self.text(mx - 40, my - 14, label, size=13, color=MUTED, frame_id=None)
+            t["frameId"] = frame_id
         return el
 
     def note(self, x: float, y: float, w: float, h: float, text: str, frame_id: str, bg: str = NOTE_BG) -> dict:
