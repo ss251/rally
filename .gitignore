@@ -44,3 +44,6 @@ RALLY_HUMAN_SETUP.md
 # Stray agent worktrees (may contain .env.local — never commit)
 .claude/worktrees/
 config/mcporter.json
+
+# local rally data pulled/adapted from Railway volume paths
+.rally-data/

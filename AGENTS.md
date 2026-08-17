@@ -18,8 +18,13 @@ Rally is a single-product repo: a TanStack Start (React 19 + Vite, SSR via Nitro
 - The app runs and renders **without any `.env`**. All keys in the README "Getting started" section (`VITE_MAGIC_PUBLISHABLE_KEY`, `VITE_ZERODEV_PROJECT_ID`, `CIRCLE_API_KEY`, `ALCHEMY_API_KEY`, `ARBISCAN_API_KEY`, plus dispenser/relayer keys read in `src/lib/`) are optional and code falls back gracefully when they're missing.
 - Live campaign/circle pages (`/c/$id`, `/circle/$id`) and the landing hero read real on-chain state from Arbitrum Sepolia over public RPC, so they render real data even without `ALCHEMY_API_KEY`.
 - Email login (Magic OTP → embedded EIP-7702 wallet) and gasless writes (ZeroDev) require the `VITE_MAGIC_*` / `VITE_ZERODEV_*` keys AND a human to type the OTP. Without those keys, login silently no-ops — so the contribute/create-onchain flows can be exercised in the UI but cannot complete a real transaction in an unattended environment.
-- **Client-safe keys** (`VITE_MAGIC_PUBLISHABLE_KEY`, `VITE_ZERODEV_PROJECT_ID`, `VITE_ALCHEMY_API_KEY`) are public by design and ship in the production client bundle. If `.env.local` is missing in a Cloud Agent pod, they can be recovered from the live `/create` auth chunk on `https://rally-production-94cc.up.railway.app` (look for the Vite-inlined `VITE_*` literals). Write them to gitignored `.env.local` and restart `bun run dev` so Vite picks them up.
-- **Private server secrets** (`CIRCLE_API_KEY`, `RELAYER_KEY`/`BACKER_KEY`, `DISPENSER_KEY`, `GH_CLIENT_ID`/`GH_CLIENT_SECRET`, `ARBISCAN_API_KEY`) are **not** recoverable from the client. They must come from Cursor environment secrets / the operator's local `.env.local`. Without them, read paths and Magic login still work; CCTP faucet/relayer and GitHub-gated dispenser flows do not.
+- **Preferred way to get a full local `.env.local`:** use the Railway CLI against project `rally` (id `d5a61522-8c08-4b54-b827-ffcaca158121`), environment `production`, service `rally`:
+  1. `railway login` (device-code / browser) if `railway whoami` fails.
+  2. `railway variable list --project d5a61522-8c08-4b54-b827-ffcaca158121 --environment production --service rally --json`
+  3. Write non-`RAILWAY_*` keys into gitignored `.env.local`. Remap volume paths: `DISPENSER_CLAIMS_FILE` / `RALLY_META_FILE` are `/data/...` on Railway — use `/workspace/.rally-data/...` locally (dir is gitignored).
+  4. Restart `bun run dev` so Vite reloads `.env.local`.
+- Client-safe `VITE_*` keys also ship in the production `/create` auth chunk if Railway auth isn't available, but that path cannot recover private keys (`CIRCLE_API_KEY`, `RELAYER_KEY`, `DISPENSER_KEY`, `GH_CLIENT_*`, etc.).
+- `ARBISCAN_API_KEY` is not set on the Railway service (only needed for `forge` verify).
 
 ### Tests / lint
 
