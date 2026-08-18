@@ -14,8 +14,9 @@ import { loadCampaign, mockCampaign, type CampaignView } from '#/lib/campaign'
 
 // The landing hero IS the product: the live on-chain campaign, filling. The
 // bar a visitor sees here is the same bar their "Chip in" raises — same id,
-// same loader, same read as /c/1. No staged numbers.
-const HERO_CAMPAIGN_ID = '1'
+// same loader, same read as /c/9. #1 missed; this pot is the open three-chain
+// picker demo. No staged numbers.
+const HERO_CAMPAIGN_ID = '9'
 
 export const Route = createFileRoute('/')({
   loader: async (): Promise<CampaignView> => {

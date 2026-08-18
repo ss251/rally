@@ -6,39 +6,48 @@
  * the client bundle. See lib/dispenser.ts for the actual faucet logic.
  */
 import { createServerFn } from '@tanstack/react-start'
+import { parseChipInSource, type ChipInSource } from '#/lib/chip-in-source'
 
 export interface DispenserStatus {
-  /** Faucet configured + funded — the sheet may offer "verify with GitHub". */
+  /** Faucet configured and at least one source chain is funded. */
   enabled: boolean
   /** USD granted per claim. */
   claimUsd: number
   /** Old relayer-fronting behavior forced on via DISPENSER_FALLBACK (kill switch). */
   fallback: 'relayer' | 'none'
+  /** Live USDC in the dispenser on each chip-in source. */
+  treasuries: Record<ChipInSource, number>
 }
+
+const EMPTY_TREASURIES: Record<ChipInSource, number> = { base: 0, optimism: 0, arbitrum: 0 }
 
 export const dispenserStatusServerFn = createServerFn({ method: 'GET' }).handler(
   async (): Promise<DispenserStatus> => {
     const d = await import('#/lib/dispenser')
-    if (!d.dispenserEnabled()) return { enabled: false, claimUsd: 0, fallback: d.fallbackMode() }
-    const treasury = await d.treasuryUsd().catch(() => 0)
+    if (!d.dispenserEnabled()) {
+      return { enabled: false, claimUsd: 0, fallback: d.fallbackMode(), treasuries: EMPTY_TREASURIES }
+    }
+    const treasuries = await d.treasuryUsdByChain().catch(() => EMPTY_TREASURIES)
+    const min = d.claimUsd()
     return {
-      enabled: treasury >= d.claimUsd(),
-      claimUsd: d.claimUsd(),
+      enabled: Object.values(treasuries).some((usd) => usd >= min),
+      claimUsd: min,
       fallback: d.fallbackMode(),
+      treasuries,
     }
   },
 )
 
 export const beginClaimServerFn = createServerFn({ method: 'POST' })
-  .validator((data: { wallet: string }) => {
+  .validator((data: { wallet: string; chain?: string }) => {
     if (!data || typeof data.wallet !== 'string' || !/^0x[0-9a-fA-F]{40}$/.test(data.wallet)) {
       throw new Error('a valid wallet address is required')
     }
-    return { wallet: data.wallet }
+    return { wallet: data.wallet, chain: parseChipInSource(data.chain) }
   })
   .handler(async ({ data }): Promise<{ authorizeUrl: string }> => {
     const d = await import('#/lib/dispenser')
-    const state = await d.signState(data.wallet as `0x${string}`)
+    const state = await d.signState(data.wallet as `0x${string}`, data.chain)
     const params = new URLSearchParams({
       client_id: process.env.GH_CLIENT_ID ?? '',
       state,

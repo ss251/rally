@@ -127,6 +127,11 @@ const KNOWN: Record<string, CampaignMetaView> = {
       '0x842d1acae94e06b1a8a1577124e1f3367de8cb2d': 'You', // Base — the live chip-in
     },
   },
+  // Open pot for the multi-chain Chip in picker (created 2026-08-18).
+  '9': {
+    title: 'Chip in from any chain',
+    organizer: 'The Rally crew',
+  },
 }
 
 const toUsd = (raw: bigint) => Number(raw) / 10 ** USDC_DECIMALS
