@@ -3,9 +3,11 @@ import { Check, ChevronDown, Loader2 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { BottomSheet } from './BottomSheet'
 import { Confetti } from './Confetti'
+import { ChainIcon } from './ChainIcon'
 import { CHAIN_META, FOCUS_RING, formatUsd, type Chain } from '#/design/chains'
 import { loginWithEmail } from '#/lib/auth/magic'
 import { tryGaslessBackerBurn } from '#/lib/backer-gasless'
+import { CHIP_IN_SOURCES, asChipInSource } from '#/lib/chip-in-source'
 
 // Money errors must read like a product, never like a stack trace. Raw
 // viem/RPC reverts (with contract addresses and calldata) reached this sheet
@@ -102,9 +104,9 @@ const AMOUNTS = [10, 25, 100]
 type Status = 'idle' | 'authing' | 'sending' | 'needs-funds' | 'funding' | 'done' | 'error'
 
 /**
- * The money moment. Email login (real Magic OTP) + amount → REAL gasless
- * cross-chain CCTP contribution into the live GoalVault. The CCTP hop, the
- * wallet, the gas — all invisible. Never says wallet / seed / gas.
+ * The money moment. Email login (real Magic OTP) + amount + source chain →
+ * REAL gasless contribution into the live GoalVault. Base/OP burn via CCTP;
+ * Arbitrum is a same-chain contribute. Never says wallet / seed / gas.
  * CTA states: "Chip in $1" → "Check your email…" → "Sending…" → "You're in ✦".
  */
 export function ContributeSheet({
@@ -112,7 +114,7 @@ export function ContributeSheet({
   onClose,
   campaignTitle = 'the Tokyo fund',
   campaignId = '1',
-  fromChain = 'base',
+  fromChain: initialFromChain = 'base',
   initialAmount = AMOUNTS[0],
   onContributed,
 }: ContributeSheetProps) {
@@ -126,6 +128,8 @@ export function ContributeSheet({
   const [movedUsd, setMovedUsd] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [fromOpen, setFromOpen] = useState(false)
+  const defaultSource = asChipInSource(initialFromChain)
+  const [fromChain, setFromChain] = useState(defaultSource)
   const chain = CHAIN_META[fromChain]
   // The backer's embedded-wallet address, learned at login — needed to bind the
   // GitHub faucet grant to the wallet that will spend it.
@@ -136,7 +140,16 @@ export function ContributeSheet({
   // decide instantly (offer GitHub) instead of stalling mid-flow.
   useEffect(() => {
     if (!open || dispenser) return
-    dispenserStatusServerFn().then(setDispenser).catch(() => setDispenser({ enabled: false, claimUsd: 0, fallback: 'none' }))
+    dispenserStatusServerFn()
+      .then(setDispenser)
+      .catch(() =>
+        setDispenser({
+          enabled: false,
+          claimUsd: 0,
+          fallback: 'none',
+          treasuries: { base: 0, optimism: 0, arbitrum: 0 },
+        }),
+      )
   }, [open, dispenser])
 
   // Reset the flow whenever the sheet closes.
@@ -150,10 +163,12 @@ export function ContributeSheet({
         setMovedUsd(null)
         setError(null)
         setWalletAddr(null)
+        setFromChain(defaultSource)
+        setFromOpen(false)
       }, 250)
       return () => clearTimeout(t)
     }
-  }, [open])
+  }, [open, defaultSource, initialAmount])
 
   const inFlight = status === 'authing' || status === 'sending' || status === 'funding'
   const emailValid = /.+@.+\..+/.test(email)
@@ -183,9 +198,16 @@ export function ContributeSheet({
       //    the honest relayer-funded server path below. The UI does NOT expose
       //    which path ran; the difference is only in who paid — see the code +
       //    lib/backer-gasless.ts / lib/cctp/complete-fill.ts.
-      const gasless = await tryGaslessBackerBurn({ amountUsd: amount })
+      const gasless = await tryGaslessBackerBurn({
+        amountUsd: amount,
+        fromChain,
+        campaignId,
+      })
       if (gasless.funded) {
-        // Backer burned their own USDC gaslessly — finish it server-side.
+        if (gasless.path === 'local') {
+          finish(amount)
+          return
+        }
         const res = await completeContributionServerFn({
           data: {
             backer: gasless.backer,
@@ -198,8 +220,21 @@ export function ContributeSheet({
         return
       }
 
-      // Fresh/empty wallet. The honest product path: offer the GitHub-gated
-      // testnet faucet so the backer funds THEIR OWN wallet, then spends it.
+      // Relayer fallback only holds Base USDC. Do not burn Base and paint it
+      // as OP/Arb. Empty wallets on those chains use the faucet on that chain.
+      if (fromChain !== 'base') {
+        const ds = dispenser ?? (await dispenserStatusServerFn())
+        setDispenser(ds)
+        const onChain = (ds.treasuries?.[fromChain] ?? 0) >= (ds.claimUsd || 1)
+        if (ds.fallback !== 'relayer' && onChain) {
+          setStatus('needs-funds')
+          return
+        }
+        throw new Error(
+          `Your email wallet needs testnet USDC on ${chain.label} to chip in from there.`,
+        )
+      }
+
       const ds = dispenser ?? (await dispenserStatusServerFn())
       setDispenser(ds)
       if (ds.enabled && ds.fallback !== 'relayer') {
@@ -207,9 +242,6 @@ export function ContributeSheet({
         return
       }
 
-      // Fallback (faucet off, or kill-switch DISPENSER_FALLBACK=relayer): the
-      // old demo behavior — relayer fronts the source USDC, capped to its
-      // finite treasury, recorded under the backer's real address.
       const res = await contributeServerFn({
         data: { backer: user.address, amountUsd: amount, campaignId },
       })
@@ -233,7 +265,9 @@ export function ContributeSheet({
     setError(null)
     setStatus('funding')
     try {
-      const { authorizeUrl } = await beginClaimServerFn({ data: { wallet: walletAddr } })
+      const { authorizeUrl } = await beginClaimServerFn({
+        data: { wallet: walletAddr, chain: fromChain },
+      })
       const claim = await openClaimPopup(authorizeUrl)
       if (!claim.ok) {
         setError(claimFailMessage(claim))
@@ -245,13 +279,21 @@ export function ContributeSheet({
       // backer's own wallet, gaslessly. Retry through RPC lag.
       setStatus('sending')
       const spend = Math.min(amount, claim.amountUsd ?? dispenser?.claimUsd ?? amount)
-      let gasless = await tryGaslessBackerBurn({ amountUsd: spend })
+      let gasless = await tryGaslessBackerBurn({
+        amountUsd: spend,
+        fromChain,
+        campaignId,
+      })
       for (let i = 0; i < 5 && !gasless.funded; i++) {
         await new Promise((r) => setTimeout(r, 2000))
-        gasless = await tryGaslessBackerBurn({ amountUsd: spend })
+        gasless = await tryGaslessBackerBurn({ amountUsd: spend, fromChain, campaignId })
       }
       if (!gasless.funded) throw new Error('the faucet funds are still settling — try again in a moment')
 
+      if (gasless.path === 'local') {
+        finish(spend)
+        return
+      }
       const res = await completeContributionServerFn({
         data: {
           backer: gasless.backer,
@@ -281,9 +323,10 @@ export function ContributeSheet({
             </h3>
             <p className="text-[15px] leading-relaxed text-muted">
               Rally runs on test money while it's pre-launch. Verify once with GitHub and we'll
-              put <span className="font-medium text-paper">${grant}</span> of testnet USDC in
-              your wallet — then it's <span className="font-medium text-paper">your</span> money
-              moving, gaslessly, from Base to Arbitrum.
+              put <span className="font-medium text-paper">${grant}</span> of testnet USDC on{' '}
+              <span className="font-medium text-paper">{chain.label}</span> in your wallet — then
+              it's <span className="font-medium text-paper">your</span> money moving, gaslessly
+              {fromChain === 'arbitrum' ? ', straight into the vault.' : ', via Circle CCTP onto Arbitrum.'}
             </p>
           </div>
 
@@ -421,10 +464,37 @@ export function ContributeSheet({
                 />
               </button>
               {fromOpen && (
-                <p className="mt-1.5 max-w-[19rem] text-[13px] leading-relaxed text-faint">
-                  Your USDC moves as a Circle CCTP transfer and lands on Arbitrum — no network
-                  to switch, no bridge to figure out.
-                </p>
+                <div className="mt-2 flex flex-col gap-1.5">
+                  {CHIP_IN_SOURCES.map((id) => {
+                    const meta = CHAIN_META[id]
+                    const active = fromChain === id
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        disabled={inFlight}
+                        onClick={() => setFromChain(id)}
+                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[13px] transition-colors disabled:opacity-60"
+                        style={
+                          active
+                            ? { background: 'rgba(255,255,255,0.08)', color: 'var(--color-paper)' }
+                            : { color: 'var(--color-muted)' }
+                        }
+                      >
+                        <ChainIcon chain={id} size={18} contained />
+                        <span className="font-medium">{meta.label}</span>
+                        <span className="ml-auto text-faint">
+                          {id === 'arbitrum' ? 'lands here' : 'via Circle CCTP'}
+                        </span>
+                      </button>
+                    )
+                  })}
+                  <p className="mt-0.5 max-w-[19rem] text-[13px] leading-relaxed text-faint">
+                    {fromChain === 'arbitrum'
+                      ? 'Your USDC is already on Arbitrum — it goes straight into the vault, no hop.'
+                      : 'Your USDC moves as a Circle CCTP transfer and lands on Arbitrum — no network to switch.'}
+                  </p>
+                </div>
               )}
             </div>
           </div>

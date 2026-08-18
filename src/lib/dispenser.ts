@@ -4,8 +4,9 @@
  * Replaces the silent relayer-fronting fallback on the Goals chip-in with an
  * honest, sybil-gated faucet: a first-time backer whose embedded wallet is
  * empty verifies once with GitHub and receives a small grant of TESTNET USDC
- * (Base Sepolia) into THEIR OWN wallet — after which the real backer-funded
- * gasless path runs. One claim per GitHub account, one per wallet.
+ * on the chain they picked (Base / OP / Arbitrum Sepolia) into THEIR OWN
+ * wallet — after which the real backer-funded gasless path runs on that
+ * same chain. One claim per (GitHub account, chain) and (wallet, chain).
  *
  * - Claims persist on the Railway volume (DISPENSER_CLAIMS_FILE=/data/…), the
  *   same durability fix as the campaign-title store — a redeploy keeps them.
@@ -18,11 +19,15 @@
  */
 import { createPublicClient, createWalletClient, http, formatUnits, type Address, type Hex } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { baseSepolia } from 'viem/chains'
-import { EVM_CHAINS } from '#/lib/cctp/addresses'
+import { CHIP_IN_META, CHIP_IN_SOURCES, parseChipInSource, type ChipInSource } from '#/lib/chip-in-source'
 
-const BASE = EVM_CHAINS.baseSepolia
 const USDC_DECIMALS = 6
+
+function alchemyRpc(id: ChipInSource): string {
+  const key = process.env.ALCHEMY_API_KEY ?? process.env.VITE_ALCHEMY_API_KEY
+  const meta = CHIP_IN_META[id]
+  return key ? `https://${meta.alchemySub}.g.alchemy.com/v2/${key}` : meta.rpc
+}
 
 // ---------------------------------------------------------------------------
 // Config
@@ -57,22 +62,24 @@ async function hmac(payload: string): Promise<string> {
   return createHmac('sha256', secret).update(payload).digest('hex')
 }
 
-export async function signState(wallet: Address): Promise<string> {
-  const payload = Buffer.from(JSON.stringify({ w: wallet, exp: Date.now() + 15 * 60_000 })).toString(
-    'base64url',
-  )
+export async function signState(wallet: Address, chain: ChipInSource = 'base'): Promise<string> {
+  const payload = Buffer.from(
+    JSON.stringify({ w: wallet, c: chain, exp: Date.now() + 15 * 60_000 }),
+  ).toString('base64url')
   return `${payload}.${await hmac(payload)}`
 }
 
-export async function verifyState(state: string): Promise<Address | null> {
+export async function verifyState(
+  state: string,
+): Promise<{ wallet: Address; chain: ChipInSource } | null> {
   const [payload, mac] = state.split('.')
   if (!payload || !mac) return null
   if ((await hmac(payload)) !== mac) return null
   try {
-    const { w, exp } = JSON.parse(Buffer.from(payload, 'base64url').toString())
+    const { w, c, exp } = JSON.parse(Buffer.from(payload, 'base64url').toString())
     if (typeof exp !== 'number' || Date.now() > exp) return null
     if (typeof w !== 'string' || !/^0x[0-9a-fA-F]{40}$/.test(w)) return null
-    return w as Address
+    return { wallet: w as Address, chain: parseChipInSource(c) }
   } catch {
     return null
   }
@@ -86,9 +93,15 @@ interface Claim {
   ghId: string
   ghLogin: string
   wallet: Address
+  /** Chain the USDC was granted on. Missing on pre-multichain claims → Base. */
+  chain?: ChipInSource
   amountUsd: number
   tx: Hex
   at: string
+}
+
+function claimChain(c: Claim): ChipInSource {
+  return parseChipInSource(c.chain)
 }
 
 async function readClaims(): Promise<Claim[]> {
@@ -176,14 +189,16 @@ export interface DispenseResult {
   message?: string
 }
 
-/** Balance check used by the sheet to decide whether to even offer the faucet. */
-export async function treasuryUsd(): Promise<number> {
+export type TreasuryBalances = Record<ChipInSource, number>
+
+export async function treasuryUsd(chain: ChipInSource = 'base'): Promise<number> {
   const pk = process.env.DISPENSER_KEY as Hex | undefined
   if (!pk) return 0
   const treasury = privateKeyToAccount(pk)
-  const pub = createPublicClient({ chain: baseSepolia, transport: http('https://sepolia.base.org') })
+  const meta = CHIP_IN_META[chain]
+  const pub = createPublicClient({ chain: meta.chain, transport: http(alchemyRpc(chain)) })
   const bal = (await pub.readContract({
-    address: BASE.usdc,
+    address: meta.usdc,
     abi: ERC20,
     functionName: 'balanceOf',
     args: [treasury.address],
@@ -191,9 +206,15 @@ export async function treasuryUsd(): Promise<number> {
   return Number(formatUnits(bal, USDC_DECIMALS))
 }
 
+export async function treasuryUsdByChain(): Promise<TreasuryBalances> {
+  const rows = await Promise.all(CHIP_IN_SOURCES.map(async (id) => [id, await treasuryUsd(id).catch(() => 0)] as const))
+  return Object.fromEntries(rows) as TreasuryBalances
+}
+
 export async function claimForCode(code: string, state: string): Promise<DispenseResult> {
-  const wallet = await verifyState(state)
-  if (!wallet) return { ok: false, reason: 'error', message: 'bad or expired state' }
+  const bound = await verifyState(state)
+  if (!bound) return { ok: false, reason: 'error', message: 'bad or expired state' }
+  const { wallet, chain } = bound
 
   const gh = await exchangeCodeForUser(code)
 
@@ -205,9 +226,9 @@ export async function claimForCode(code: string, state: string): Promise<Dispens
 
   const claims = await readClaims()
   if (!isAllowlisted) {
-    if (claims.some((c) => c.ghId === gh.id))
+    if (claims.some((c) => c.ghId === gh.id && claimChain(c) === chain))
       return { ok: false, reason: 'already-claimed', ghLogin: gh.login }
-    if (claims.some((c) => c.wallet.toLowerCase() === wallet.toLowerCase()))
+    if (claims.some((c) => c.wallet.toLowerCase() === wallet.toLowerCase() && claimChain(c) === chain))
       return { ok: false, reason: 'already-claimed', ghLogin: gh.login }
   }
 
@@ -217,15 +238,17 @@ export async function claimForCode(code: string, state: string): Promise<Dispens
   const pk = process.env.DISPENSER_KEY as Hex | undefined
   if (!pk) return { ok: false, reason: 'error', message: 'dispenser not configured' }
   const treasury = privateKeyToAccount(pk)
-  const pub = createPublicClient({ chain: baseSepolia, transport: http('https://sepolia.base.org') })
+  const meta = CHIP_IN_META[chain]
+  const rpc = alchemyRpc(chain)
+  const pub = createPublicClient({ chain: meta.chain, transport: http(rpc) })
   const walletClient = createWalletClient({
     account: treasury,
-    chain: baseSepolia,
-    transport: http('https://sepolia.base.org'),
+    chain: meta.chain,
+    transport: http(rpc),
   })
 
   const bal = (await pub.readContract({
-    address: BASE.usdc,
+    address: meta.usdc,
     abi: ERC20,
     functionName: 'balanceOf',
     args: [treasury.address],
@@ -233,11 +256,11 @@ export async function claimForCode(code: string, state: string): Promise<Dispens
   if (bal < units) return { ok: false, reason: 'treasury-empty' }
 
   const tx = await walletClient.writeContract({
-    address: BASE.usdc,
+    address: meta.usdc,
     abi: ERC20,
     functionName: 'transfer',
     args: [wallet, units],
-    chain: baseSepolia,
+    chain: meta.chain,
   })
   await pub.waitForTransactionReceipt({ hash: tx })
 
@@ -245,6 +268,7 @@ export async function claimForCode(code: string, state: string): Promise<Dispens
     ghId: gh.id,
     ghLogin: gh.login,
     wallet,
+    chain,
     amountUsd: amount,
     tx,
     at: new Date().toISOString(),
