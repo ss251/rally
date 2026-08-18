@@ -47,3 +47,9 @@ config/mcporter.json
 
 # local rally data pulled/adapted from Railway volume paths
 .rally-data/
+
+# Pashov working trees (ship finished reports under docs/audit/ only)
+x-ray/
+contracts/x-ray/
+.audit-*/
+fizz_data/
