@@ -151,21 +151,37 @@ export async function loginWithEmail(email: string): Promise<MagicUser> {
 }
 
 /**
- * Reuse a live Magic session so a second Chip in does not sit on
- * "Check your email…" waiting for an OTP Magic will not send again.
- * A different typed email logs out and requests a fresh code.
+ * Whether this browser's Magic session may skip a second OTP.
+ *
+ * Magic sessions are local to *this* browser after *that* inbox completed a
+ * code. Typing someone else's email on a fresh machine still sends *them* an
+ * OTP — you cannot operate their wallet. Reuse is "stay logged in", not a
+ * directory of registered emails.
+ *
+ * We still require an exact email match. A live session with no email on
+ * `getInfo()` (or a different email) logs out and requests a fresh code, so a
+ * typed address is never attached as a display name to someone else's EOA.
+ */
+export function sessionEmailMatches(
+  sessionEmail: string | undefined,
+  typedEmail: string,
+): boolean {
+  const have = sessionEmail?.trim().toLowerCase();
+  const wanted = typedEmail.trim().toLowerCase();
+  return Boolean(have && wanted && have === wanted);
+}
+
+/**
+ * Reuse a live Magic session only when its verified email equals the typed
+ * one. Otherwise log out and send a new OTP to the typed inbox.
  */
 export async function ensureMagicUser(email: string): Promise<MagicUser> {
-  const wanted = email.trim().toLowerCase();
   if (await isLoggedIn()) {
     const existing = await getMagicUser();
-    if (existing?.address) {
-      const have = existing.email?.trim().toLowerCase();
-      if (!have || have === wanted) {
-        return { ...existing, email: existing.email ?? email };
-      }
-      await logout();
+    if (existing?.address && sessionEmailMatches(existing.email, email)) {
+      return existing;
     }
+    await logout();
   }
   return loginWithEmail(email);
 }

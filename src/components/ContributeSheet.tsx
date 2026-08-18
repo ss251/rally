@@ -137,6 +137,7 @@ export function ContributeSheet({
   // The backer's embedded-wallet address, learned at login — needed to bind the
   // GitHub faucet grant to the wallet that will spend it.
   const [walletAddr, setWalletAddr] = useState<string | null>(null)
+  const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null)
   const [dispenser, setDispenser] = useState<DispenserStatus | null>(null)
 
   // Learn once whether the faucet is available, so the empty-wallet path can
@@ -166,6 +167,7 @@ export function ContributeSheet({
         setMovedUsd(null)
         setError(null)
         setWalletAddr(null)
+        setVerifiedEmail(null)
         setFromChain(defaultSource)
         setFromOpen(false)
       }, 250)
@@ -181,15 +183,16 @@ export function ContributeSheet({
     if (!canSend) return
     setError(null)
     try {
-      // 1. Magic email login. Reuse a live session — calling loginWithEmailOTP
-      //    again does NOT send a second code, so the sheet used to hang on
-      //    "Check your email…".
+      // 1. Magic email login. Skip OTP only when this browser's session email
+      //    matches — calling loginWithEmailOTP again does not send a second
+      //    code, so a mismatched or missing session email logs out first.
       setStatus('authing')
       const user = await ensureMagicUser(email)
+      if (!user.email) throw new Error('Magic login returned no verified email.')
       setWalletAddr(user.address)
-      const backerLabel = user.email ?? email
+      setVerifiedEmail(user.email)
       void rememberBackerServerFn({
-        data: { campaignId, wallet: user.address, label: backerLabel },
+        data: { campaignId, wallet: user.address, label: user.email },
       }).catch(() => {})
 
       setStatus('sending')
@@ -222,7 +225,7 @@ export function ContributeSheet({
             burnTxHash: gasless.burnTx,
             sourceDomain: gasless.sourceDomain,
             campaignId,
-            backerLabel,
+            backerLabel: user.email,
           },
         })
         finish(res.movedUsd)
@@ -252,7 +255,7 @@ export function ContributeSheet({
       }
 
       const res = await contributeServerFn({
-        data: { backer: user.address, amountUsd: amount, campaignId, backerLabel },
+        data: { backer: user.address, amountUsd: amount, campaignId, backerLabel: user.email },
       })
       finish(res.movedUsd)
     } catch (e) {
@@ -309,7 +312,7 @@ export function ContributeSheet({
           burnTxHash: gasless.burnTx,
           sourceDomain: gasless.sourceDomain,
           campaignId,
-          backerLabel: email,
+          backerLabel: verifiedEmail ?? undefined,
         },
       })
       finish(res.movedUsd)
