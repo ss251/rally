@@ -66,10 +66,20 @@ describe('deck content', () => {
   })
 
   it('ships official marks and live shots', () => {
+    const utf8 = new TextDecoder('utf-8', { fatal: true })
     for (const f of LOGOS) {
       const p = join(root, 'assets/logos', f)
       assert.ok(existsSync(p), f)
-      assert.match(readFileSync(p, 'utf8'), /<svg/)
+      const buf = readFileSync(p)
+      // Chromium <img src=".svg"> treats the file as UTF-8 XML and shows the
+      // broken-image glyph if a latin-1 mid-dot sneaks into a comment.
+      assert.doesNotThrow(() => utf8.decode(buf), f)
+      const text = buf.toString('utf8')
+      assert.match(text, /<svg/)
+      // XML comments cannot contain "--". A latin-1 mid-dot was the last break;
+      // a dash-dash replacement would also make Chromium reject the file.
+      const comments = [...text.matchAll(/<!--([\s\S]*?)-->/g)].map((m) => m[1])
+      for (const c of comments) assert.equal(c.includes('--'), false, `${f} comment has --`)
     }
     for (const f of SHOTS) {
       const p = join(root, 'assets/shots', f)
