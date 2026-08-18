@@ -148,6 +148,18 @@ function backerName(meta: CampaignMetaView, addr: string, _chain: Chain): string
   return meta.knownBackers?.[addr.toLowerCase()] ?? 'A friend'
 }
 
+/** KNOWN pins titles; the volume store can add backer emails later. Merge both. */
+export function mergeCampaignMeta(
+  known?: CampaignMetaView,
+  stored?: { title?: string; organizer?: string; knownBackers?: Record<string, string> } | null,
+): CampaignMetaView {
+  return {
+    title: known?.title || stored?.title || 'A live Rally fund',
+    organizer: known?.organizer || stored?.organizer || 'On-chain',
+    knownBackers: { ...known?.knownBackers, ...stored?.knownBackers },
+  }
+}
+
 function deriveStatus(raised: number, goal: number, deadlineMs: number): CampaignStatus {
   if (goal > 0 && raised >= goal) return 'funded'
   if (Date.now() >= deadlineMs) return 'missed'
@@ -200,14 +212,10 @@ export async function fetchLiveCampaign(id: string): Promise<CampaignView | null
   const goal = toUsd(goalRaw)
   const deadline = Number(deadlineRaw) * 1000
 
-  // Resolve the human label: the KNOWN table first, then the off-chain title
-  // store (campaigns born in /create), then an honest generic.
-  const meta: CampaignMetaView =
-    KNOWN[id] ??
-    (await getCampaignMetaServerFn({ data: { id } }).catch(() => null)) ?? {
-      title: 'A live Rally fund',
-      organizer: 'On-chain',
-    }
+  // KNOWN pins titles for demo pots; the volume store holds emails typed at
+  // chip-in. Must merge — a KNOWN pin used to hide every stored backer name.
+  const stored = await getCampaignMetaServerFn({ data: { id } }).catch(() => null)
+  const meta = mergeCampaignMeta(KNOWN[id], stored)
 
   // Best-effort: pull the contribution log for per-chain bands + a named feed.
   const contributors: Contributor[] = []

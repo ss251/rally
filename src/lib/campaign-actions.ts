@@ -69,3 +69,16 @@ export const getCampaignMetaServerFn = createServerFn({ method: 'GET' })
     const { getCampaignMeta } = await import('#/lib/campaign-relayer')
     return getCampaignMeta(data.id)
   })
+
+export const rememberBackerServerFn = createServerFn({ method: 'POST' })
+  .validator((data: { campaignId: string; wallet: string; label: string }) => {
+    if (!data || !isCampaignId(data.campaignId)) throw new Error('a valid campaign id is required')
+    if (!isHexAddress(data.wallet)) throw new Error('a valid wallet is required')
+    if (typeof data.label !== 'string' || !data.label.trim()) throw new Error('a label is required')
+    return { campaignId: String(data.campaignId), wallet: data.wallet, label: data.label }
+  })
+  .handler(async ({ data }) => {
+    const { rememberBacker } = await import('#/lib/campaign-relayer')
+    await rememberBacker(data.campaignId, data.wallet as Address, data.label)
+    return { ok: true as const }
+  })

@@ -5,7 +5,7 @@ import { BottomSheet } from './BottomSheet'
 import { Confetti } from './Confetti'
 import { ChainIcon } from './ChainIcon'
 import { CHAIN_META, FOCUS_RING, formatUsd, type Chain } from '#/design/chains'
-import { loginWithEmail } from '#/lib/auth/magic'
+import { ensureMagicUser } from '#/lib/auth/magic'
 import { tryGaslessBackerBurn } from '#/lib/backer-gasless'
 import { CHIP_IN_SOURCES, asChipInSource } from '#/lib/chip-in-source'
 
@@ -29,6 +29,8 @@ function friendlyMoneyError(e: unknown): string {
     return 'The network hiccuped — nothing left your account. Try again.'
   if (m.includes('denied') || m.includes('rejected'))
     return 'The request was cancelled — nothing was sent.'
+  if (m.includes('needs testnet usdc') || m.includes("couldn't switch"))
+    return raw
   return 'Something went wrong on our side — nothing left your account. Try again.'
 }
 import { contributeServerFn, completeContributionServerFn } from '#/lib/contribute'
@@ -37,6 +39,7 @@ import {
   beginClaimServerFn,
   type DispenserStatus,
 } from '#/lib/dispense-actions'
+import { rememberBackerServerFn } from '#/lib/campaign-actions'
 
 interface DispenseMessage {
   source?: string
@@ -178,11 +181,16 @@ export function ContributeSheet({
     if (!canSend) return
     setError(null)
     try {
-      // 1. Real Magic email login — pops Magic's OTP overlay; a human types the
-      //    code from their inbox. Resolves to the backer's embedded-wallet EOA.
+      // 1. Magic email login. Reuse a live session — calling loginWithEmailOTP
+      //    again does NOT send a second code, so the sheet used to hang on
+      //    "Check your email…".
       setStatus('authing')
-      const user = await loginWithEmail(email)
+      const user = await ensureMagicUser(email)
       setWalletAddr(user.address)
+      const backerLabel = user.email ?? email
+      void rememberBackerServerFn({
+        data: { campaignId, wallet: user.address, label: backerLabel },
+      }).catch(() => {})
 
       setStatus('sending')
 
@@ -214,6 +222,7 @@ export function ContributeSheet({
             burnTxHash: gasless.burnTx,
             sourceDomain: gasless.sourceDomain,
             campaignId,
+            backerLabel,
           },
         })
         finish(res.movedUsd)
@@ -243,7 +252,7 @@ export function ContributeSheet({
       }
 
       const res = await contributeServerFn({
-        data: { backer: user.address, amountUsd: amount, campaignId },
+        data: { backer: user.address, amountUsd: amount, campaignId, backerLabel },
       })
       finish(res.movedUsd)
     } catch (e) {
@@ -300,6 +309,7 @@ export function ContributeSheet({
           burnTxHash: gasless.burnTx,
           sourceDomain: gasless.sourceDomain,
           campaignId,
+          backerLabel: email,
         },
       })
       finish(res.movedUsd)
@@ -530,7 +540,7 @@ export function ContributeSheet({
             )}
             {status === 'authing' ? (
               <>
-                <Loader2 size={18} className="animate-spin [animation-duration:0.6s]" /> Check your email…
+                <Loader2 size={18} className="animate-spin [animation-duration:0.6s]" /> Signing in…
               </>
             ) : status === 'sending' ? (
               <>

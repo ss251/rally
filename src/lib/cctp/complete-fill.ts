@@ -31,7 +31,44 @@ import { privateKeyToAccount } from 'viem/accounts'
 import { arbitrumSepolia } from 'viem/chains'
 
 import { fetchAttestation } from '#/lib/cctp/cctp'
-import { EVM_CHAINS, CctpDomain } from '#/lib/cctp/addresses'
+import { EVM_CHAINS, CctpDomain, IRIS_BASE_URL, type CctpDomainId } from '#/lib/cctp/addresses'
+import { parseCctpSourceDomain } from '#/lib/chip-in-source'
+
+const DOMAIN_PROBE: CctpDomainId[] = [
+  CctpDomain.OP_SEPOLIA,
+  CctpDomain.BASE_SEPOLIA,
+  CctpDomain.ARBITRUM_SEPOLIA,
+]
+
+const EXPLORER_BY_DOMAIN: Record<number, string> = {
+  [CctpDomain.BASE_SEPOLIA]: EVM_CHAINS.baseSepolia.explorer,
+  [CctpDomain.OP_SEPOLIA]: EVM_CHAINS.opSepolia.explorer,
+  [CctpDomain.ARBITRUM_SEPOLIA]: EVM_CHAINS.arbitrumSepolia.explorer,
+}
+
+/** Find which CCTP domain indexed this burn. A wrong domain used to 404-poll
+ *  for minutes and surface as a generic chip-in error. */
+async function resolveSourceDomain(tx: Hex, preferred?: CctpDomainId): Promise<CctpDomainId> {
+  const order = [...new Set([preferred, ...DOMAIN_PROBE].filter((d): d is CctpDomainId => d != null))]
+  const deadline = Date.now() + 25_000
+  while (Date.now() < deadline) {
+    for (const domain of order) {
+      try {
+        const res = await fetch(`${IRIS_BASE_URL}/v2/messages/${domain}?transactionHash=${tx}`, {
+          headers: { accept: 'application/json' },
+        })
+        if (!res.ok) continue
+        const body = (await res.json()) as { messages?: unknown[] }
+        if (body.messages && body.messages.length > 0) return domain
+      } catch {
+        /* try the next domain */
+      }
+    }
+    await new Promise((r) => setTimeout(r, 2_000))
+  }
+  if (preferred) return preferred
+  throw new Error('Circle has not indexed this burn yet — try again in a few seconds.')
+}
 import {
   GOAL_VAULT,
   GOAL_VAULT_ABI,
@@ -47,10 +84,12 @@ export interface CompleteContributionInput {
   backer: Address
   /** The gasless burn tx hash the backer's kernel account produced on Base Sepolia. */
   burnTxHash: Hex
-  /** CCTP source domain of the burn. Defaults to Base Sepolia (6). */
+  /** CCTP source domain of the burn. Required for a correct Iris lookup. */
   sourceDomain?: number
   /** Override the target campaign (defaults to the live campaign #1). */
   campaignId?: number
+  /** Email (or other label) the backer typed — stored off-chain for the feed. */
+  backerLabel?: string
 }
 
 const isHexAddress = (a: string): a is Address => /^0x[0-9a-fA-F]{40}$/.test(a)
@@ -68,8 +107,18 @@ export async function completeContribution(
   if (!isHexAddress(input.backer)) throw new Error('invalid backer address')
   if (!isTxHash(input.burnTxHash)) throw new Error('invalid burn tx hash')
   const backerAddr = input.backer
-  const sourceDomain = input.sourceDomain ?? CctpDomain.BASE_SEPOLIA
+  const preferred = parseCctpSourceDomain(input.sourceDomain)
   const campaignId = BigInt(input.campaignId ?? Number(DEFAULT_CAMPAIGN_ID))
+  const campaignKey = campaignId.toString()
+
+  if (input.backerLabel) {
+    try {
+      const { rememberBacker } = await import('#/lib/campaign-relayer')
+      await rememberBacker(campaignKey, backerAddr, input.backerLabel)
+    } catch {
+      /* label is best-effort — the money move still proceeds */
+    }
+  }
 
   const alchemy = process.env.ALCHEMY_API_KEY ?? process.env.VITE_ALCHEMY_API_KEY
   const rpc = (sub: string, fallback: string) =>
@@ -105,9 +154,14 @@ export async function completeContribution(
 
   // 1. Poll Circle Iris for the attestation of the BACKER's burn (measure latency).
   const tAtt = Date.now()
+  const sourceDomain = await resolveSourceDomain(input.burnTxHash, preferred)
+  // eslint-disable-next-line no-console
+  console.info('[complete-fill] iris domain', { preferred, sourceDomain, burn: input.burnTxHash })
   const att = await fetchAttestation({
-    sourceDomain: sourceDomain as any,
+    sourceDomain,
     transactionHash: input.burnTxHash,
+    timeoutMs: 90_000,
+    pollIntervalMs: 2_000,
   })
   const attestationLatencyMs = Date.now() - tAtt
 
@@ -187,7 +241,7 @@ export async function completeContribution(
     attestationLatencyMs,
     sourceDomain,
     explorers: {
-      burn: `${EVM_CHAINS.baseSepolia.explorer}/tx/${input.burnTxHash}`,
+      burn: `${EXPLORER_BY_DOMAIN[sourceDomain] ?? EVM_CHAINS.baseSepolia.explorer}/tx/${input.burnTxHash}`,
       mint: `${arb.explorer}/tx/${realMintTx}`,
       record: `${arb.explorer}/tx/${recordTx}`,
     },

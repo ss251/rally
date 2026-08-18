@@ -87,16 +87,34 @@ export async function tryGaslessBackerBurn(params: {
   const backer = magicWallet.account?.address as Address | undefined
   if (!backer) throw new Error('Magic wallet has no account')
 
-  const publicClient = createPublicClient({
+  const rpcUrl = alchemyHost(from) ?? src.rpc
+  let publicClient = createPublicClient({
     chain: src.chain,
-    transport: http(alchemyHost(from) ?? src.rpc),
+    transport: http(rpcUrl),
   })
-  const balance = (await publicClient.readContract({
-    address: src.usdc,
-    abi: ERC20_BALANCE_ABI,
-    functionName: 'balanceOf',
-    args: [backer],
-  })) as bigint
+  let balance: bigint
+  try {
+    balance = (await publicClient.readContract({
+      address: src.usdc,
+      abi: ERC20_BALANCE_ABI,
+      functionName: 'balanceOf',
+      args: [backer],
+    })) as bigint
+  } catch (first) {
+    if (rpcUrl === src.rpc) throw first
+    publicClient = createPublicClient({ chain: src.chain, transport: http(src.rpc) })
+    balance = (await publicClient.readContract({
+      address: src.usdc,
+      abi: ERC20_BALANCE_ABI,
+      functionName: 'balanceOf',
+      args: [backer],
+    })) as bigint
+  }
+
+  const connected = await magicWallet.getChainId().catch(() => 0)
+  if (connected && connected !== src.chain.id) {
+    throw new Error(`couldn't switch to ${src.id} — pick that chain again, or try Base.`)
+  }
   if (balance < amount) {
     return { funded: false, balanceUsd: Number(formatUnits(balance, USDC_DECIMALS)) }
   }

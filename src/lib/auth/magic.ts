@@ -150,6 +150,26 @@ export async function loginWithEmail(email: string): Promise<MagicUser> {
   return { address, email: info.email ?? email, didToken };
 }
 
+/**
+ * Reuse a live Magic session so a second Chip in does not sit on
+ * "Check your email…" waiting for an OTP Magic will not send again.
+ * A different typed email logs out and requests a fresh code.
+ */
+export async function ensureMagicUser(email: string): Promise<MagicUser> {
+  const wanted = email.trim().toLowerCase();
+  if (await isLoggedIn()) {
+    const existing = await getMagicUser();
+    if (existing?.address) {
+      const have = existing.email?.trim().toLowerCase();
+      if (!have || have === wanted) {
+        return { ...existing, email: existing.email ?? email };
+      }
+      await logout();
+    }
+  }
+  return loginWithEmail(email);
+}
+
 export async function isLoggedIn(): Promise<boolean> {
   const magic = getMagic();
   if (!magic) return false;

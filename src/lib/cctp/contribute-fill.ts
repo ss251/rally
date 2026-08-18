@@ -73,6 +73,7 @@ export interface FillContributionInput {
   amountUsd?: number
   /** Override the target campaign (defaults to the live campaign #1). */
   campaignId?: number
+  backerLabel?: string
 }
 
 export interface FillContributionResult {
@@ -177,6 +178,15 @@ export async function fillContribution(
 
   const requestedUsd = Math.max(MIN_AMOUNT_USD, input.amountUsd ?? DEFAULT_AMOUNT_USD)
   const campaignId = BigInt(input.campaignId ?? Number(DEFAULT_CAMPAIGN_ID))
+
+  if (input.backerLabel) {
+    try {
+      const { rememberBacker } = await import('#/lib/campaign-relayer')
+      await rememberBacker(campaignId.toString(), backerAddr, input.backerLabel)
+    } catch {
+      /* best-effort */
+    }
+  }
 
   const alchemy = process.env.ALCHEMY_API_KEY ?? process.env.VITE_ALCHEMY_API_KEY
   const rpc = (sub: string, fallback: string) =>
