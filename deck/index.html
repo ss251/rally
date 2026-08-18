@@ -38,12 +38,12 @@
                   Nobody holds the money. Including us.
                 </p>
                 <div class="marks" aria-label="Stack">
-                  <img src="./assets/logos/magic.svg" alt="Magic" />
-                  <img src="./assets/logos/zerodev.svg" alt="ZeroDev" />
-                  <span class="chip paper"><img class="sq" src="./assets/logos/circle-mark.svg" alt="" />Circle CCTP</span>
-                  <span class="chip paper"><img class="sq" src="./assets/logos/arbitrum.svg" alt="" />Arbitrum</span>
-                  <span class="chip paper"><img class="sq" src="./assets/logos/optimism.svg" alt="" />Optimism</span>
-                  <span class="chip paper"><img class="sq" src="./assets/logos/base.svg" alt="" />Base</span>
+                  <img src="./assets/logos/magic.svg?v=2" alt="Magic" />
+                  <img src="./assets/logos/zerodev.svg?v=2" alt="ZeroDev" />
+                  <span class="chip paper"><img class="sq" src="./assets/logos/circle-mark.svg?v=2" alt="" />Circle CCTP</span>
+                  <span class="chip paper"><img class="sq" src="./assets/logos/arbitrum.svg?v=2" alt="" />Arbitrum</span>
+                  <span class="chip paper"><img class="sq" src="./assets/logos/optimism.svg?v=2" alt="" />Optimism</span>
+                  <span class="chip paper"><img class="sq" src="./assets/logos/base.svg?v=2" alt="" />Base</span>
                 </div>
                 <p class="notes">Point at the bar. Each color is a source chain the USDC actually came from. Do not explain the stack.</p>
               </div>
@@ -120,22 +120,22 @@
             <h2>The user never sees this. The vault does.</h2>
             <div class="pipe" aria-label="Write path">
               <div class="node">
-                <img src="./assets/logos/magic.svg" alt="Magic" />
+                <img src="./assets/logos/magic.svg?v=2" alt="Magic" />
                 <b>EIP-7702</b>
                 <p><code>loginWithEmailOTP</code> then a type-4 <code>sign7702Authorization</code>. Same address.</p>
               </div>
               <div class="node">
-                <img src="./assets/logos/zerodev.svg" alt="ZeroDev" />
+                <img src="./assets/logos/zerodev.svg?v=2" alt="ZeroDev" />
                 <b>Kernel UserOp</b>
                 <p>Sponsoring paymaster on Base, OP, and Arb Sepolia. Approve, burn, contribute, claim, refund.</p>
               </div>
               <div class="node">
-                <span class="chip paper tight"><img class="sq" src="./assets/logos/circle-mark.svg" alt="" />CCTP v2</span>
+                <span class="chip paper tight"><img class="sq" src="./assets/logos/circle-mark.svg?v=2" alt="" />CCTP v2</span>
                 <b>Domains 6 / 2 → 3</b>
                 <p><code>depositForBurn</code> → Iris (fast) → <code>receiveMessage</code>. Dest is always Arbitrum.</p>
               </div>
               <div class="node">
-                <span class="chip paper tight"><img class="sq" src="./assets/logos/arbitrum.svg" alt="" />Arbitrum</span>
+                <span class="chip paper tight"><img class="sq" src="./assets/logos/arbitrum.svg?v=2" alt="" />Arbitrum</span>
                 <b>Two vaults</b>
                 <p><code>recordContribution(sourceDomain)</code> colors the bar. <code>refundFor</code> is permissionless.</p>
               </div>

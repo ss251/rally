@@ -123,8 +123,8 @@ h2 { font-size: clamp(26px, 3vw, 44px); max-width: 22ch; }
   font-size: 12px;
   font-weight: 600;
 }
-.chip img, .chip .sq { height: 16px; width: auto; }
-.chip .sq { height: 18px; width: 18px; }
+.chip img, .chip .sq { height: 18px; width: auto; }
+.chip .sq { height: 20px; width: 20px; object-fit: contain; }
 .chip.paper {
   background: #f3f0e8;
   border-color: transparent;
