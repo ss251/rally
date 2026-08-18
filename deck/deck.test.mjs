@@ -163,4 +163,11 @@ describe('emil motion and chrome', () => {
     assert.match(css, /\.slide\.on \{ display: flex; \}/)
     assert.doesNotMatch(css, /\.slide[^.{]*transition/)
   })
+
+  it('does not clip graph titles', () => {
+    assert.match(css, /\.graph \{[\s\S]*?overflow:\s*visible/)
+    assert.match(css, /\.code \{[\s\S]*?overflow:\s*visible/)
+    assert.match(html, /class="graph code-graph"/)
+    assert.match(html, /\[ UnattributedFunds \]/)
+  })
 })

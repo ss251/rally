@@ -144,10 +144,13 @@
                 </div>
               </div>
             </div>
-            <pre class="code"><span class="graph-title">[ UnattributedFunds ]</span><span class="c">// GoalVault — the relayer can only attribute USDC that already arrived</span>
+            <div class="graph code-graph">
+              <div class="graph-title">[ UnattributedFunds ]</div>
+              <pre class="code"><span class="c">// GoalVault — the relayer can only attribute USDC that already arrived</span>
 <span class="k">if</span> (token.balanceOf(<span class="k">address</span>(<span class="k">this</span>)) &lt; totalEscrowed + amount)
     <span class="k">revert</span> UnattributedFunds();
 _credit(campaignId, backer, amount, sourceDomain);</pre>
+            </div>
             <div class="meta">
               <span>GoalVault 0x914e4682…080AB4</span>
               <span>RotatingVault 0xdd9b3e5F…F97838</span>

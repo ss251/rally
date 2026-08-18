@@ -221,6 +221,7 @@ h2 { font-size: clamp(30px, 3.6vw, 52px); max-width: 20ch; }
   padding: 26px 16px 14px;
   border: 1px dashed var(--dash);
   border-radius: 2px;
+  overflow: visible;
 }
 .graph-title {
   position: absolute;
@@ -267,17 +268,18 @@ h2 { font-size: clamp(30px, 3.6vw, 52px); max-width: 20ch; }
 }
 
 .code {
-  position: relative;
-  margin: 18px 0 0;
-  padding: 22px 16px 14px;
-  border-radius: 2px;
+  margin: 0;
+  padding: 0;
+  border: 0;
   background: transparent;
-  border: 1px dashed var(--dash);
   font-size: 12.5px;
   line-height: 1.55;
   color: var(--fg);
-  overflow: hidden;
+  overflow: visible;
   white-space: pre-wrap;
+}
+.graph.code-graph {
+  margin-top: 18px;
 }
 .code .c { color: var(--faint); }
 .code .k { color: var(--fg); }
