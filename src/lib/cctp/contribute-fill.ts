@@ -50,7 +50,8 @@ import { EVM_CHAINS, CctpDomain } from '#/lib/cctp/addresses'
 // The one deployed GoalVault + its live demo campaign (Arbitrum Sepolia).
 // Mirrors deployments/arbitrum-sepolia.json + src/lib/campaign.ts.
 export const GOAL_VAULT: Address = '0x914e4682aD2FeBb3e00a21dB29B93c16fc080AB4'
-const DEFAULT_CAMPAIGN_ID = 1n
+/** Historic missed pot — never burn into it. Practice + Friday use a new open id. */
+const CLOSED_CAMPAIGN_IDS = new Set([1n])
 
 // Guardrail: the RELAYER fallback spends from a small, finite testnet treasury
 // (~10–15 USDC on Base Sepolia). Every relayer "Chip in" is a REAL burn of the
@@ -71,8 +72,8 @@ export interface FillContributionInput {
   backer: Address
   /** How much USDC to move. Clamped to [0.1, 5]; defaults to 1. */
   amountUsd?: number
-  /** Override the target campaign (defaults to the live campaign #1). */
-  campaignId?: number
+  /** The campaign on screen. Required — we never default to the missed #1 pot. */
+  campaignId: number
 }
 
 export interface FillContributionResult {
@@ -176,7 +177,13 @@ export async function fillContribution(
   const backerAddr = input.backer as Address
 
   const requestedUsd = Math.max(MIN_AMOUNT_USD, input.amountUsd ?? DEFAULT_AMOUNT_USD)
-  const campaignId = BigInt(input.campaignId ?? Number(DEFAULT_CAMPAIGN_ID))
+  if (input.campaignId == null || !Number.isFinite(input.campaignId) || input.campaignId < 1) {
+    throw new Error('a campaign id is required')
+  }
+  const campaignId = BigInt(input.campaignId)
+  if (CLOSED_CAMPAIGN_IDS.has(campaignId)) {
+    throw new Error(`campaign #${campaignId} is closed — refusing to burn`)
+  }
 
   const alchemy = process.env.ALCHEMY_API_KEY ?? process.env.VITE_ALCHEMY_API_KEY
   const rpc = (sub: string, fallback: string) =>

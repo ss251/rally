@@ -51,10 +51,21 @@ function claimsFile(): string {
 // payload with a server secret; the client never sees anything forgeable.
 // ---------------------------------------------------------------------------
 
+function dispenserStateSecret(): string {
+  const secret = process.env.DISPENSER_STATE_SECRET
+  const prod =
+    process.env.NODE_ENV === 'production' ||
+    process.env.RAILWAY_ENVIRONMENT === 'production' ||
+    Boolean(process.env.RAILWAY_ENVIRONMENT_ID)
+  if (prod && (!secret || secret === 'dev-only')) {
+    throw new Error('DISPENSER_STATE_SECRET is required in production')
+  }
+  return secret || 'dev-only'
+}
+
 async function hmac(payload: string): Promise<string> {
   const { createHmac } = await import('node:crypto')
-  const secret = process.env.DISPENSER_STATE_SECRET ?? 'dev-only'
-  return createHmac('sha256', secret).update(payload).digest('hex')
+  return createHmac('sha256', dispenserStateSecret()).update(payload).digest('hex')
 }
 
 export async function signState(wallet: Address): Promise<string> {

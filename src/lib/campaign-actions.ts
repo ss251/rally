@@ -69,3 +69,30 @@ export const getCampaignMetaServerFn = createServerFn({ method: 'GET' })
     const { getCampaignMeta } = await import('#/lib/campaign-relayer')
     return getCampaignMeta(data.id)
   })
+
+export interface SettleCampaignFnInput {
+  campaignId: string
+  action: 'withdraw' | 'refund' | 'refund-cross-chain'
+  backer?: string
+}
+
+export const settleCampaignServerFn = createServerFn({ method: 'POST' })
+  .validator((data: SettleCampaignFnInput): SettleCampaignFnInput => {
+    if (!data || !isCampaignId(data.campaignId)) throw new Error('a valid campaign id is required')
+    if (data.action !== 'withdraw' && data.action !== 'refund' && data.action !== 'refund-cross-chain') {
+      throw new Error('a valid settle action is required')
+    }
+    if (data.action !== 'withdraw' && !isHexAddress(data.backer)) {
+      throw new Error('a valid backer address is required')
+    }
+    return { campaignId: String(data.campaignId), action: data.action, backer: data.backer }
+  })
+  .handler(async ({ data }) => {
+    const settle = await import('#/lib/campaign-settle')
+    const id = BigInt(data.campaignId)
+    if (data.action === 'withdraw') return settle.withdrawCampaign(id)
+    if (data.action === 'refund-cross-chain') {
+      return settle.refundBackerCrossChain(id, data.backer as Address)
+    }
+    return settle.refundBacker(id, data.backer as Address)
+  })

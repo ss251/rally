@@ -32,6 +32,10 @@ import { arbitrumSepolia } from 'viem/chains'
 import { loadRelayerKey } from '#/lib/cctp/contribute-fill'
 import { EVM_CHAINS } from '#/lib/cctp/addresses'
 import { GOAL_VAULT } from '#/lib/campaign'
+import { writeCampaignMeta, getCampaignMeta, type CampaignMeta } from '#/lib/rally-meta'
+
+export type { CampaignMeta }
+export { getCampaignMeta }
 
 const EXPLORER = EVM_CHAINS.arbitrumSepolia.explorer
 const USDC_DECIMALS = 6
@@ -81,61 +85,6 @@ async function clients() {
     transport: http(rpcUrl),
   })
   return { relayer, publicClient, walletClient }
-}
-
-// ── Off-chain campaign metadata (title/organizer live nowhere on-chain) ──────
-
-export interface CampaignMeta {
-  title: string
-  organizer: string
-  createTx?: Hex
-  createdAt?: number
-}
-
-function metaFilePath(): string {
-  return process.env.RALLY_META_FILE ?? ''
-}
-
-async function metaFile(): Promise<{ dir: string; file: string }> {
-  const override = metaFilePath()
-  if (override) {
-    const { dirname } = await import('node:path')
-    return { dir: dirname(override), file: override }
-  }
-  const { homedir } = await import('node:os')
-  const { join } = await import('node:path')
-  const dir = join(homedir(), '.rally')
-  return { dir, file: join(dir, 'campaign-meta.json') }
-}
-
-async function readMetaStore(): Promise<Record<string, CampaignMeta>> {
-  try {
-    const { readFileSync } = await import('node:fs')
-    const { file } = await metaFile()
-    const parsed = JSON.parse(readFileSync(file, 'utf8'))
-    return parsed && typeof parsed === 'object' ? (parsed as Record<string, CampaignMeta>) : {}
-  } catch {
-    return {}
-  }
-}
-
-/** Look up the human title for an on-chain campaign (null when unlabeled). */
-export async function getCampaignMeta(id: string): Promise<CampaignMeta | null> {
-  const store = await readMetaStore()
-  const meta = store[id]
-  if (!meta || typeof meta.title !== 'string' || !meta.title.trim()) return null
-  return meta
-}
-
-async function writeCampaignMeta(id: string, meta: CampaignMeta): Promise<void> {
-  const { mkdirSync, writeFileSync, renameSync } = await import('node:fs')
-  const { dir, file } = await metaFile()
-  const store = await readMetaStore()
-  store[id] = meta
-  mkdirSync(dir, { recursive: true })
-  const tmp = `${file}.tmp-${process.pid}`
-  writeFileSync(tmp, JSON.stringify(store, null, 2), 'utf8')
-  renameSync(tmp, file)
 }
 
 // ── createCampaign ───────────────────────────────────────────────────────────
@@ -209,13 +158,9 @@ export async function createCampaignOnchain(
   if (campaignId == null) throw new Error('campaign created but CampaignCreated event not found')
 
   const id = campaignId.toString()
-  // Attach the human label. Best-effort: the campaign is real either way — an
-  // unlabeled fund renders as "A live Rally fund", never a broken screen.
-  try {
-    await writeCampaignMeta(id, { title, organizer, createTx, createdAt: Date.now() })
-  } catch {
-    /* label write failed — the on-chain fund still exists */
-  }
+  // Titles live off-chain. Production fails loud if the volume isn't writable
+  // so a Friday demo never ships an unlabeled fund by accident.
+  await writeCampaignMeta(id, { title, organizer, createTx, createdAt: Date.now() })
 
   return {
     campaignId: id,

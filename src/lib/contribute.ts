@@ -23,8 +23,7 @@ import type { FillContributionResult } from '#/lib/cctp/contribute-fill'
 /** Digits-only campaign id (matches route params); parsed server-side.
  *  Accepts string OR number — server-fn payload serialization re-parses
  *  digits-only strings as numbers on the wire. */
-const parseCampaignId = (v: unknown): number | undefined => {
-  if (v === undefined) return undefined
+const parseCampaignId = (v: unknown): number => {
   if (
     (typeof v !== 'string' && typeof v !== 'number') ||
     !/^[0-9]{1,10}$/.test(String(v)) ||
@@ -40,8 +39,8 @@ export interface ContributeInput {
   backer: string
   /** Requested USD amount (clamped server-side to a small testnet cap). */
   amountUsd?: number
-  /** The campaign being funded — the one on screen (defaults to #1). */
-  campaignId?: string
+  /** The campaign being funded — the one on screen. Required. */
+  campaignId: string
 }
 
 export const contributeServerFn = createServerFn({ method: 'POST' })
@@ -53,8 +52,8 @@ export const contributeServerFn = createServerFn({ method: 'POST' })
       typeof data.amountUsd === 'number' && Number.isFinite(data.amountUsd)
         ? data.amountUsd
         : undefined
-    parseCampaignId(data.campaignId)
-    return { backer: data.backer, amountUsd, campaignId: data.campaignId }
+    const campaignId = parseCampaignId(data.campaignId)
+    return { backer: data.backer, amountUsd, campaignId: String(campaignId) }
   })
   .handler(async ({ data }): Promise<FillContributionResult> => {
     const { fillContribution } = await import('#/lib/cctp/contribute-fill')
@@ -78,8 +77,8 @@ export interface CompleteInput {
   burnTxHash: string
   /** CCTP source domain of the burn (defaults to Base Sepolia = 6). */
   sourceDomain?: number
-  /** The campaign being funded — the one on screen (defaults to #1). */
-  campaignId?: string
+  /** The campaign being funded — the one on screen. Required. */
+  campaignId: string
 }
 
 export const completeContributionServerFn = createServerFn({ method: 'POST' })
@@ -94,12 +93,12 @@ export const completeContributionServerFn = createServerFn({ method: 'POST' })
       typeof data.sourceDomain === 'number' && Number.isFinite(data.sourceDomain)
         ? data.sourceDomain
         : undefined
-    parseCampaignId(data.campaignId)
+    const campaignId = parseCampaignId(data.campaignId)
     return {
       backer: data.backer,
       burnTxHash: data.burnTxHash,
       sourceDomain,
-      campaignId: data.campaignId,
+      campaignId: String(campaignId),
     }
   })
   .handler(async ({ data }): Promise<FillContributionResult> => {

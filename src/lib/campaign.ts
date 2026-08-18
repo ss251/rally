@@ -31,6 +31,16 @@ const DOMAIN_TO_CHAIN: Record<number, Chain> = {
   5: 'solana',
 }
 
+const NEXT_CAMPAIGN_ID_ABI = [
+  {
+    type: 'function',
+    name: 'nextCampaignId',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'uint256' }],
+  },
+] as const
+
 const GET_CAMPAIGN_ABI = [
   {
     type: 'function',
@@ -67,6 +77,10 @@ export interface CampaignView {
   segments: ChainSegment[]
   contributors: Contributor[]
   status: CampaignStatus
+  /** True when the pot has already been swept to the beneficiary. */
+  withdrawn: boolean
+  /** Beneficiary (payout) address — live only. */
+  beneficiary?: string
   /** True when the numbers came off-chain; false when this is fallback mock. */
   live: boolean
   /** Short creator address for the "on-chain" provenance line (live only). */
@@ -143,7 +157,13 @@ function backerName(meta: CampaignMetaView, addr: string, _chain: Chain): string
   return meta.knownBackers?.[addr.toLowerCase()] ?? 'A friend'
 }
 
-function deriveStatus(raised: number, goal: number, deadlineMs: number): CampaignStatus {
+function deriveStatus(
+  raised: number,
+  goal: number,
+  deadlineMs: number,
+  withdrawn: boolean,
+): CampaignStatus {
+  if (withdrawn) return 'funded'
   if (goal > 0 && raised >= goal) return 'funded'
   if (Date.now() >= deadlineMs) return 'missed'
   return 'live'
@@ -178,12 +198,13 @@ export async function fetchLiveCampaign(id: string): Promise<CampaignView | null
   })
 
   // Throws on transport failure — deliberately NOT caught here.
-  const [creator, , goalRaw, deadlineRaw, raisedRaw, , count] = await client.readContract({
-    address: GOAL_VAULT,
-    abi: GET_CAMPAIGN_ABI,
-    functionName: 'getCampaign',
-    args: [campaignId],
-  })
+  const [creator, beneficiary, goalRaw, deadlineRaw, raisedRaw, withdrawn, count] =
+    await client.readContract({
+      address: GOAL_VAULT,
+      abi: GET_CAMPAIGN_ABI,
+      functionName: 'getCampaign',
+      args: [campaignId],
+    })
   const contributionCount = Number(count)
 
   // A non-existent campaign returns the zero-struct (creator == 0x0, goal == 0).
@@ -278,10 +299,41 @@ export async function fetchLiveCampaign(id: string): Promise<CampaignView | null
     // Newest money first — by the REAL block time. Rows without a resolvable
     // time sink to the end in log order; nothing is ever back-dated for looks.
     contributors: contributors.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0)),
-    status: deriveStatus(raised, goal, deadline),
+    status: deriveStatus(raised, goal, deadline, withdrawn),
+    withdrawn,
+    beneficiary,
     live: true,
     creator: shortAddr(creator),
   }
+}
+
+/**
+ * Newest still-open campaign on the live GoalVault, or null if every pot
+ * is missed / funded / withdrawn. Used by the landing so `/` never hardcodes
+ * a closed fund and never invents Tokyo.
+ */
+export async function fetchNewestOpenCampaign(): Promise<CampaignView | null> {
+  const client = createPublicClient({
+    transport: http(ARBITRUM_SEPOLIA_RPC, { timeout: 4_000, retryCount: 1 }),
+  })
+  const next = await client.readContract({
+    address: GOAL_VAULT,
+    abi: NEXT_CAMPAIGN_ID_ABI,
+    functionName: 'nextCampaignId',
+  })
+  const last = Number(next) - 1
+  if (last < 1) return null
+  // Walk newest → oldest; stop at the first still-raising pot.
+  const start = Math.max(1, last - 24)
+  for (let id = last; id >= start; id--) {
+    try {
+      const view = await fetchLiveCampaign(String(id))
+      if (view && view.status === 'live' && !view.withdrawn) return view
+    } catch {
+      // skip a flaky id; keep walking
+    }
+  }
+  return null
 }
 
 /**
@@ -328,6 +380,7 @@ export function mockCampaign(id: string): CampaignView {
       { id: 'd', name: 'Chris', amount: 60, chain: 'optimism', timestamp: now - 1_500_000 },
     ],
     status: 'live',
+    withdrawn: false,
     live: false,
   }
 }
@@ -358,6 +411,7 @@ export function mockPotluckCampaign(id: string): CampaignView {
       { id: 'p4', name: 'Jordan', amount: 30, chain: 'optimism', note: 'One more for the road ✨', timestamp: now - 1_800_000 },
     ],
     status: 'live',
+    withdrawn: false,
     live: false,
   }
 }

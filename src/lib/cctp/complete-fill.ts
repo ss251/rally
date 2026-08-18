@@ -40,7 +40,7 @@ import {
   type FillContributionResult,
 } from '#/lib/cctp/contribute-fill'
 
-const DEFAULT_CAMPAIGN_ID = 1n
+const CLOSED_CAMPAIGN_IDS = new Set([1n])
 
 export interface CompleteContributionInput {
   /** The backer's address (their Magic email wallet / 7702 kernel — the funder). */
@@ -49,8 +49,8 @@ export interface CompleteContributionInput {
   burnTxHash: Hex
   /** CCTP source domain of the burn. Defaults to Base Sepolia (6). */
   sourceDomain?: number
-  /** Override the target campaign (defaults to the live campaign #1). */
-  campaignId?: number
+  /** The campaign on screen. Required — we never default to the missed #1 pot. */
+  campaignId: number
 }
 
 const isHexAddress = (a: string): a is Address => /^0x[0-9a-fA-F]{40}$/.test(a)
@@ -69,7 +69,13 @@ export async function completeContribution(
   if (!isTxHash(input.burnTxHash)) throw new Error('invalid burn tx hash')
   const backerAddr = input.backer
   const sourceDomain = input.sourceDomain ?? CctpDomain.BASE_SEPOLIA
-  const campaignId = BigInt(input.campaignId ?? Number(DEFAULT_CAMPAIGN_ID))
+  if (input.campaignId == null || !Number.isFinite(input.campaignId) || input.campaignId < 1) {
+    throw new Error('a campaign id is required')
+  }
+  const campaignId = BigInt(input.campaignId)
+  if (CLOSED_CAMPAIGN_IDS.has(campaignId)) {
+    throw new Error(`campaign #${campaignId} is closed — refusing to credit`)
+  }
 
   const alchemy = process.env.ALCHEMY_API_KEY ?? process.env.VITE_ALCHEMY_API_KEY
   const rpc = (sub: string, fallback: string) =>

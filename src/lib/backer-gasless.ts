@@ -24,24 +24,54 @@
  */
 import {
   createPublicClient,
+  encodeFunctionData,
   http,
   formatUnits,
   type Address,
+  type Chain as ViemChain,
   type Hex,
 } from 'viem'
-import { baseSepolia } from 'viem/chains'
+import { arbitrumSepolia, baseSepolia, optimismSepolia } from 'viem/chains'
 
-import { getMagicWalletClient } from '#/lib/auth/magic'
+import { getMagicWalletClient, type RallyChainId } from '#/lib/auth/magic'
 import {
   createRallyKernelClient,
   sendGaslessCctpContribution,
+  sendSponsoredCalls,
 } from '#/lib/auth/zerodev'
-import { CCTP_V2_TESTNET, EVM_CHAINS, CctpDomain } from '#/lib/cctp/addresses'
+import { CCTP_V2_TESTNET, EVM_CHAINS, CctpDomain, type CctpDomainId } from '#/lib/cctp/addresses'
 import { getBurnFee } from '#/lib/cctp/cctp'
 import { GOAL_VAULT } from '#/lib/campaign'
+import type { Chain } from '#/design/chains'
 
-const BASE = EVM_CHAINS.baseSepolia // CCTP source, domain 6
 const USDC_DECIMALS = 6
+
+const SOURCE: Record<
+  'base' | 'optimism' | 'arbitrum',
+  { chain: ViemChain; chainId: RallyChainId; usdc: `0x${string}`; domain: CctpDomainId; rpc: string }
+> = {
+  base: {
+    chain: baseSepolia,
+    chainId: baseSepolia.id,
+    usdc: EVM_CHAINS.baseSepolia.usdc,
+    domain: CctpDomain.BASE_SEPOLIA,
+    rpc: 'https://sepolia.base.org',
+  },
+  optimism: {
+    chain: optimismSepolia,
+    chainId: optimismSepolia.id,
+    usdc: EVM_CHAINS.opSepolia.usdc,
+    domain: CctpDomain.OP_SEPOLIA,
+    rpc: 'https://sepolia.optimism.io',
+  },
+  arbitrum: {
+    chain: arbitrumSepolia,
+    chainId: arbitrumSepolia.id,
+    usdc: EVM_CHAINS.arbitrumSepolia.usdc,
+    domain: CctpDomain.ARBITRUM_SEPOLIA,
+    rpc: 'https://sepolia-rollup.arbitrum.io/rpc',
+  },
+}
 
 /** Human USD → USDC base units (6 dp), integer-safe. */
 function toUsdcUnits(amountUsd: number): bigint {
@@ -58,12 +88,14 @@ const ERC20_BALANCE_ABI = [
   },
 ] as const
 
-/** Read a browser-safe RPC for Base Sepolia (Alchemy if a VITE key is present). */
-function basePublicRpc(): string {
+function alchemyHost(chain: 'base' | 'optimism' | 'arbitrum'): string | undefined {
   const key =
-    (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_ALCHEMY_API_KEY) ||
+    (typeof import.meta !== 'undefined' && (import.meta as { env?: Record<string, string | undefined> }).env
+      ?.VITE_ALCHEMY_API_KEY) ||
     undefined
-  return key ? `https://base-sepolia.g.alchemy.com/v2/${key}` : 'https://sepolia.base.org'
+  if (!key) return undefined
+  const sub = chain === 'base' ? 'base-sepolia' : chain === 'optimism' ? 'opt-sepolia' : 'arb-sepolia'
+  return `https://${sub}.g.alchemy.com/v2/${key}`
 }
 
 export type GaslessBurnResult =
@@ -81,10 +113,12 @@ export type GaslessBurnResult =
       burnTx: Hex
       /** ERC-4337 userOp hash for the sponsored burn. */
       userOpHash: Hex
-      /** CCTP source domain (Base Sepolia = 6). */
+      /** CCTP source domain, or Arbitrum (3) for a same-chain contribute. */
       sourceDomain: number
-      /** Base units burned. */
+      /** Base units burned / contributed. */
       amount: bigint
+      /** `local` = same-chain GoalVault.contribute; `cctp` = cross-chain burn. */
+      path: 'cctp' | 'local'
     }
 
 /**
@@ -99,21 +133,24 @@ export type GaslessBurnResult =
  */
 export async function tryGaslessBackerBurn(params: {
   amountUsd: number
+  fromChain?: Chain
+  /** Required for the same-chain Arbitrum contribute path. */
+  campaignId?: string
 }): Promise<GaslessBurnResult> {
+  const from = params.fromChain === 'optimism' || params.fromChain === 'arbitrum' ? params.fromChain : 'base'
+  const src = SOURCE[from]
   const amount = toUsdcUnits(params.amountUsd)
 
-  // 1. The Magic email wallet, as a viem client bound to Base Sepolia.
-  const magicWallet = await getMagicWalletClient(baseSepolia.id)
+  const magicWallet = await getMagicWalletClient(src.chainId)
   const backer = magicWallet.account?.address as Address | undefined
   if (!backer) throw new Error('Magic wallet has no account')
 
-  // 2. Does the backer actually hold the USDC? Fresh email wallets don't.
   const publicClient = createPublicClient({
-    chain: baseSepolia,
-    transport: http(basePublicRpc()),
+    chain: src.chain,
+    transport: http(alchemyHost(from) ?? src.rpc),
   })
   const balance = (await publicClient.readContract({
-    address: BASE.usdc,
+    address: src.usdc,
     abi: ERC20_BALANCE_ABI,
     functionName: 'balanceOf',
     args: [backer],
@@ -122,23 +159,73 @@ export async function tryGaslessBackerBurn(params: {
     return { funded: false, balanceUsd: Number(formatUnits(balance, USDC_DECIMALS)) }
   }
 
-  // 3. Upgrade the EOA to a gasless ZeroDev 7702 kernel account.
   const kernelClient = await createRallyKernelClient({
     magicWallet,
-    chainId: baseSepolia.id,
+    chainId: src.chainId,
   })
 
-  // 4. Fast-transfer maxFee. Circle's fast tier (finalityThreshold 1000) now
-  // carries a real minimum fee — a maxFee below it does NOT fail, it silently
-  // degrades the burn to standard finality (~15 min; iris reports
-  // delayReason: insufficient_fee). Ask the fee API and pad 2x; fall back to
-  // 3 bps if the endpoint is unreachable (current floor is 1.3 bps).
+  // Same-chain: the vault lives on Arbitrum — pull USDC directly, no CCTP hop.
+  if (from === 'arbitrum') {
+    if (!params.campaignId || !/^[0-9]{1,10}$/.test(params.campaignId)) {
+      throw new Error('a campaign id is required')
+    }
+    const { userOpHash, transactionHash } = await sendSponsoredCalls(kernelClient, [
+      {
+        to: src.usdc,
+        data: encodeFunctionData({
+          abi: [
+            {
+              type: 'function',
+              name: 'approve',
+              stateMutability: 'nonpayable',
+              inputs: [
+                { name: 'spender', type: 'address' },
+                { name: 'amount', type: 'uint256' },
+              ],
+              outputs: [{ type: 'bool' }],
+            },
+          ] as const,
+          functionName: 'approve',
+          args: [GOAL_VAULT, amount],
+        }),
+      },
+      {
+        to: GOAL_VAULT,
+        data: encodeFunctionData({
+          abi: [
+            {
+              type: 'function',
+              name: 'contribute',
+              stateMutability: 'nonpayable',
+              inputs: [
+                { name: 'campaignId', type: 'uint256' },
+                { name: 'amount', type: 'uint256' },
+              ],
+              outputs: [],
+            },
+          ] as const,
+          functionName: 'contribute',
+          args: [BigInt(params.campaignId), amount],
+        }),
+      },
+    ])
+    return {
+      funded: true,
+      backer,
+      burnTx: transactionHash,
+      userOpHash,
+      sourceDomain: src.domain,
+      amount,
+      path: 'local',
+    }
+  }
+
   let feeBps = 3
   try {
-    const tiers = (await getBurnFee(
-      CctpDomain.BASE_SEPOLIA,
-      CctpDomain.ARBITRUM_SEPOLIA,
-    )) as Array<{ finalityThreshold: number; minimumFee: number }>
+    const tiers = (await getBurnFee(src.domain, CctpDomain.ARBITRUM_SEPOLIA)) as Array<{
+      finalityThreshold: number
+      minimumFee: number
+    }>
     const fast = tiers.find((t) => t.finalityThreshold === 1000)
     if (fast && Number.isFinite(fast.minimumFee)) {
       feeBps = Math.max(Math.ceil(fast.minimumFee * 2), 1)
@@ -149,16 +236,15 @@ export async function tryGaslessBackerBurn(params: {
   let maxFee = (amount * BigInt(feeBps) + 9_999n) / 10_000n
   if (maxFee === 0n) maxFee = 1n
 
-  // 5. The money moment: approve + depositForBurn as ONE sponsored UserOp.
   const { userOpHash, transactionHash } = await sendGaslessCctpContribution({
     kernelClient,
-    usdc: BASE.usdc,
+    usdc: src.usdc,
     tokenMessenger: CCTP_V2_TESTNET.TokenMessengerV2,
     amount,
-    destinationDomain: CctpDomain.ARBITRUM_SEPOLIA, // 3
+    destinationDomain: CctpDomain.ARBITRUM_SEPOLIA,
     goalVaultOnHomeChain: GOAL_VAULT,
     maxFee,
-    minFinalityThreshold: 1000, // Fast Transfer
+    minFinalityThreshold: 1000,
   })
 
   return {
@@ -166,7 +252,8 @@ export async function tryGaslessBackerBurn(params: {
     backer,
     burnTx: transactionHash,
     userOpHash,
-    sourceDomain: CctpDomain.BASE_SEPOLIA, // 6
+    sourceDomain: src.domain,
     amount,
+    path: 'cctp',
   }
 }
