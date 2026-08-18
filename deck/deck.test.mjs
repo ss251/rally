@@ -104,7 +104,8 @@ describe('deck content', () => {
     assert.match(html, /MoonPay/)
     assert.match(html, /Connect an existing wallet/)
     assert.match(html, /The email wallet/)
-    assert.match(html, /What isn’t live yet/)
+    assert.match(html, /Future plans/)
+    assert.match(html, /\[ roadmap \]/)
     assert.match(html, /One link\. A bar that fills from every chain\./)
   })
 
