@@ -102,8 +102,9 @@ describe('deck content', () => {
     assert.match(html, /Mainnet/)
     assert.match(html, /Coinbase/)
     assert.match(html, /MoonPay/)
-    assert.match(html, /Bring your own wallet/)
-    assert.match(html, /Manage the email wallet/)
+    assert.match(html, /Connect an existing wallet/)
+    assert.match(html, /The email wallet/)
+    assert.match(html, /What isn’t live yet/)
   })
 
   it('does not duplicate the hero link or chip #1', () => {
@@ -125,6 +126,17 @@ describe('deck content', () => {
     const low = html.toLowerCase()
     for (const word of SLOP) {
       assert.equal(low.includes(word), false, word)
+    }
+    const visible = html.replace(/<p class="notes">[\s\S]*?<\/p>/g, '')
+    for (const phrase of [
+      'proved the pot',
+      'mainnet is the product',
+      'the rest of the promise',
+      'kind people actually send',
+      'email. amount. done',
+      'same promise. two shapes',
+    ]) {
+      assert.equal(visible.toLowerCase().includes(phrase), false, phrase)
     }
   })
 })

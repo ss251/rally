@@ -27,7 +27,7 @@ Keyboard changes are instant (Raycast rule — never animate an action the prese
 3. Chip in: email, amount, paying-from. Incognito if you want the OTP on camera. (~30s)
 4. Judge slide. Magic 7702 → ZeroDev UserOp → CCTP v2 domains 6/2→3 → two verified vaults. `UnattributedFunds` is the trust bound. User never sees it. (~45s)
 5. `/c/9` three domains. `/circle/2` we broke; `refundFor` already ran. (~20s)
-6. Next: mainnet, Coinbase / MoonPay on-ramp, BYOW, embedded wallet management. Not live. (~20s)
+6. What isn’t live: mainnet, Coinbase / MoonPay, connect an existing wallet, Magic export/recover. (~20s)
 7. URL. Stop. (~10s)
 
 Do not chip `/c/1`. Hero pot is `/c/9`. Live circle for the mid-fill shot is `/circle/7` (Friday dinner, 3 of 4). `/circle/2` is the refund receipt.
