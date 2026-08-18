@@ -37,32 +37,32 @@ const SHOTS = ['landing.png', 'goal.png', 'chipin.png', 'circle.png', 'broke.png
 
 describe('deck navigation', () => {
   it('clamps to the live range', () => {
-    assert.equal(clampIndex(-2, 7), 0)
-    assert.equal(clampIndex(99, 7), 6)
-    assert.equal(clampIndex(3, 7), 3)
+    assert.equal(clampIndex(-2, 8), 0)
+    assert.equal(clampIndex(99, 8), 7)
+    assert.equal(clampIndex(3, 8), 3)
     assert.equal(clampIndex(0, 0), 0)
   })
 
   it('reads #n from the URL and ignores junk', () => {
-    assert.equal(parseHash('#4', 7), 4)
-    assert.equal(parseHash('#0', 7), 0)
-    assert.equal(parseHash('#', 7), 0)
-    assert.equal(parseHash('#nope', 7), 0)
-    assert.equal(parseHash('#99', 7), 6)
+    assert.equal(parseHash('#4', 8), 4)
+    assert.equal(parseHash('#0', 8), 0)
+    assert.equal(parseHash('#', 8), 0)
+    assert.equal(parseHash('#nope', 8), 0)
+    assert.equal(parseHash('#99', 8), 7)
   })
 
   it('does not wrap — last slide stays last', () => {
-    assert.equal(nextIndex(6, 7), 6)
-    assert.equal(prevIndex(0, 7), 0)
-    assert.equal(nextIndex(2, 7), 3)
-    assert.equal(prevIndex(2, 7), 1)
+    assert.equal(nextIndex(7, 8), 7)
+    assert.equal(prevIndex(0, 8), 0)
+    assert.equal(nextIndex(2, 8), 3)
+    assert.equal(prevIndex(2, 8), 1)
   })
 })
 
 describe('deck content', () => {
-  it('is seven slides', () => {
+  it('is eight slides', () => {
     const n = [...html.matchAll(/<section class="slide/g)].length
-    assert.equal(n, 7)
+    assert.equal(n, 8)
   })
 
   it('ships official marks and live shots', () => {
@@ -99,6 +99,11 @@ describe('deck content', () => {
     assert.match(html, /\/circle\/2/)
     assert.match(html, /0xdb9d1d5c/)
     assert.match(html, /LjRc0v0KI9I/)
+    assert.match(html, /Mainnet/)
+    assert.match(html, /Coinbase/)
+    assert.match(html, /MoonPay/)
+    assert.match(html, /Bring your own wallet/)
+    assert.match(html, /Manage the email wallet/)
   })
 
   it('does not duplicate the hero link or chip #1', () => {
