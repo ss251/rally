@@ -20,14 +20,11 @@ destination by Circle's protocol.
 | `cctp.ts` | Typed functions: `burnOnSource`, `fetchAttestation`, `mintOnDestination`, plus `contribute` (all three) and `getBurnFee`. Implemented against `viem`; `fetchAttestation`/`getBurnFee` are dependency-free. |
 | `README.md` | This doc — the flow, latency, and how Rally uses it. |
 
-**Dependency:** the on-chain helpers import `viem`, which is **not yet in
-`package.json`**. Add it before use:
+**Dependency:** `viem` is already in the app `package.json`. `fetchAttestation` and
+`getBurnFee` use the global `fetch` and need nothing.
 
-```bash
-bun add viem
-```
-
-`fetchAttestation` and `getBurnFee` use the global `fetch` and need nothing.
+Campaign `#1` is closed. `fillContribution` / `completeContribution` require a
+campaign id and refuse `#1` so a leftover CTA cannot burn into a missed pot.
 
 ---
 

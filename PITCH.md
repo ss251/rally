@@ -7,7 +7,41 @@
 
 ---
 
-## The 3-minute demo (beat by beat)
+## Practice pitch — Tue 18 Aug 2026, 16:00 BST
+
+Use the **production site as it is today**. Do not wait for a deploy. Do not chip into campaign `#1`.
+
+Campaign `#1` already missed its deadline. The live landing still shows it (and still shows **Chip in**) because production has not been redeployed. The numbers are real — the CTA is leftover. Treat `#1` as a **read**: the bar, the named feed, the vault on Arbiscan. If anyone asks to chip in, say the pot closed and refunds are the rail.
+
+### What to open (pre-stage these tabs)
+
+1. Landing — https://rally-production-94cc.up.railway.app
+2. `/c/1` — same fund, full page
+3. `/circle/2` — the circle that broke
+4. GoalVault — https://sepolia.arbiscan.io/address/0x914e4682ad2febb3e00a21db29b93c16fc080ab4#code
+5. Circle `#2` refund — https://sepolia.arbiscan.io/tx/0xdb9d1d5cef7e32ab9040e8f2878d9e80a634fd42d900eeb791e1a0e151729ba6
+6. RotatingVault — https://sepolia.arbiscan.io/address/0xdd9b3e5f407b99e2c2827695608741b328f97838#code
+
+### 3 minutes, reads only
+
+| Time | Beat | Do |
+| --- | --- | --- |
+| 0:00–0:20 | Open cold on the money | Landing. "This bar is an escrow on Arbitrum right now. Every color is a different chain. Nobody bridged anything." |
+| 0:20–0:40 | The frame | Conditional group money. Hit the goal or everyone is refunded. PayPal shut Money Pools down; nobody replaced it. |
+| 0:40–1:10 | `/c/1` | Same numbers, live read. Point at the vault. Do **not** tap Chip in. "This pot already closed — the next one opens for Friday." |
+| 1:10–1:25 | Switch | Goals · Circles. Same promise, second shape. |
+| 1:25–2:20 | `/circle/2` | The trust punchline. A round went unfunded, the contract stopped it, the refund ran. Show the Arbiscan tab. |
+| 2:20–3:00 | Close | Two shapes, one primitive. Email in, any chain in, a contract holds the pot. |
+
+Skip the live chip-in, skip creating a circle, skip `/circle/1` fill-and-claim. Those need OTP + a still-open pot. Practice is talk + live reads + explorers.
+
+### Friday (21 Aug)
+
+A new open Goal and the honest landing (newest live pot, no chip-in on a closed `#1`) ship only after the RotatingVault v2 audit gate and a deliberate production deploy. Until then, this site and these receipts are the demo.
+
+---
+
+## The 3-minute demo (beat by beat) — Friday / recorded fallback
 
 > **Tone:** confident, warm, fast. The product does the talking — narrate lightly, let the bars fill. Every number on screen is read live from Arbitrum; say so once, early, and then let the receipts carry it.
 
@@ -23,7 +57,7 @@ Open the landing. It *is* a live campaign — "Rally's first live fund," the bar
 
 ### Beat 2 — The chip-in beat (0:35–1:15)
 
-This is the heart. Do it live.
+This is the heart — **only on a still-open pot** (the landing hero after Friday's deploy). Never campaign `#1`.
 
 > "I got the link. Watch how I back this."
 
@@ -95,4 +129,4 @@ Live demos die on flaky wifi and faucet weather. Have a safety net.
 - **Explorer tabs pre-opened:** the campaign burn (Base) + mint (Arbitrum), the circle-#2 refund, and both verified contracts on Arbiscan. The receipts carry the pitch on their own.
 - **Pre-stage the goal-side amounts** so the Goals beat lands on cue rather than waiting on attestation timing.
 - **If a second phone/member isn't available for the round fill,** live circles carry a quiet **Demo** disclosure that expands a "watch the round fill" action — use it transparently ("I'll have the demo relayer stand in for the last member").
-- **The live site itself is the last resort and it's a good one:** the landing, `/c/1`, and `/circle/1` all read real Arbitrum state over public RPC.
+- **The live site itself is the last resort and it's a good one:** the landing, `/c/1`, and `/circle/2` all read real Arbitrum state over public RPC. Campaign `#1` is a receipt, not a chip-in.

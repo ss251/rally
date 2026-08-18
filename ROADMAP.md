@@ -9,7 +9,7 @@ Rally is conditional group money, and both of its shapes are already live: **Goa
 - ✅ **Goals** — `GoalVault` all-or-nothing escrow, deployed + verified on Arbitrum Sepolia ([`0x914e…0AB4`](https://sepolia.arbiscan.io/address/0x914e4682ad2febb3e00a21db29b93c16fc080ab4#code)). Campaign #1 filled live with real cross-chain CCTP transfers (~10 s attestation, [onchain proof](./deployments/phase1-live-proof.md)); campaign #2 opened end-to-end through the product's own `/create`.
 - ✅ **Circles** — `RotatingVault` rotating-savings vault, deployed + verified + **ownerless** ([`0xdd9b…7838`](https://sepolia.arbiscan.io/address/0xdd9b3e5f407b99e2c2827695608741b328f97838#code)). Circle #1 live mid-fill (EIP-712 seat invites, gasless deposits); circle #2 **broke on schedule and auto-refunded** — [the refund tx](https://sepolia.arbiscan.io/tx/0xdb9d1d5cef7e32ab9040e8f2878d9e80a634fd42d900eeb791e1a0e151729ba6) is public.
 - ✅ **The invisible spine** — Magic email login → embedded EIP-7702 wallet (real Type-4 tx with an `authorizationList`), ZeroDev kernel + paymaster (gasless end-to-end), Circle CCTP v2 (any-chain USDC in), everything read live from Arbitrum.
-- ✅ **Assurance** — 86/86 Foundry tests across both vaults, fund-conservation fuzzes (2,000+ runs), a conservation invariant asserted after every state mutation, and two independent audit passes with zero Critical/High/Medium findings.
+- ✅ **Assurance** — 91 Foundry tests across both vaults, fund-conservation fuzzes (2,000+ runs), a conservation invariant asserted after every state mutation, and two independent audit passes with zero Critical/High/Medium findings. RotatingVault v2 (invite expiry + `claimFor`) is in-tree; historic circles stay on the verified v1 address until the next Pashov-green deploy.
 - ✅ **The product** — Goals · Circles mode switch, live-reading landings, named feeds, celebration moments (`You're in ✦` · `You got the pot ✦` · `Money's back ✦`), deployed on Railway (SSR).
 
 ---
@@ -23,7 +23,7 @@ The ZeroDev subtrack judges SRA use at 30%. An SRA is a universal multi-chain de
 One open rubric question is with the organizers: does the General track *require* Particle's Universal Accounts SDK, or merely reward it? Rally already has the substance the criterion describes — a real Type-4 7702 transaction and a live cross-chain value flow — via ZeroDev + CCTP on testnet (Particle UA is mainnet-only, and Rally spends no real money). If UA is required, the submission goes all-in on the Arbitrum bounty + Magic bonus, where the fit is strongest; if it's merely rewarded, General stays in play.
 
 ### 3. Circles finish line
-- ~~**Self-custodied organizer signing**~~ **Shipped** — real in-app creates now send `createCircle` from the creator's own 7702 kernel (organizer = their EOA), sign every EIP-712 seat invite with their key in the browser, and gate `start` behind their wallet. The relayer only organizes the demo-friends lane, and the UI says so. Next iteration: an online-organizer countersign flow so an invite can bind the joiner's own wallet address at redemption time (today open seats are pre-bound to per-seat addresses derived on the creator's device — the same pre-derived-member pattern as the demo lane).
+- ~~**Self-custodied organizer signing**~~ **Shipped** — real in-app creates send `createCircle` from the creator's own 7702 kernel. Open seats share an unsigned link; the joiner logs in with Magic and the organizer countersigns that wallet (`mintSeatInviteAsOrganizer({ member })`). The relayer only organizes the demo-friends lane (`VITE_DEMO_LANE=1`).
 - **A human end-to-end pass** on the Magic-OTP → gasless deposit path for Circles (the same rail is already proven for Goals), now including the self-custodied create (Magic `signTypedData` invite signing).
 - **Polish loop** on the create-success and claim celebrations.
 
@@ -41,7 +41,7 @@ Rotating savings circles are the largest informal financial instrument on earth 
 The step from fixed rotation to real chit-fund mechanics: members bid a discount to take the pot early, and the discount accrues to the circle. Same vault, one new auction surface.
 
 ### Contract hardening (the named Lows)
-The audits cleared both vaults for testnet with two pre-mainnet follow-ups, and they stay named until closed: **invite deadlines** (an unredeemed seat invite should expire) and **`claimFor`** (relayer-submitted claims so an email-wallet payee never needs to be online at the right moment).
+The audits cleared both vaults for testnet. **Invite deadlines** (`expiresAt` on the EIP-712 invite) and **`claimFor`** (permissionless claim that still pays only the scheduled payee) are implemented in RotatingVault v2. They ship to Sepolia only after x-ray → 12-agent solidity-auditor → fizz `--automatic` reports 0 Crit/High/Med. Historic `/circle/1`, `/circle/2`, `/circle/6` keep reading v1.
 
 ### Mainnet + external audit
 Arbitrum One, real USDC, real CCTP domains — only after the hardening above lands and both vaults pass an external audit. Faucet USDC becomes real USDC; nothing else changes, which is the point.

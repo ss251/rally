@@ -47,7 +47,7 @@ We'd rather show receipts than adjectives. Everything below is live and verifiab
 
 | What | Value |
 | --- | --- |
-| Campaign #1 — filled live, cross-chain | [`/c/1`](https://rally-production-94cc.up.railway.app/c/1) — the landing hero reads this exact campaign from Arbitrum over public RPC. Two real CCTP fills (~$6.50 of $30 at submission time), named feed |
+| Campaign #1 — filled live, then missed | [`/c/1`](https://rally-production-94cc.up.railway.app/c/1) — a real cross-chain fill (~$6.50 of $30), named feed. Deadline has passed; do not chip in. Production landing still shows this pot until the next deploy |
 | Burn tx (Base) | [`0x297eb6…`](https://sepolia.basescan.org/tx/0x297eb69cf2cac222179de81f58d356822c5ddb663e51c4ce28fed65022fc59bc) |
 | Mint tx (Arbitrum) | [`0xc354c2…`](https://sepolia.arbiscan.io/tx/0xc354c2051c70d2e77524ad30dcf9dd31f38466a6fa0456d4c0b8f13a472d1bf1) |
 | Measured attestation latency | **9.8 s** (Circle CCTP v2 fast transfer) — fast enough to watch live |
@@ -62,7 +62,7 @@ We'd rather show receipts than adjectives. Everything below is live and verifiab
 
 **Assurance**
 
-- **86/86 Foundry tests** across both vaults — GoalVault's 58 (54 unit + 4 invariants incl. `invariant_solvency`) plus RotatingVault's 28, including two fund-conservation fuzzes (green at 2,000+ runs). RotatingVault asserts `balance == Σ deposited − Σ claimed` after every state mutation.
+- **91 Foundry tests** across both vaults — GoalVault's 58 (54 unit + 4 invariants incl. `invariant_solvency`) plus RotatingVault's 33 (unit + invite-expiry/`claimFor` + fund-conservation fuzzes, green at 2,000+ runs). RotatingVault asserts `balance == Σ deposited − Σ claimed` after every state mutation. v2 (`expiresAt` + permissionless `claimFor`) is coded; the live address stays v1 until the Pashov gate and a new deploy.
 - **Audited twice, independently:** a 12-agent self-audit (Pashov solidity-auditor methodology) and a separate adversarial review — **zero Critical/High/Medium findings.** The remaining Lows are on the roadmap, named.
 
 Full explorer-linked proof and reproduction steps: [`deployments/phase1-live-proof.md`](./deployments/phase1-live-proof.md).
@@ -115,7 +115,7 @@ We'd rather a judge hear these from us than find them.
 - **Frontend:** [TanStack Start](https://tanstack.com/start) (React 19 + Vite) + Tailwind CSS v4, Motion for spring physics, canvas-rendered liquid bars
 - **Cross-chain rail:** [Circle CCTP v2](https://developers.circle.com/stablecoins/docs/cctp-getting-started) — burn-and-mint USDC across Arbitrum, Base, and OP Sepolia
 - **Embedded wallet + gasless:** [Magic](https://magic.link) email login → EIP-7702 embedded wallet; [ZeroDev](https://zerodev.app) kernel + paymaster for sponsored transactions
-- **Contracts:** `GoalVault` + `RotatingVault` in Solidity via [Foundry](https://book.getfoundry.sh/), both deployed + verified on Arbitrum Sepolia (86 tests total)
+- **Contracts:** `GoalVault` + `RotatingVault` in Solidity via [Foundry](https://book.getfoundry.sh/), both deployed + verified on Arbitrum Sepolia (91 tests total)
 - **Deploy:** [Railway](https://railway.app) (SSR)
 - **Package manager:** bun
 
@@ -143,7 +143,8 @@ Other scripts:
 ```bash
 bun run build    # production build
 bun run start    # serve the production build
-bun run test     # run the test suite
+bun run test     # vitest (no app specs yet; excludes Foundry libs)
+# Real suite: cd contracts && forge test
 ```
 
 Create a `.env.local` with the following keys before running against live testnet services (all free, all testnet):
@@ -163,7 +164,7 @@ Solidity contracts live in [`contracts/`](./contracts) and use [Foundry](https:/
 ```bash
 cd contracts
 forge build
-forge test       # 86 tests: GoalVault + RotatingVault + invariants
+forge test       # 91 tests: GoalVault + RotatingVault + invariants
 ```
 
 ### Project layout

@@ -73,3 +73,7 @@ balance delta).
   first try. No funds were lost (approve is not a spend).
 - 58 Foundry tests green (54 unit + 4 invariants incl. `invariant_solvency`) prior to deploy.
 - On-chain relayer == deployer for this proof; production splits them.
+
+**2026-08 status:** campaign `#1` missed its deadline. It stays a receipt — the
+app refuses new burns into it. Practice the pitch as a live *read* of `/c/1`
+plus `/circle/2`'s refund; do not chip in.

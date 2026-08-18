@@ -16,7 +16,7 @@ Rally is a single-product repo: a TanStack Start (React 19 + Vite, SSR via Nitro
 ### Environment variables
 
 - The app runs and renders **without any `.env`**. All keys in the README "Getting started" section (`VITE_MAGIC_PUBLISHABLE_KEY`, `VITE_ZERODEV_PROJECT_ID`, `CIRCLE_API_KEY`, `ALCHEMY_API_KEY`, `ARBISCAN_API_KEY`, plus dispenser/relayer keys read in `src/lib/`) are optional and code falls back gracefully when they're missing.
-- Live campaign/circle pages (`/c/$id`, `/circle/$id`) and the landing hero read real on-chain state from Arbitrum Sepolia over public RPC, so they render real data even without `ALCHEMY_API_KEY`.
+- Live campaign/circle pages (`/c/$id`, `/circle/$id`) read real on-chain state from Arbitrum Sepolia over public RPC, so they render real data even without `ALCHEMY_API_KEY`. Production still hardcodes landing hero `#1` until the next Railway deploy; this branch's `/` shows the newest still-open campaign or an empty create CTA.
 - Email login (Magic OTP → embedded EIP-7702 wallet) and gasless writes (ZeroDev) require the `VITE_MAGIC_*` / `VITE_ZERODEV_*` keys AND a human to type the OTP. Without those keys, login silently no-ops — so the contribute/create-onchain flows can be exercised in the UI but cannot complete a real transaction in an unattended environment.
 - **Preferred way to get a full local `.env.local`:** use the Railway CLI against project `rally` (id `d5a61522-8c08-4b54-b827-ffcaca158121`), environment `production`, service `rally`:
   1. `railway login` (device-code / browser) if `railway whoami` fails.
@@ -28,9 +28,17 @@ Rally is a single-product repo: a TanStack Start (React 19 + Vite, SSR via Nitro
 
 ### Tests / lint
 
-- `bun run test` (vitest) has **no application tests** and is currently broken: vitest globs into `contracts/lib/openzeppelin-contracts/**/*.test.js` (Foundry library Hardhat tests) which fail with `Cannot find module 'hardhat'`. This is pre-existing, not an env problem. Do not treat it as a regression.
-- The real test suite is the Solidity/Foundry suite in `contracts/` (`forge test`, 86 tests). `forge` is **not** installed by the update script; run `curl -L https://foundry.paradigm.xyz | bash && foundryup` first if you need to work on contracts.
-- There is no ESLint/lint script configured; "lint" for the frontend is TypeScript type-checking (`bunx tsc --noEmit`) plus `bun run build`.
+- `bun run test` (vitest) has **no application tests**. `vitest.config.ts` excludes `contracts/lib/**` and sets `passWithNoTests`, so the script exits 0 instead of globbing OpenZeppelin Hardhat tests.
+- The real test suite is the Solidity/Foundry suite in `contracts/` (`forge test`, 91 tests after RotatingVault v2). `forge` is **not** installed by the update script; run `curl -L https://foundry.paradigm.xyz | bash && foundryup` first if you need to work on contracts.
+- There is no ESLint/lint script configured; "lint" for the frontend is TypeScript type-checking (`bunx tsc --noEmit`) plus `bun run build`. `tsconfig.json` excludes `marketing/` (Remotion film) and `contracts/`.
+
+### Skill routing
+
+- **Any `contracts/src` change:** install https://github.com/pashov/skills, then x-ray → solidity-auditor v3 (all 12 agents) → fizz `--automatic`. Ship Solidity only at 0 Crit/High/Med. Write reports to `docs/audit/YYYY-MM-DD-*.md`. Do not substitute a single-agent review.
+- **Arbitrum / Foundry / Sepolia / viem:** https://github.com/hummusonrails/arbitrum-dapp-skill (Solidity path only — not Stylus / nitro-devnode).
+- **USDC / CCTP:** Circle `use-usdc` + `bridge-stablecoin` plus the Circle MCP.
+- **Railway:** volumes and env only. Do not deploy production from an agent run unless the user explicitly asks.
+- Do **not** chip into campaign `#1` (`contribute-fill` / `complete-fill` refuse it). Practice pitch = talk + live reads + `/circle/2` + explorers. No headless Magic path — OTP is the product.
 
 ### Vite gotcha (do not "fix")
 
