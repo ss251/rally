@@ -306,6 +306,13 @@ const KNOWN: Record<string, { title: string; organizer: string; seatNames: strin
     organizer: 'Your crew',
     seatNames: ['You', 'Priya', 'Marco'],
   },
+  // Seeded 2026-08-18 for the finale deck: 4 seats · $1 · 21-day rounds,
+  // round 0 sitting at 3-of-4 (Sam's chip is the open seat).
+  '7': {
+    title: 'Friday dinner',
+    organizer: 'The Rally crew',
+    seatNames: ['Sam', 'Maya', 'Tom', 'Emma'],
+  },
 }
 
 const ZERO_ADDR = '0x0000000000000000000000000000000000000000'

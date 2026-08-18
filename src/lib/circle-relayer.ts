@@ -218,12 +218,15 @@ export async function createCircleOnchain(input: CreateCircleInput): Promise<Cre
   }
 
   // 4. Start the moment the rotation is full (the relayer is the organizer).
+  // Prefer the seats we just wrote — a follow-up getCircle can lag one block
+  // behind the last redeem and skip start (circle #7, 2026-08-18).
+  const seated = seatsOut.every((s) => s.member != null)
   const circle = await publicClient.readContract({
     ...vault,
     functionName: 'getCircle',
     args: [circleId],
   })
-  if (Number(circle.joined) === seats) {
+  if (seated || Number(circle.joined) === seats) {
     const startTx = await walletClient.writeContract({ ...vault, functionName: 'start', args: [circleId] })
     await publicClient.waitForTransactionReceipt({ hash: startTx })
     started = true
