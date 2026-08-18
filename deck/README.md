@@ -14,7 +14,7 @@ The first deploy failed because the repo had never had Pages turned on (`Get Pag
 |---|---|
 | `←` `→` space `j` `k` | next / prev |
 | `F` | fullscreen |
-| `N` | speaker notes under every slide |
+| `N` | speaker notes (not shown on the chrome — this deck is audience-facing) |
 | Print | File → Print → PDF, landscape, one slide per page |
 
 Keyboard changes are instant (Raycast rule — never animate an action the presenter fires tens of times). First paint only: a 220ms ease-out stagger on the title slide (`translateY(8px) scale(0.97)`, 40ms delays). Pressable chrome scales to `0.97`. Dots grow with `scaleX`, not width. Visual language is Emil’s markdown-graph chrome: `#050505`, Geist + Geist Mono, one accent (`#ff6b4a`), dashed frames, no grain / glow / Clash Display.

@@ -102,9 +102,18 @@ describe('deck content', () => {
   })
 
   it('does not duplicate the hero link or chip #1', () => {
-    const nines = [...html.matchAll(/open \/c\/9/g)].length
+    const nines = [...html.matchAll(/railway\.app\/c\/9/g)].length
     assert.equal(nines, 1)
     assert.doesNotMatch(html, /\/c\/1/)
+  })
+
+  it('keeps presenter voice off the slides', () => {
+    const visible = html.replace(/<p class="notes">[\s\S]*?<\/p>/g, '')
+    assert.doesNotMatch(visible, /wifi dies/i)
+    assert.doesNotMatch(visible, /if wifi/i)
+    assert.doesNotMatch(visible, /stop talking/i)
+    assert.doesNotMatch(visible, /n notes/i)
+    assert.match(html, /2:07 walkthrough/)
   })
 
   it('has no pitch-deck slop', () => {
