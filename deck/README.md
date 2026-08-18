@@ -21,7 +21,7 @@ Keyboard changes are instant (Raycast rule — never animate an action the prese
 
 ## Talk (≈3 minutes)
 
-0. Landing. The bar is live RPC. Each color is a source chain. (~20s)
+0. Landing. One link, a bar that fills from every chain. Point at the colors. (~20s)
 1. PayPal killed pools. Tandas still go through one person. The pot needed a contract. (~20s)
 2. Goals and circles. `/c/9` and `/circle/7`. (~30s)
 3. Chip in: email, amount, paying-from. Incognito if you want the OTP on camera. (~30s)

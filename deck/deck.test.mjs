@@ -105,6 +105,7 @@ describe('deck content', () => {
     assert.match(html, /Connect an existing wallet/)
     assert.match(html, /The email wallet/)
     assert.match(html, /What isn’t live yet/)
+    assert.match(html, /One link\. A bar that fills from every chain\./)
   })
 
   it('does not duplicate the hero link or chip #1', () => {
