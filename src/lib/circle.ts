@@ -5,10 +5,11 @@
 // per-round funding over a public RPC (no key), normalizes the on-chain shape
 // into the presentational `CircleView` the components speak, and NEVER throws
 // at the callsite. If the read fails or the circle doesn't exist it returns
-// `null` and the route falls back to representative mock data.
+// `null` — detail routes 404; the Circles landing may show a labeled demo.
 
 import { createPublicClient, http, type Address } from 'viem'
 import { arbitrumSepolia } from 'viem/chains'
+import { getCircleMetaServerFn } from '#/lib/circle-actions'
 
 // ── Deployment ──────────────────────────────────────────────────────────────
 // v1 (2026-07-03) is historic — /circle/1, /circle/2, /circle/6 stay here.
@@ -389,8 +390,8 @@ export function inviteLinkFor(
 
 /**
  * Read a live circle off Arbitrum Sepolia. Resolves to a `CircleView` on
- * success, `null` on any failure / non-existent circle (caller falls back to
- * mock). Reads are batched with multicall so the whole screen costs ~2 RPC
+ * success, `null` on any failure / non-existent circle. Reads are batched
+ * with multicall so the whole screen costs ~2 RPC
  * round-trips regardless of member count.
  */
 export async function fetchLiveCircle(id: string, titleHint?: string): Promise<CircleView | null> {
@@ -483,11 +484,12 @@ export async function fetchLiveCircle(id: string, titleHint?: string): Promise<C
     const depositResults = batch.slice(roundCalls.length, roundCalls.length + depositCalls.length)
     const refundResults = batch.slice(roundCalls.length + depositCalls.length)
 
+    const stored = await getCircleMetaServerFn({ data: { id } }).catch(() => null)
     const meta = KNOWN[id] ?? {
-      title: titleHint || 'A live circle',
+      title: stored?.title || titleHint || 'A live circle',
       // Unknown circles are self-custodied in-app creates — name the organizer
       // by their address (the honest label; titles/names live off-chain).
-      organizer: shortAddr(circle.organizer),
+      organizer: stored?.organizer || shortAddr(circle.organizer),
       seatNames: [],
     }
     const nameFor = (addr: string, seat: number) =>

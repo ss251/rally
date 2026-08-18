@@ -29,19 +29,16 @@
  * TESTNET ONLY. Chain: Arbitrum Sepolia (421614) — where RotatingVault lives.
  */
 import {
-  concatHex,
   createPublicClient,
   decodeEventLog,
   encodeFunctionData,
   hashTypedData,
   http,
-  keccak256,
   recoverTypedDataAddress,
-  toHex,
   type Address,
   type Hex,
 } from 'viem'
-import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
+import { generatePrivateKey } from 'viem/accounts'
 import { arbitrumSepolia } from 'viem/chains'
 
 import { getMagicWalletClient } from '#/lib/auth/magic'
@@ -78,30 +75,6 @@ function publicClient() {
 
 /** Random 256-bit invite nonce (viem's key generator is a fine CSPRNG source). */
 const randomNonceHex = (): Hex => generatePrivateKey()
-
-// ─── Per-seat placeholder members ────────────────────────────────────────────
-// One random seed per circle, generated in the creator's browser and kept in
-// THEIR localStorage only (never sent to Rally). Seat i's member address is
-// derived from it, so the seat keys stay recoverable on the creator's device.
-const seedStorageKey = (circleId: string) => `rally.circle.seatSeed.${circleId}`
-
-function seatSeedFor(circleId: string): Hex {
-  if (typeof window === 'undefined') return generatePrivateKey()
-  try {
-    const existing = window.localStorage.getItem(seedStorageKey(circleId))
-    if (existing && /^0x[0-9a-fA-F]{64}$/.test(existing)) return existing as Hex
-    const fresh = generatePrivateKey()
-    window.localStorage.setItem(seedStorageKey(circleId), fresh)
-    return fresh
-  } catch {
-    return generatePrivateKey() // storage blocked — one-off seed, still works
-  }
-}
-
-function seatMemberFor(seed: Hex, seat: number): Address {
-  return privateKeyToAccount(keccak256(concatHex([seed, toHex(`rally-circle-seat-${seat}`)])))
-    .address
-}
 
 // ─── Invite signing (the creator's key, in the creator's browser) ────────────
 
@@ -340,8 +313,7 @@ export async function startSelfCustodiedCircle(params: {
 
 /**
  * Sign a fresh invite for an open seat of a circle the logged-in user
- * organizes. Same derivation seed as at create time when available (this
- * device), a one-off member otherwise. Returns the SignedInvite for a link.
+ * organizes, bound to the joiner's Magic wallet. Returns the SignedInvite.
  */
 export async function mintSeatInviteAsOrganizer(params: {
   circleId: string

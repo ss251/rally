@@ -74,6 +74,7 @@ export interface JoinCircleFnInput {
   member: string
   /** Optional pre-signed org invite (URL-encoded shape) — relayed as-is. */
   nonce?: string
+  expiresAt?: string
   signature?: string
 }
 
@@ -87,11 +88,14 @@ export const joinCircleServerFn = createServerFn({ method: 'POST' })
       throw new Error('a valid invite signature is required')
     if (data.signature !== undefined && data.nonce === undefined)
       throw new Error('a signed invite needs its nonce')
+    if (data.signature !== undefined && data.expiresAt === undefined)
+      throw new Error('a signed invite needs its expiry')
     return {
       circleId,
       payoutIndex: idx,
       member: data.member,
       nonce: data.nonce,
+      expiresAt: data.expiresAt,
       signature: data.signature,
     }
   })
@@ -102,6 +106,7 @@ export const joinCircleServerFn = createServerFn({ method: 'POST' })
       payoutIndex: data.payoutIndex,
       member: data.member as Address,
       nonce: data.nonce !== undefined ? BigInt(data.nonce) : undefined,
+      expiresAt: data.expiresAt !== undefined ? BigInt(data.expiresAt) : undefined,
       signature: data.signature as Hex | undefined,
     })
   })
@@ -157,4 +162,71 @@ export const refundCircleServerFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<RefundResult> => {
     const { refundMember } = await import('#/lib/circle-relayer')
     return refundMember({ circleId: BigInt(data.circleId), member: data.member as Address })
+  })
+
+export interface SaveCircleMetaFnInput {
+  circleId: string
+  title: string
+  organizer: string
+}
+
+export const saveCircleMetaServerFn = createServerFn({ method: 'POST' })
+  .validator((data: SaveCircleMetaFnInput): SaveCircleMetaFnInput => {
+    const circleId = parseCircleId(data?.circleId)
+    if (typeof data.title !== 'string' || data.title.trim().length < 2)
+      throw new Error('give your circle a name first')
+    return {
+      circleId,
+      title: data.title.trim().slice(0, 80),
+      organizer: typeof data.organizer === 'string' ? data.organizer.trim().slice(0, 40) : '',
+    }
+  })
+  .handler(async ({ data }) => {
+    const { writeCircleMeta } = await import('#/lib/rally-meta')
+    await writeCircleMeta(data.circleId, {
+      title: data.title,
+      organizer: data.organizer || 'The crew',
+      createdAt: Date.now(),
+    })
+    return { ok: true as const }
+  })
+
+export const getCircleMetaServerFn = createServerFn({ method: 'GET' })
+  .validator((data: { id: string }): { id: string } => ({ id: parseCircleId(data?.id) }))
+  .handler(async ({ data }) => {
+    const { getCircleMeta } = await import('#/lib/rally-meta')
+    return getCircleMeta(data.id)
+  })
+
+export const requestJoinServerFn = createServerFn({ method: 'POST' })
+  .validator((data: { circleId: string; seat: number; member: string }) => {
+    const circleId = parseCircleId(data?.circleId)
+    if (!isHexAddress(data.member)) throw new Error('a valid member address is required')
+    const seat = Number(data.seat)
+    if (!Number.isInteger(seat) || seat < 0 || seat > 255) throw new Error('a valid seat is required')
+    return { circleId, seat, member: data.member }
+  })
+  .handler(async ({ data }) => {
+    const { requestJoin } = await import('#/lib/rally-meta')
+    return requestJoin(data.circleId, data.seat, data.member as Address)
+  })
+
+export const listPendingJoinsServerFn = createServerFn({ method: 'GET' })
+  .validator((data: { circleId: string }) => ({ circleId: parseCircleId(data?.circleId) }))
+  .handler(async ({ data }) => {
+    const { listPendingJoins } = await import('#/lib/rally-meta')
+    return listPendingJoins(data.circleId)
+  })
+
+export const clearPendingJoinServerFn = createServerFn({ method: 'POST' })
+  .validator((data: { circleId: string; seat: number }) => {
+    const circleId = parseCircleId(data?.circleId)
+    const seat = Number(data.seat)
+    if (!Number.isInteger(seat) || seat < 0 || seat > 255) throw new Error('a valid seat is required')
+    return { circleId, seat }
+  })
+  .handler(async ({ data }) => {
+    const { clearPendingJoin } = await import('#/lib/rally-meta')
+    await clearPendingJoin(data.circleId, data.seat)
+    return { ok: true as const }
   })
