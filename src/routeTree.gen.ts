@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PitchRouteImport } from './routes/pitch'
 import { Route as InviteRouteImport } from './routes/invite'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as CreateRouteImport } from './routes/create'
@@ -19,6 +20,11 @@ import { Route as CirclesNewRouteImport } from './routes/circles.new'
 import { Route as CircleIdRouteImport } from './routes/circle.$id'
 import { Route as CIdRouteImport } from './routes/c.$id'
 
+const PitchRoute = PitchRouteImport.update({
+  id: '/pitch',
+  path: '/pitch',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InviteRoute = InviteRouteImport.update({
   id: '/invite',
   path: '/invite',
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/create': typeof CreateRoute
   '/demo': typeof DemoRoute
   '/invite': typeof InviteRoute
+  '/pitch': typeof PitchRoute
   '/c/$id': typeof CIdRoute
   '/circle/$id': typeof CircleIdRoute
   '/circles/new': typeof CirclesNewRoute
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/create': typeof CreateRoute
   '/demo': typeof DemoRoute
   '/invite': typeof InviteRoute
+  '/pitch': typeof PitchRoute
   '/c/$id': typeof CIdRoute
   '/circle/$id': typeof CircleIdRoute
   '/circles/new': typeof CirclesNewRoute
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/create': typeof CreateRoute
   '/demo': typeof DemoRoute
   '/invite': typeof InviteRoute
+  '/pitch': typeof PitchRoute
   '/c/$id': typeof CIdRoute
   '/circle/$id': typeof CircleIdRoute
   '/circles/new': typeof CirclesNewRoute
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/create'
     | '/demo'
     | '/invite'
+    | '/pitch'
     | '/c/$id'
     | '/circle/$id'
     | '/circles/new'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/create'
     | '/demo'
     | '/invite'
+    | '/pitch'
     | '/c/$id'
     | '/circle/$id'
     | '/circles/new'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/create'
     | '/demo'
     | '/invite'
+    | '/pitch'
     | '/c/$id'
     | '/circle/$id'
     | '/circles/new'
@@ -140,6 +152,7 @@ export interface RootRouteChildren {
   CreateRoute: typeof CreateRoute
   DemoRoute: typeof DemoRoute
   InviteRoute: typeof InviteRoute
+  PitchRoute: typeof PitchRoute
   CIdRoute: typeof CIdRoute
   CircleIdRoute: typeof CircleIdRoute
   CirclesNewRoute: typeof CirclesNewRoute
@@ -149,6 +162,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/pitch': {
+      id: '/pitch'
+      path: '/pitch'
+      fullPath: '/pitch'
+      preLoaderRoute: typeof PitchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/invite': {
       id: '/invite'
       path: '/invite'
@@ -220,6 +240,7 @@ const rootRouteChildren: RootRouteChildren = {
   CreateRoute: CreateRoute,
   DemoRoute: DemoRoute,
   InviteRoute: InviteRoute,
+  PitchRoute: PitchRoute,
   CIdRoute: CIdRoute,
   CircleIdRoute: CircleIdRoute,
   CirclesNewRoute: CirclesNewRoute,

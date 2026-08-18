@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+  <!-- Rally favicon, pixel rung (32-grid). Ring edges on the pixel grid
+       (r_outer 12.5, wall 2, gap 1, liquid 9.5); meniscus snapped to a 1:4
+       stair (~14°). See docs/design/MARK.md — the size ladder. -->
+  <rect width="32" height="32" rx="7" fill="#130d1a"/>
+  <circle cx="16" cy="16" r="11.5" stroke="#f6f1f9" stroke-width="2"/>
+  <path d="M 6.5 16 A 9.5 9.5 0 1 0 24.38 11.53 Z" fill="#ff7a50"/>
+</svg>
