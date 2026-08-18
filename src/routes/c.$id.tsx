@@ -8,7 +8,7 @@ import { Thermometer } from '#/components/Thermometer'
 import { ContributorFeed } from '#/components/ContributorFeed'
 import { ShareLink } from '#/components/ShareLink'
 import { ChainIcon } from '#/components/ChainIcon'
-import { ACCENT, countdown, formatUsd, pct, type Skin } from '#/design/chains'
+import { ACCENT, countdown, formatUsd, fundStatusLabel, pct, type Skin } from '#/design/chains'
 import { useCountUp } from '#/design/useCountUp'
 import { loadCampaign, mockPotluckCampaign, type CampaignView } from '#/lib/campaign'
 
@@ -64,13 +64,13 @@ function CampaignDetail() {
   const cd = now == null ? null : countdown(c.deadline, now)
   const hasBackers = c.contributors.length > 0
   const funded = c.status === 'funded'
+  const raising = c.status === 'live'
+  const canChip = isPotluck || raising
   const ctaLabel = isPotluck
     ? funded
       ? 'Share the joy'
       : 'Add to the gift'
-    : funded
-      ? 'Share the win'
-      : 'Chip in $25'
+    : 'Chip in $25'
 
   return (
     <>
@@ -99,24 +99,44 @@ function CampaignDetail() {
         }
         cta={
           <div className="flex flex-col gap-2.5">
-            <button
-              onClick={() => setSheetOpen(true)}
-              className="relative w-full overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
-              style={{
-                background: isPotluck
-                  ? 'linear-gradient(180deg, #ff7db0, #ff5c9a 58%, #f0457f)'
-                  : 'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
-                boxShadow:
-                  'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
-              }}
-            >
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
-                style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
-              />
-              {ctaLabel}
-            </button>
+            {canChip ? (
+              <button
+                onClick={() => setSheetOpen(true)}
+                className="relative w-full overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
+                style={{
+                  background: isPotluck
+                    ? 'linear-gradient(180deg, #ff7db0, #ff5c9a 58%, #f0457f)'
+                    : 'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
+                  boxShadow:
+                    'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
+                }}
+              >
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+                  style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
+                />
+                {ctaLabel}
+              </button>
+            ) : (
+              <Link
+                to="/create"
+                className="relative flex w-full items-center justify-center overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
+                style={{
+                  background:
+                    'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
+                  boxShadow:
+                    'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
+                }}
+              >
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+                  style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
+                />
+                Start a rally
+              </Link>
+            )}
             <ShareLink variant="ghost" label="Copy the link" />
           </div>
         }
@@ -132,7 +152,8 @@ function CampaignDetail() {
               </span>
             )}
             <p className="text-sm text-faint">
-              {c.organizer} {isPotluck ? 'is collecting for' : 'is rallying for'}
+              {c.organizer}{' '}
+              {isPotluck ? 'is collecting for' : raising ? 'is rallying for' : 'rallied for'}
             </p>
             <h1
               className="mt-1.5 text-display font-semibold text-paper"
@@ -157,17 +178,13 @@ function CampaignDetail() {
             />
             <div className="flex flex-1 flex-col justify-center gap-4">
               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
-                <span
-                  className="h-1.5 w-1.5 rounded-full animate-pulse-dot"
-                  style={{ background: 'rgba(255,241,232,0.82)', color: 'rgba(255,241,232,0.82)' }}
-                />
-                {isPotluck
-                  ? funded
-                    ? 'Fully funded'
-                    : 'Collecting gifts'
-                  : funded
-                    ? 'Goal met'
-                    : 'Raising now'}
+                {raising && (
+                  <span
+                    className="h-1.5 w-1.5 rounded-full animate-pulse-dot"
+                    style={{ background: 'rgba(255,241,232,0.82)', color: 'rgba(255,241,232,0.82)' }}
+                  />
+                )}
+                {fundStatusLabel(c.status, { live: c.live, potluck: isPotluck })}
               </span>
               <div>
                 <div className="flex items-baseline gap-2.5">
@@ -244,17 +261,17 @@ function CampaignDetail() {
         </div>
       </AppShell>
 
-      <ContributeSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        campaignTitle={c.title}
-        campaignId={c.id}
-        fromChain="base"
-        initialAmount={25}
-        // A real contribution just landed on-chain — re-run the loader so the
-        // GoalVault read refreshes and the thermometer rises for real.
-        onContributed={() => router.invalidate()}
-      />
+      {canChip && (
+        <ContributeSheet
+          open={sheetOpen}
+          onClose={() => setSheetOpen(false)}
+          campaignTitle={c.title}
+          campaignId={c.id}
+          fromChain="base"
+          initialAmount={25}
+          onContributed={() => router.invalidate()}
+        />
+      )}
     </>
   )
 }

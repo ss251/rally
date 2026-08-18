@@ -214,7 +214,7 @@ export function CampaignCard({ campaign, href, onOpen, compact, className }: Cam
           {/* Paper, not coral — the card's whole surface is the press target,
               and coral is reserved for the screen's one real CTA. */}
           <span className="inline-flex items-center gap-1 text-sm font-semibold text-paper transition-transform group-hover:translate-x-0.5">
-            {funded ? 'View rally' : 'Chip in'}
+            {funded || campaign.status === 'missed' ? 'View rally' : 'Chip in'}
             <ArrowUpRight size={15} strokeWidth={2.5} />
           </span>
         </div>
