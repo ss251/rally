@@ -6,15 +6,13 @@
     <title>Rally — UXmaxx</title>
     <meta name="description" content="One link. A bar that fills from every chain. It pays out together, or refunds everyone." />
     <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
-    <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./deck.css" />
   </head>
-  <body>
-    <div class="grain" aria-hidden="true"></div>
+  <body class="booting">
+    <noscript><style>body.booting .enter { opacity: 1; transform: none; }</style></noscript>
     <main class="stage">
       <div class="frame" id="frame">
         <div class="slides">
@@ -32,12 +30,12 @@
             </div>
             <div class="row two">
               <div>
-                <h1>One link. A bar that fills from every chain.</h1>
-                <p class="lede">
+                <h1 class="enter">One link. A bar that fills from every chain.</h1>
+                <p class="lede enter">
                   The pot is a contract. It pays out together, or it refunds everyone.
                   Nobody holds the money. Including us.
                 </p>
-                <div class="marks" aria-label="Stack">
+                <div class="marks enter" aria-label="Stack">
                   <img src="./assets/logos/magic.svg?v=2" alt="Magic" />
                   <img src="./assets/logos/zerodev.svg?v=2" alt="ZeroDev" />
                   <span class="chip paper"><img class="sq" src="./assets/logos/circle-mark.svg?v=2" alt="" />Circle CCTP</span>
@@ -47,12 +45,12 @@
                 </div>
                 <p class="notes">Point at the bar. Each color is a source chain the USDC actually came from. Do not explain the stack.</p>
               </div>
-              <div class="phone"><img src="./assets/shots/landing.png" alt="Live Rally landing — pot #9, three source chains" /></div>
+              <div class="phone enter"><img src="./assets/shots/landing.png" alt="Live Rally landing — pot #9, three source chains" /></div>
             </div>
           </section>
 
           <section class="slide" data-i="1">
-            <div class="kicker"><b>The hole</b><span class="num">02 / 07</span></div>
+            <div class="kicker"><span class="tag">[ the hole ]</span><span class="num">02 / 07</span></div>
             <h2>Group money still needs a person who can walk off with it.</h2>
             <div class="facts">
               <div class="fact">
@@ -72,7 +70,7 @@
           </section>
 
           <section class="slide" data-i="2">
-            <div class="kicker"><b>Two instruments</b><span class="num">03 / 07</span></div>
+            <div class="kicker"><span class="tag">[ two instruments ]</span><span class="num">03 / 07</span></div>
             <h2>Same promise. Two shapes.</h2>
             <div class="split">
               <article class="pane">
@@ -96,7 +94,7 @@
           </section>
 
           <section class="slide" data-i="3">
-            <div class="kicker"><b>The interaction</b><span class="num">04 / 07</span></div>
+            <div class="kicker"><span class="tag">[ the interaction ]</span><span class="num">04 / 07</span></div>
             <div class="row two">
               <div>
                 <h2>Email. Amount. Done.</h2>
@@ -116,31 +114,37 @@
           </section>
 
           <section class="slide" data-i="4">
-            <div class="kicker"><b>What actually runs</b><span class="num">05 / 07</span></div>
+            <div class="kicker"><span class="tag">[ what actually runs ]</span><span class="num">05 / 07</span></div>
             <h2>The user never sees this. The vault does.</h2>
-            <div class="pipe" aria-label="Write path">
-              <div class="node">
-                <img src="./assets/logos/magic.svg?v=2" alt="Magic" />
-                <b>EIP-7702</b>
-                <p><code>loginWithEmailOTP</code> then a type-4 <code>sign7702Authorization</code>. Same address.</p>
-              </div>
-              <div class="node">
-                <img src="./assets/logos/zerodev.svg?v=2" alt="ZeroDev" />
-                <b>Kernel UserOp</b>
-                <p>Sponsoring paymaster on Base, OP, and Arb Sepolia. Approve, burn, contribute, claim, refund.</p>
-              </div>
-              <div class="node">
-                <span class="chip paper tight"><img class="sq" src="./assets/logos/circle-mark.svg?v=2" alt="" />CCTP v2</span>
-                <b>Domains 6 / 2 → 3</b>
-                <p><code>depositForBurn</code> → Iris (fast) → <code>receiveMessage</code>. Dest is always Arbitrum.</p>
-              </div>
-              <div class="node">
-                <span class="chip paper tight"><img class="sq" src="./assets/logos/arbitrum.svg?v=2" alt="" />Arbitrum</span>
-                <b>Two vaults</b>
-                <p><code>recordContribution(sourceDomain)</code> colors the bar. <code>refundFor</code> is permissionless.</p>
+            <div class="graph" aria-label="Write path">
+              <div class="graph-title">[ write path ]</div>
+              <div class="pipe">
+                <div class="node">
+                  <img src="./assets/logos/magic.svg?v=2" alt="Magic" />
+                  <b>EIP-7702</b>
+                  <p><code>loginWithEmailOTP</code> then a type-4 <code>sign7702Authorization</code>. Same address.</p>
+                </div>
+                <span class="arrow" aria-hidden="true">──►</span>
+                <div class="node">
+                  <img src="./assets/logos/zerodev.svg?v=2" alt="ZeroDev" />
+                  <b>Kernel UserOp</b>
+                  <p>Sponsoring paymaster on Base, OP, and Arb Sepolia. Approve, burn, contribute, claim, refund.</p>
+                </div>
+                <span class="arrow" aria-hidden="true">──►</span>
+                <div class="node">
+                  <span class="chip paper tight"><img class="sq" src="./assets/logos/circle-mark.svg?v=2" alt="" />CCTP v2</span>
+                  <b>Domains 6 / 2 → 3</b>
+                  <p><code>depositForBurn</code> → Iris (fast) → <code>receiveMessage</code>. Dest is always Arbitrum.</p>
+                </div>
+                <span class="arrow" aria-hidden="true">──►</span>
+                <div class="node">
+                  <span class="chip paper tight"><img class="sq" src="./assets/logos/arbitrum.svg?v=2" alt="" />Arbitrum</span>
+                  <b>Two vaults</b>
+                  <p><code>recordContribution(sourceDomain)</code> colors the bar. <code>refundFor</code> is permissionless.</p>
+                </div>
               </div>
             </div>
-            <pre class="code"><span class="c">// GoalVault — the relayer can only attribute USDC that already arrived</span>
+            <pre class="code"><span class="graph-title">[ UnattributedFunds ]</span><span class="c">// GoalVault — the relayer can only attribute USDC that already arrived</span>
 <span class="k">if</span> (token.balanceOf(<span class="k">address</span>(<span class="k">this</span>)) &lt; totalEscrowed + amount)
     <span class="k">revert</span> UnattributedFunds();
 _credit(campaignId, backer, amount, sourceDomain);</pre>
@@ -154,7 +158,7 @@ _credit(campaignId, backer, amount, sourceDomain);</pre>
           </section>
 
           <section class="slide" data-i="5">
-            <div class="kicker"><b>Receipts</b><span class="num">06 / 07</span></div>
+            <div class="kicker"><span class="tag">[ receipts ]</span><span class="num">06 / 07</span></div>
             <h2>We broke a circle on purpose.</h2>
             <div class="split">
               <article class="pane">

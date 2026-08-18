@@ -114,3 +114,44 @@ describe('deck content', () => {
     }
   })
 })
+
+describe('pages workflow', () => {
+  it('enables Pages when the site has never existed', () => {
+    const yml = readFileSync(join(root, '..', '.github/workflows/pages.yml'), 'utf8')
+    assert.match(yml, /enablement:\s*true/)
+    assert.match(yml, /pages:\s*write/)
+    assert.match(yml, /path:\s*deck/)
+  })
+})
+
+describe('emil motion and chrome', () => {
+  const css = readFileSync(join(root, 'deck.css'), 'utf8')
+
+  it('uses his ease-out token and never transition: all', () => {
+    assert.match(css, /--ease-out:\s*cubic-bezier\(0\.23,\s*1,\s*0\.32,\s*1\)/)
+    assert.doesNotMatch(css, /transition:\s*all/)
+    assert.doesNotMatch(css, /scale\(0\)/)
+    assert.match(css, /scale\(0\.97\)/)
+  })
+
+  it('drops the slop chrome Clash / grain / glow', () => {
+    assert.doesNotMatch(html, /clash-display|Clash Display|fontshare/i)
+    assert.doesNotMatch(css, /\.grain/)
+    assert.doesNotMatch(css, /radial-gradient/)
+    assert.doesNotMatch(css, /feTurbulence/)
+    assert.match(html, /Geist/)
+    assert.match(css, /#050505/)
+    assert.match(css, /--accent:\s*#ff6b4a/)
+  })
+
+  it('gates hover and respects reduced motion', () => {
+    assert.match(css, /@media \(hover: hover\) and \(pointer: fine\)/)
+    assert.match(css, /prefers-reduced-motion/)
+    assert.match(css, /body\.booting \.enter/)
+  })
+
+  it('does not animate keyboard slide changes', () => {
+    assert.match(css, /\.slide\.on \{ display: flex; \}/)
+    assert.doesNotMatch(css, /\.slide[^.{]*transition/)
+  })
+})

@@ -75,6 +75,14 @@ function boot() {
 
   window.addEventListener('hashchange', () => go(parseHash(location.hash, slides.length)))
   go(i)
+  // First paint only. Keyboard changes stay instant (Emil: never animate
+  // an action the presenter will fire tens of times in three minutes).
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.body.classList.remove('booting')
+      document.body.classList.add('ready')
+    })
+  })
 }
 
 if (typeof document !== 'undefined') {
