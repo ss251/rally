@@ -25,7 +25,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Last run failed: "Get Pages site failed" — the repo has never had
+      # Pages turned on. enablement: true creates the site via the API
+      # (needs pages: write, already granted above).
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: deck
