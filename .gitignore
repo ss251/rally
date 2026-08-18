@@ -47,3 +47,6 @@ config/mcporter.json
 
 # local rally data pulled/adapted from Railway volume paths
 .rally-data/
+
+# Generated copy of deck/ for the /pitch iframe (see vite.config.ts)
+public/uxmaxx/

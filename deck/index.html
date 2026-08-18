@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./deck.css" />
   </head>
   <body>
@@ -38,16 +38,16 @@
                   Nobody holds the money. Including us.
                 </p>
                 <div class="marks" aria-label="Stack">
-                  <span class="chip"><img src="./assets/logos/magic.svg" alt="Magic" /></span>
-                  <span class="chip"><img src="./assets/logos/zerodev.svg" alt="ZeroDev" /></span>
+                  <img src="./assets/logos/magic.svg" alt="Magic" />
+                  <img src="./assets/logos/zerodev.svg" alt="ZeroDev" />
                   <span class="chip paper"><img class="sq" src="./assets/logos/circle-mark.svg" alt="" />Circle CCTP</span>
                   <span class="chip paper"><img class="sq" src="./assets/logos/arbitrum.svg" alt="" />Arbitrum</span>
                   <span class="chip paper"><img class="sq" src="./assets/logos/optimism.svg" alt="" />Optimism</span>
                   <span class="chip paper"><img class="sq" src="./assets/logos/base.svg" alt="" />Base</span>
                 </div>
-                <p class="notes">Open on the live landing. Do not explain the stack yet. Point at the bar: each color is a chain the USDC actually came from.</p>
+                <p class="notes">Point at the bar. Each color is a source chain the USDC actually came from. Do not explain the stack.</p>
               </div>
-              <div class="phone"><img src="./assets/shots/landing.png" alt="Live Rally landing — pot #9" /></div>
+              <div class="phone"><img src="./assets/shots/landing.png" alt="Live Rally landing — pot #9, three source chains" /></div>
             </div>
           </section>
 
@@ -60,31 +60,39 @@
                 <p>PayPal shut Money Pools and never shipped a replacement.</p>
               </div>
               <div class="fact">
-                <b>Tanda / susu</b>
-                <p>Rotating savings still run on a foreman. One key, one notebook, one exit scam.</p>
+                <b>Tanda</b>
+                <p>Rotating savings still run on a foreman. One key, one notebook, one exit.</p>
               </div>
               <div class="fact">
-                <b>Why</b>
+                <b>The bug</b>
                 <p>Every product died of custody. The pot needed an owner. It needed a contract instead.</p>
               </div>
             </div>
-            <p class="notes">Ten seconds. Do not litigate fintech history. Land on: the primitive is missing, not the spreadsheet.</p>
+            <p class="notes">Ten seconds. Land on: the primitive is missing, not the spreadsheet.</p>
           </section>
 
           <section class="slide" data-i="2">
-            <div class="kicker"><b>Two shapes</b><span class="num">03 / 07</span></div>
-            <h2>Same promise. Two instruments.</h2>
+            <div class="kicker"><b>Two instruments</b><span class="num">03 / 07</span></div>
+            <h2>Same promise. Two shapes.</h2>
             <div class="split">
               <article class="pane">
-                <header><strong>Goals</strong><span>all-or-nothing</span></header>
-                <div class="shot" style="background-image:url('./assets/shots/goal.png')" role="img" aria-label="Live goal #9"></div>
+                <header>
+                  <strong>Goals</strong>
+                  <span>all-or-nothing</span>
+                </header>
+                <div class="url">/c/9 · Base + Arbitrum + Optimism</div>
+                <div class="shot" style="background-image:url('./assets/shots/goal.png')" role="img" aria-label="Live goal #9 — $11 of $25 from three chains"></div>
               </article>
               <article class="pane">
-                <header><strong>Circles</strong><span>rotating pot</span></header>
-                <div class="shot" style="background-image:url('./assets/shots/circle.png')" role="img" aria-label="Live circle"></div>
+                <header>
+                  <strong>Circles</strong>
+                  <span>rotating pot</span>
+                </header>
+                <div class="url">/circle/7 · Friday dinner · 3 of 4 this round</div>
+                <div class="shot" style="background-image:url('./assets/shots/circle.png')" role="img" aria-label="Live circle #7 — Friday dinner, mid-fill"></div>
               </article>
             </div>
-            <p class="notes">Goal: hit it or every backer reclaims. Circle: same chip every round, one member takes the pot; a missed round stops it and refunds deposits. Switch the live app here if wifi holds.</p>
+            <p class="notes">Goal: hit it or every backer reclaims. Circle: same chip every round; a missed round stops it and refunds deposits. Switch to the live tabs if wifi holds.</p>
           </section>
 
           <section class="slide" data-i="3">
@@ -96,72 +104,53 @@
                   No extension. No seed. No gas token. No “switch network.”
                   You pick the chain the USDC is already on.
                 </p>
-                <div class="facts">
+                <div class="facts tight">
                   <div class="fact"><b>Login</b><p>Magic email OTP. The EOA is minted behind the code.</p></div>
                   <div class="fact"><b>Gas</b><p>ZeroDev paymaster. The backer never holds ETH.</p></div>
                   <div class="fact"><b>Rail</b><p>Circle CCTP v2 if the money isn’t on Arbitrum yet.</p></div>
                 </div>
               </div>
-              <div class="phone"><img src="./assets/shots/chipin.png" alt="Chip in sheet — email and paying-from picker" /></div>
+              <div class="phone"><img src="./assets/shots/chipin.png" alt="Chip in sheet — email, amount, paying-from Base / OP / Arb" /></div>
             </div>
-            <p class="notes">If you demo live: same browser skips OTP (7-day Magic session). Incognito sends a code. Device Registration may add an approve-this-login mail first.</p>
+            <p class="notes">Same browser skips OTP (7-day Magic session). Incognito sends a code. Device Registration may add an approve-this-login mail first.</p>
           </section>
 
           <section class="slide" data-i="4">
             <div class="kicker"><b>What actually runs</b><span class="num">05 / 07</span></div>
-            <h2>One write path. Four named pieces.</h2>
-            <div class="rail">
-              <div class="step">
-                <i>01</i>
-                <div>
-                  <h3>Magic → EIP-7702</h3>
-                  <p>
-                    <code>loginWithEmailOTP</code> then
-                    <code>sign7702Authorization</code>.
-                    A real type-4 tx. The address does not change.
-                  </p>
-                </div>
+            <h2>The user never sees this. The vault does.</h2>
+            <div class="pipe" aria-label="Write path">
+              <div class="node">
+                <img src="./assets/logos/magic.svg" alt="Magic" />
+                <b>EIP-7702</b>
+                <p><code>loginWithEmailOTP</code> then a type-4 <code>sign7702Authorization</code>. Same address.</p>
               </div>
-              <div class="step">
-                <i>02</i>
-                <div>
-                  <h3>ZeroDev Kernel</h3>
-                  <p>
-                    UserOp + sponsoring paymaster on Base, OP, and Arb Sepolia.
-                    Approve, burn, contribute, claim, refund — all gasless.
-                  </p>
-                </div>
+              <div class="node">
+                <img src="./assets/logos/zerodev.svg" alt="ZeroDev" />
+                <b>Kernel UserOp</b>
+                <p>Sponsoring paymaster on Base, OP, and Arb Sepolia. Approve, burn, contribute, claim, refund.</p>
               </div>
-              <div class="step">
-                <i>03</i>
-                <div>
-                  <h3>Circle CCTP v2</h3>
-                  <p>
-                    <code>depositForBurn</code> → Iris (fast) →
-                    <code>receiveMessage</code>.
-                    Domains: Base <code>6</code>, OP <code>2</code>, dest Arb <code>3</code>.
-                  </p>
-                </div>
+              <div class="node">
+                <span class="chip paper tight"><img class="sq" src="./assets/logos/circle-mark.svg" alt="" />CCTP v2</span>
+                <b>Domains 6 / 2 → 3</b>
+                <p><code>depositForBurn</code> → Iris (fast) → <code>receiveMessage</code>. Dest is always Arbitrum.</p>
               </div>
-              <div class="step">
-                <i>04</i>
-                <div>
-                  <h3>Two vaults on Arbitrum</h3>
-                  <p>
-                    <code>GoalVault.recordContribution(sourceDomain)</code>
-                    colors the bar. <code>RotatingVault</code> is ownerless —
-                    refunds are permissionless.
-                  </p>
-                </div>
+              <div class="node">
+                <span class="chip paper tight"><img class="sq" src="./assets/logos/arbitrum.svg" alt="" />Arbitrum</span>
+                <b>Two vaults</b>
+                <p><code>recordContribution(sourceDomain)</code> colors the bar. <code>refundFor</code> is permissionless.</p>
               </div>
             </div>
+            <pre class="code"><span class="c">// GoalVault — the relayer can only attribute USDC that already arrived</span>
+<span class="k">if</span> (token.balanceOf(<span class="k">address</span>(<span class="k">this</span>)) &lt; totalEscrowed + amount)
+    <span class="k">revert</span> UnattributedFunds();
+_credit(campaignId, backer, amount, sourceDomain);</pre>
             <div class="meta">
-              <span>GoalVault 0x914e…0AB4</span>
-              <span>RotatingVault 0xdd9b…7838</span>
+              <span>GoalVault 0x914e4682…080AB4</span>
+              <span>RotatingVault 0xdd9b3e5F…F97838</span>
               <span>86 / 86 Foundry · fund-conservation fuzz</span>
               <a href="https://sepolia.arbiscan.io/address/0x914e4682ad2febb3e00a21db29b93c16fc080ab4#code" target="_blank" rel="noreferrer">verify ↗</a>
             </div>
-            <p class="notes">This is the judge slide. Say “the user never sees this.” If asked SRA: we use 7702 + paymaster, not Smart Routing Addresses. Honest.</p>
+            <p class="notes">Judge slide. If asked SRA: we use 7702 + paymaster, not Smart Routing Addresses. Honest. RotatingVault has no owner — nobody can touch escrowed funds but their owners.</p>
           </section>
 
           <section class="slide" data-i="5">
@@ -170,27 +159,29 @@
             <div class="split">
               <article class="pane">
                 <header>
-                  <strong>/c/9 · three chains</strong>
-                  <span>Base + Arb + OP</span>
+                  <strong>/c/9 · three domains</strong>
+                  <span>Base 6 · Arb 3 · OP 2</span>
                 </header>
-                <div class="shot" style="background-image:url('./assets/shots/goal.png')" role="img" aria-label="Campaign 6 multi-chain bar"></div>
+                <div class="url">$11 of $25 · five fills · three colors</div>
+                <div class="shot" style="background-image:url('./assets/shots/goal.png')" role="img" aria-label="Campaign #9 three-chain bar"></div>
               </article>
               <article class="pane">
                 <header>
                   <strong>/circle/2 · refunded</strong>
                   <span>unfunded round</span>
                 </header>
-                <div class="shot" style="background-image:url('./assets/shots/broke.png')" role="img" aria-label="Broken circle refund"></div>
+                <div class="url">refundFor · 0xdb9d1d5c…151729ba6</div>
+                <div class="shot" style="background-image:url('./assets/shots/broke.png')" role="img" aria-label="Broken circle #2 — automatic refund"></div>
               </article>
             </div>
             <div class="meta">
               <a href="https://rally-production-94cc.up.railway.app/c/9" target="_blank" rel="noreferrer">open /c/9</a>
               <a href="https://rally-production-94cc.up.railway.app/c/6" target="_blank" rel="noreferrer">film pot /c/6</a>
+              <a href="https://rally-production-94cc.up.railway.app/circle/7" target="_blank" rel="noreferrer">open /circle/7</a>
               <a href="https://rally-production-94cc.up.railway.app/circle/2" target="_blank" rel="noreferrer">open /circle/2</a>
               <a href="https://sepolia.arbiscan.io/tx/0xdb9d1d5cef7e32ab9040e8f2878d9e80a634fd42d900eeb791e1a0e151729ba6" target="_blank" rel="noreferrer">refund tx</a>
-              <a href="https://rally-production-94cc.up.railway.app/c/9" target="_blank" rel="noreferrer">open pot #9</a>
             </div>
-            <p class="notes">#6 is the film pot (Arb native + OP CCTP + live Base). #9 is the picker pot. /circle/2 refund already ran — worst-case fallback is two browser tabs.</p>
+            <p class="notes">#6 is the film pot (Arb native + OP CCTP + live Base). #9 is the picker pot. /circle/2 refund already ran. Do not chip #1.</p>
           </section>
 
           <section class="slide" data-i="6">
