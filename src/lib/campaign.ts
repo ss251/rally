@@ -83,6 +83,14 @@ interface CampaignMetaView {
   knownBackers?: Record<string, string>
 }
 
+/** Same wallets on every pot — #6 is not a special case. Persist/email can override. */
+export const KNOWN_WALLETS: Record<string, string> = {
+  '0x842d1acae94e06b1a8a1577124e1f3367de8cb2d': 'You', // Magic email wallet
+  '0x6a63bdd548715b4dac5e2ee62a6d4085c2d393b1': 'Sam', // relayer
+  '0xf0fe5731ef41e101f1fd37cf481bb2bb8117d74f': 'Maya',
+  '0xe8723d9b24a1a1d59eff5dd4e794c39b5c39ce89': 'Tom',
+}
+
 const KNOWN: Record<string, CampaignMetaView> = {
   '1': {
     title: 'Rally’s first live fund',
@@ -131,6 +139,9 @@ const KNOWN: Record<string, CampaignMetaView> = {
   '9': {
     title: 'Chip in from any chain',
     organizer: 'The Rally crew',
+    knownBackers: {
+      '0x842d1acae94e06b1a8a1577124e1f3367de8cb2d': 'You',
+    },
   },
 }
 
@@ -148,7 +159,7 @@ function backerName(meta: CampaignMetaView, addr: string, _chain: Chain): string
   return meta.knownBackers?.[addr.toLowerCase()] ?? 'A friend'
 }
 
-/** KNOWN pins titles; the volume store can add backer emails later. Merge both. */
+/** KNOWN pins titles; demo wallets are named on every pot; stored emails win. */
 export function mergeCampaignMeta(
   known?: CampaignMetaView,
   stored?: { title?: string; organizer?: string; knownBackers?: Record<string, string> } | null,
@@ -156,7 +167,11 @@ export function mergeCampaignMeta(
   return {
     title: known?.title || stored?.title || 'A live Rally fund',
     organizer: known?.organizer || stored?.organizer || 'On-chain',
-    knownBackers: { ...known?.knownBackers, ...stored?.knownBackers },
+    knownBackers: {
+      ...KNOWN_WALLETS,
+      ...known?.knownBackers,
+      ...stored?.knownBackers,
+    },
   }
 }
 
