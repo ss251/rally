@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createFileRoute, Link, notFound, useRouter } from '@tanstack/react-router'
-import { ArrowLeft, Gift } from 'lucide-react'
+import { ArrowLeft, Gift, Loader2 } from 'lucide-react'
 import { AppShell } from '#/components/AppShell'
 import { Brand } from '#/components/Brand'
 import { ContributeSheet } from '#/components/ContributeSheet'
@@ -10,18 +10,13 @@ import { ShareLink } from '#/components/ShareLink'
 import { ChainIcon } from '#/components/ChainIcon'
 import { ACCENT, countdown, formatUsd, pct, type Skin } from '#/design/chains'
 import { useCountUp } from '#/design/useCountUp'
+import { loginWithEmail } from '#/lib/auth/magic'
+import { settleCampaignServerFn } from '#/lib/campaign-actions'
 import { loadCampaign, mockPotluckCampaign, type CampaignView } from '#/lib/campaign'
 
 export const Route = createFileRoute('/c/$id')({
-  // `?skin=potluck` re-themes the SAME screen as a group gift (festive accent +
-  // gift-note feed). It's a preview skin, so it renders representative data.
   validateSearch: (search: Record<string, unknown>): { skin?: 'potluck' } =>
     search.skin === 'potluck' ? { skin: 'potluck' } : {},
-  // Read live from Arbitrum Sepolia. A campaign that provably doesn't exist
-  // gets a real not-found screen (never someone else's numbers, never a
-  // chip-in that funds a different fund). The representative mock remains
-  // ONLY as the transient-RPC-failure fallback for KNOWN ids, so a shared
-  // link to a real fund never lands on a broken screen.
   loader: async ({ params }): Promise<CampaignView> => {
     const load = await loadCampaign(params.id)
     if (load.kind === 'not-found') throw notFound()
@@ -31,7 +26,6 @@ export const Route = createFileRoute('/c/$id')({
   component: CampaignDetail,
 })
 
-/** Client-only clock so relative time / countdown never mismatches on hydration. */
 function useNow(intervalMs = 30_000): number | null {
   const [now, setNow] = useState<number | null>(null)
   useEffect(() => {
@@ -42,28 +36,35 @@ function useNow(intervalMs = 30_000): number | null {
   return now
 }
 
+function statusLabel(c: CampaignView, isPotluck: boolean, funded: boolean): string {
+  if (isPotluck) return funded ? 'Fully funded' : 'Collecting gifts'
+  if (c.withdrawn) return 'Paid out'
+  if (c.status === 'funded') return 'Goal met — ready to collect'
+  if (c.status === 'missed') return 'Missed — refunds open'
+  return 'Raising now'
+}
+
 function CampaignDetail() {
   const loaded = Route.useLoaderData()
   const { skin: skinParam } = Route.useSearch()
   const skin: Skin = skinParam === 'potluck' ? 'potluck' : 'rally'
   const isPotluck = skin === 'potluck'
-  // Potluck is a preview theme over representative data; Rally reads live.
   const c = isPotluck ? mockPotluckCampaign(loaded.id) : loaded
   const accent = ACCENT[skin]
   const router = useRouter()
   const [sheetOpen, setSheetOpen] = useState(false)
   const now = useNow()
 
-  // Same synchronized "pour" beat as the landing: on a chip-in the loader
-  // re-reads and the hero money + percent RISE over ~700ms while the tube pours,
-  // instead of snapping. The percent is derived from the animating figure so
-  // both climb together; the Thermometer still gets the real c.raised.
   const animatedRaised = useCountUp(c.raised)
-  const displayRaised = Math.round(animatedRaised * 100) / 100 // keep the cents — hero and chain rows must agree
+  const displayRaised = Math.round(animatedRaised * 100) / 100
   const realPct = pct(displayRaised, c.goal, 9999)
   const cd = now == null ? null : countdown(c.deadline, now)
   const hasBackers = c.contributors.length > 0
   const funded = c.status === 'funded'
+  const canChip = isPotluck || (c.status === 'live' && !c.withdrawn)
+  const canWithdraw = !isPotluck && c.status === 'funded' && !c.withdrawn
+  const canRefund = !isPotluck && c.status === 'missed' && !c.withdrawn && c.raised > 0
+
   const ctaLabel = isPotluck
     ? funded
       ? 'Share the joy'
@@ -87,7 +88,6 @@ function CampaignDetail() {
               </Link>
               <Brand />
             </div>
-            {/* Static dot; two-word status vocabulary: Demo | Live on Arbitrum. */}
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs font-medium text-faint">
               <span
                 className="h-1.5 w-1.5 rounded-full"
@@ -99,24 +99,58 @@ function CampaignDetail() {
         }
         cta={
           <div className="flex flex-col gap-2.5">
-            <button
-              onClick={() => setSheetOpen(true)}
-              className="relative w-full overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
-              style={{
-                background: isPotluck
-                  ? 'linear-gradient(180deg, #ff7db0, #ff5c9a 58%, #f0457f)'
-                  : 'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
-                boxShadow:
-                  'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
-              }}
-            >
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
-                style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
+            {canChip ? (
+              <button
+                onClick={() => setSheetOpen(true)}
+                className="relative w-full overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
+                style={{
+                  background: isPotluck
+                    ? 'linear-gradient(180deg, #ff7db0, #ff5c9a 58%, #f0457f)'
+                    : 'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
+                  boxShadow:
+                    'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
+                }}
+              >
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+                  style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
+                />
+                {ctaLabel}
+              </button>
+            ) : canWithdraw ? (
+              <SettleButton
+                label={`Collect ${formatUsd(c.raised)}`}
+                action="withdraw"
+                campaignId={c.id}
+                onDone={() => router.invalidate()}
               />
-              {ctaLabel}
-            </button>
+            ) : canRefund ? (
+              <SettleButton
+                label="Get your refund"
+                action="refund"
+                campaignId={c.id}
+                onDone={() => router.invalidate()}
+              />
+            ) : (
+              <Link
+                to="/create"
+                className="relative flex w-full items-center justify-center overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
+                style={{
+                  background:
+                    'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
+                  boxShadow:
+                    'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
+                }}
+              >
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+                  style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
+                />
+                Start a rally
+              </Link>
+            )}
             <ShareLink variant="ghost" label="Copy the link" />
           </div>
         }
@@ -142,7 +176,6 @@ function CampaignDetail() {
             </h1>
           </div>
 
-          {/* Hero row: the liquid column + a vertically-centered readout. */}
           <div className="flex items-center gap-6">
             <Thermometer
               raised={c.raised}
@@ -158,16 +191,10 @@ function CampaignDetail() {
             <div className="flex flex-1 flex-col justify-center gap-4">
               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
                 <span
-                  className="h-1.5 w-1.5 rounded-full animate-pulse-dot"
+                  className={`h-1.5 w-1.5 rounded-full ${c.status === 'live' ? 'animate-pulse-dot' : ''}`}
                   style={{ background: 'rgba(255,241,232,0.82)', color: 'rgba(255,241,232,0.82)' }}
                 />
-                {isPotluck
-                  ? funded
-                    ? 'Fully funded'
-                    : 'Collecting gifts'
-                  : funded
-                    ? 'Goal met'
-                    : 'Raising now'}
+                {statusLabel(c, isPotluck, funded)}
               </span>
               <div>
                 <div className="flex items-baseline gap-2.5">
@@ -206,7 +233,6 @@ function CampaignDetail() {
                   {c.backerCount} {c.backerCount === 1 ? 'backer' : 'backers'}
                 </span>
                 <span className="text-faint">·</span>
-                {/* Urgency survives the black test as weight, not only amber. */}
                 <span className={cd?.urgent ? 'font-medium text-warn' : undefined}>
                   {cd == null ? 'open' : cd.label}
                 </span>
@@ -222,10 +248,9 @@ function CampaignDetail() {
               maxVisible={5}
             />
           ) : (
-            <EmptyFeed />
+            <EmptyFeed live={c.status === 'live'} />
           )}
 
-          {/* Provenance: quiet, honest — this money is real + on-chain. */}
           {c.live && c.creator && (
             <a
               href={`https://sepolia.arbiscan.io/address/0x914e4682aD2FeBb3e00a21dB29B93c16fc080AB4`}
@@ -233,7 +258,6 @@ function CampaignDetail() {
               rel="noreferrer"
               className="flex items-center justify-between gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.02] px-4 py-3 text-[13px] text-faint transition-colors hover:border-white/15"
             >
-              {/* One line at 393pt: the address never breaks mid-hex. */}
               <span className="min-w-0 truncate">
                 Settled on-chain · vault{' '}
                 <span className="tnum whitespace-nowrap text-muted">0x914e…0AB4</span>
@@ -244,26 +268,115 @@ function CampaignDetail() {
         </div>
       </AppShell>
 
-      <ContributeSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        campaignTitle={c.title}
-        campaignId={c.id}
-        fromChain="base"
-        initialAmount={25}
-        // A real contribution just landed on-chain — re-run the loader so the
-        // GoalVault read refreshes and the thermometer rises for real.
-        onContributed={() => router.invalidate()}
-      />
+      {canChip && (
+        <ContributeSheet
+          open={sheetOpen}
+          onClose={() => setSheetOpen(false)}
+          campaignTitle={c.title}
+          campaignId={c.id}
+          initialAmount={25}
+          onContributed={() => router.invalidate()}
+        />
+      )}
     </>
   )
 }
 
-/**
- * Unknown campaign id — a designed dead end, not a fake fund. An empty glass
- * tube (nothing has ever poured in here) and one honest invitation: this
- * rally doesn't exist yet, so start it.
- */
+function SettleButton({
+  label,
+  action,
+  campaignId,
+  onDone,
+}: {
+  label: string
+  action: 'withdraw' | 'refund'
+  campaignId: string
+  onDone: () => void
+}) {
+  const [email, setEmail] = useState('')
+  const [needEmail, setNeedEmail] = useState(action === 'refund')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const run = async () => {
+    if (busy) return
+    setError(null)
+    setBusy(true)
+    try {
+      if (action === 'refund') {
+        if (!/.+@.+\..+/.test(email)) {
+          setNeedEmail(true)
+          setBusy(false)
+          return
+        }
+        const user = await loginWithEmail(email)
+        await settleCampaignServerFn({
+          data: { campaignId, action: 'refund', backer: user.address },
+        })
+      } else {
+        await settleCampaignServerFn({ data: { campaignId, action: 'withdraw' } })
+      }
+      onDone()
+    } catch (e) {
+      const raw = e instanceof Error ? e.message : String(e)
+      setError(
+        raw.includes('NothingToRefund')
+          ? 'Nothing left to refund for this email.'
+          : raw.includes('AlreadyWithdrawn')
+            ? 'This pot was already collected.'
+            : raw.includes('GoalNotReached')
+              ? 'The goal hasn’t been met yet.'
+              : 'Couldn’t settle this pot — try again.',
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {action === 'refund' && needEmail && (
+        <input
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          placeholder="the email you chipped in with"
+          value={email}
+          disabled={busy}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-base text-paper outline-none placeholder:text-faint focus:border-white/30"
+        />
+      )}
+      <button
+        onClick={run}
+        disabled={busy}
+        className="relative w-full overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97] disabled:opacity-70"
+        style={{
+          background:
+            'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
+          boxShadow:
+            'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
+        }}
+      >
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+          style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
+        />
+        {busy ? (
+          <span className="inline-flex items-center gap-2">
+            <Loader2 size={18} className="animate-spin [animation-duration:0.6s]" />
+            {action === 'refund' ? 'Checking your email…' : 'Collecting…'}
+          </span>
+        ) : (
+          label
+        )}
+      </button>
+      {error && <p className="text-center text-[13px] font-medium leading-relaxed text-warn">{error}</p>}
+    </div>
+  )
+}
+
 function CampaignNotFound() {
   return (
     <AppShell
@@ -301,17 +414,15 @@ function CampaignNotFound() {
             Start a rally
           </Link>
           <Link
-            to="/c/$id"
-            params={{ id: '1' }}
+            to="/"
             className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 text-center text-base font-semibold text-paper transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.98]"
           >
-            See one filling live →
+            Back to Rally
           </Link>
         </div>
       }
     >
       <div className="flex flex-col items-center gap-6 pt-14 text-center">
-        {/* An empty glass tube — no goal etched, because no fund lives here. */}
         <div
           aria-hidden
           className="border border-white/10 bg-white/[0.03] shadow-[inset_0_2px_18px_rgba(0,0,0,0.55)] backdrop-blur-sm"
@@ -334,13 +445,16 @@ function CampaignNotFound() {
   )
 }
 
-/** First-run: nobody's chipped in yet. Invitation, not a void. */
-function EmptyFeed() {
+function EmptyFeed({ live }: { live: boolean }) {
   return (
     <section className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-8 text-center">
-      <span className="text-sm font-semibold text-paper">Be the first to chip in</span>
+      <span className="text-sm font-semibold text-paper">
+        {live ? 'Be the first to chip in' : 'No one chipped in'}
+      </span>
       <p className="max-w-[16rem] text-[13px] leading-relaxed text-faint">
-        The bar fills the moment your money lands — from whatever chain you're on.
+        {live
+          ? 'The bar fills the moment your money lands — from whatever chain you’re on.'
+          : 'This pot closed without a contribution.'}
       </p>
     </section>
   )

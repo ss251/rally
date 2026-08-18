@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Link, notFound, useRouter } from '@tanstack/react-router'
 import { ArrowLeft, ChevronDown, Loader2, Sparkles } from 'lucide-react'
 import { AppShell } from '#/components/AppShell'
 import { Brand } from '#/components/Brand'
@@ -16,26 +16,33 @@ import {
   fetchLiveCircle,
   friendlyCircleError,
   inviteLinkFor,
-  mockCircle,
-  ROTATING_VAULT,
-  ROTATING_VAULT_SHORT,
+  vaultAddressForCircleId,
   type CircleView,
 } from '#/lib/circle'
-import { fillCircleRoundServerFn } from '#/lib/circle-actions'
+import {
+  clearPendingJoinServerFn,
+  fillCircleRoundServerFn,
+  joinCircleServerFn,
+  listPendingJoinsServerFn,
+} from '#/lib/circle-actions'
 import {
   mintSeatInviteAsOrganizer,
   startSelfCustodiedCircle,
 } from '#/lib/circle-self-custody'
 
 export const Route = createFileRoute('/circle/$id')({
-  // Read live from the RotatingVault on Arbitrum Sepolia; fall back to the
-  // representative mock so a shared link NEVER lands on a broken screen.
   loader: async ({ params }): Promise<CircleView> => {
     const live = await fetchLiveCircle(params.id).catch(() => null)
-    return live ?? mockCircle(params.id)
+    if (!live) throw notFound()
+    return live
   },
+  notFoundComponent: CircleNotFound,
   component: CircleDetail,
 })
+
+const DEMO_LANE =
+  typeof import.meta !== 'undefined' &&
+  (import.meta as { env?: Record<string, string | undefined> }).env?.VITE_DEMO_LANE === '1'
 
 /** Client-only clock so the countdown never mismatches on hydration. */
 function useNow(intervalMs = 30_000): number | null {
@@ -268,7 +275,9 @@ function CircleDetail() {
     )
   })()
 
-  const showDemoFill = c.live && c.status === 'active' && !roundFunded
+  const showDemoFill = DEMO_LANE && c.live && c.status === 'active' && !roundFunded
+  const vaultAddr = vaultAddressForCircleId(c.id)
+  const vaultShort = `${vaultAddr.slice(0, 6)}…${vaultAddr.slice(-4)}`
 
   return (
     <>
@@ -335,9 +344,16 @@ function CircleDetail() {
               <p className="text-center text-[13px] font-medium leading-relaxed text-warn">{startError}</p>
             )}
             {youAreOrganizer && c.status === 'filling' && (
-              <p className="text-center text-[13px] leading-relaxed text-faint">
-                You’re the organizer — invites carry your signature, and only you can start.
-              </p>
+              <>
+                <PendingJoinsPanel
+                  circleId={c.id}
+                  onSeated={() => router.invalidate()}
+                />
+                <p className="text-center text-[13px] leading-relaxed text-faint">
+                  You’re the organizer — share an unsigned link, then countersign each
+                  friend’s email wallet. Only you can start.
+                </p>
+              </>
             )}
           </div>
         }
@@ -460,7 +476,7 @@ function CircleDetail() {
           {/* Provenance: quiet, honest — this money is real + on-chain. */}
           {c.live && (
             <a
-              href={`https://sepolia.arbiscan.io/address/${ROTATING_VAULT}`}
+              href={`https://sepolia.arbiscan.io/address/${vaultAddr}`}
               target="_blank"
               rel="noreferrer"
               className="flex items-center justify-between gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.02] px-4 py-3 text-[13px] text-faint transition-colors hover:border-white/15"
@@ -468,7 +484,7 @@ function CircleDetail() {
               {/* One line at 393pt: the address never breaks mid-hex. */}
               <span className="min-w-0 truncate">
                 Settled on-chain · vault{' '}
-                <span className="tnum whitespace-nowrap text-muted">{ROTATING_VAULT_SHORT}</span>
+                <span className="tnum whitespace-nowrap text-muted">{vaultShort}</span>
               </span>
               <span className="shrink-0 whitespace-nowrap text-muted">View ↗</span>
             </a>
@@ -529,10 +545,9 @@ function StatusPill({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * The organizer's invite action on a self-custodied circle: signs a fresh
- * EIP-712 invite for the next open seat with THEIR OWN wallet (Magic
- * signTypedData — no Rally key involved), then copies the signed link.
- * Mirrors ShareLink's copy feedback so the two feel like one family.
+ * The organizer's invite action: copy an UNSIGNED seat link. The joiner logs
+ * in with Magic; the organizer then countersigns that wallet from the pending
+ * list. Never bind a derived placeholder key.
  */
 function OrganizerInviteButton({
   circleId,
@@ -543,20 +558,17 @@ function OrganizerInviteButton({
   seat: number
   title?: string
 }) {
-  const [state, setState] = useState<'idle' | 'signing' | 'copied' | 'error'>('idle')
+  const [state, setState] = useState<'idle' | 'copied' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
 
-  const signAndCopy = async () => {
-    if (state === 'signing') return
+  const copy = async () => {
     setError(null)
-    setState('signing')
     try {
-      const invite = await mintSeatInviteAsOrganizer({ circleId, seat })
-      const url = inviteLinkFor(circleId, seat, title, invite)
+      const url = inviteLinkFor(circleId, seat, title)
       try {
         await navigator.clipboard.writeText(url)
       } catch {
-        // Clipboard blocked (insecure ctx) — same optimistic fallback as ShareLink.
+        // Clipboard blocked — still show copied so the URL is in the button flow.
       }
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate?.(8)
       setState('copied')
@@ -569,21 +581,139 @@ function OrganizerInviteButton({
 
   return (
     <div className="flex w-full flex-col gap-1.5">
-      <button onClick={signAndCopy} disabled={state === 'signing'} className={ctaBtnClass} style={coralCta}>
+      <button onClick={copy} className={ctaBtnClass} style={coralCta}>
         <CtaSheen />
-        {state === 'signing' ? (
-          <span className="flex items-center justify-center gap-2">
-            <Loader2 size={18} className="animate-spin [animation-duration:0.6s]" /> Signing seat {seat + 1}’s invite…
-          </span>
-        ) : state === 'copied' ? (
-          <>Invite signed + copied ✓</>
-        ) : (
-          <>Invite the crew — sign seat {seat + 1}’s link</>
-        )}
+        {state === 'copied' ? <>Invite copied ✓</> : <>Invite the crew — seat {seat + 1}</>}
       </button>
       {state === 'error' && error && (
         <p className="text-center text-[13px] font-medium leading-relaxed text-warn">{error}</p>
       )}
     </div>
+  )
+}
+
+function PendingJoinsPanel({
+  circleId,
+  onSeated,
+}: {
+  circleId: string
+  onSeated: () => void
+}) {
+  const [joins, setJoins] = useState<Array<{ seat: number; member: string }>>([])
+  const [busySeat, setBusySeat] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    listPendingJoinsServerFn({ data: { circleId } })
+      .then((rows) => {
+        if (alive) setJoins(rows.map((r) => ({ seat: r.seat, member: r.member })))
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [circleId])
+
+  if (joins.length === 0) return null
+
+  const approve = async (row: { seat: number; member: string }) => {
+    if (busySeat != null) return
+    setError(null)
+    setBusySeat(row.seat)
+    try {
+      const invite = await mintSeatInviteAsOrganizer({
+        circleId,
+        seat: row.seat,
+        member: row.member as `0x${string}`,
+      })
+      await joinCircleServerFn({
+        data: {
+          circleId,
+          payoutIndex: row.seat,
+          member: row.member,
+          nonce: invite.nonce,
+          expiresAt: invite.expiresAt,
+          signature: invite.signature,
+        },
+      })
+      await clearPendingJoinServerFn({ data: { circleId, seat: row.seat } })
+      setJoins((xs) => xs.filter((x) => x.seat !== row.seat))
+      onSeated()
+    } catch (e) {
+      setError(friendlyCircleError(e))
+    } finally {
+      setBusySeat(null)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-2xl border border-white/[0.07] bg-white/[0.02] p-3">
+      <p className="text-center text-[13px] font-medium text-paper">Waiting on your signature</p>
+      {joins.map((row) => (
+        <button
+          key={`${row.seat}-${row.member}`}
+          onClick={() => approve(row)}
+          disabled={busySeat != null}
+          className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left text-[13px] text-paper disabled:opacity-60"
+        >
+          <span>
+            Seat {row.seat + 1}
+            <span className="tnum ml-2 text-faint">
+              {row.member.slice(0, 6)}…{row.member.slice(-4)}
+            </span>
+          </span>
+          <span className="font-semibold">
+            {busySeat === row.seat ? 'Seating…' : 'Let them in'}
+          </span>
+        </button>
+      ))}
+      {error && <p className="text-center text-[13px] font-medium text-warn">{error}</p>}
+    </div>
+  )
+}
+
+function CircleNotFound() {
+  return (
+    <AppShell
+      header={
+        <div className="flex w-full items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Link
+              to="/circles"
+              aria-label="Back"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted transition-[color,background-color,transform] duration-150 ease-[var(--ease-rally)] active:scale-95 hover:text-paper"
+            >
+              <ArrowLeft size={18} />
+            </Link>
+            <Brand sub="Circles" />
+          </div>
+        </div>
+      }
+      cta={
+        <Link
+          to="/circles/new"
+          className="relative flex w-full items-center justify-center overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
+          style={coralCta}
+        >
+          <CtaSheen />
+          Start a circle
+        </Link>
+      }
+    >
+      <div className="flex flex-col items-center gap-6 pt-14 text-center">
+        <div>
+          <h1
+            className="text-display font-semibold text-paper"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            This circle doesn’t exist yet
+          </h1>
+          <p className="mx-auto mt-2.5 max-w-[19rem] text-sm leading-relaxed text-muted">
+            No rotating pot lives at this link. Start one, or open a circle you already share.
+          </p>
+        </div>
+      </div>
+    </AppShell>
   )
 }

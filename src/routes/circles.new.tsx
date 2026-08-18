@@ -8,7 +8,11 @@ import { ShareLink } from '#/components/ShareLink'
 import { formatUsd } from '#/design/chains'
 import { loginWithEmail } from '#/lib/auth/magic'
 import { friendlyCircleError, inviteLinkFor, type SignedInvite } from '#/lib/circle'
-import { createCircleServerFn, type CreateCircleFnInput } from '#/lib/circle-actions'
+import {
+  createCircleServerFn,
+  saveCircleMetaServerFn,
+  type CreateCircleFnInput,
+} from '#/lib/circle-actions'
 import { createSelfCustodiedCircle } from '#/lib/circle-self-custody'
 
 export const Route = createFileRoute('/circles/new')({ component: CreateCircle })
@@ -21,6 +25,17 @@ const CADENCES: { label: string; seconds: number }[] = [
   { label: '1 month', seconds: 30 * 86_400 },
 ]
 const SEAT_OPTIONS = [3, 4, 5, 6]
+const DEMO_LANE =
+  typeof import.meta !== 'undefined' &&
+  (import.meta as { env?: Record<string, string | undefined> }).env?.VITE_DEMO_LANE === '1'
+
+function organizerFromEmail(email: string): string {
+  const local = email.split('@')[0] ?? ''
+  const token = local.split(/[._+\-]/).find((t) => /[a-zA-Z]/.test(t)) ?? ''
+  const word = token.replace(/[^a-zA-Z]/g, '')
+  if (!word) return 'The crew'
+  return word[0].toUpperCase() + word.slice(1).toLowerCase()
+}
 
 type Status = 'idle' | 'authing' | 'creating' | 'signing' | 'seating' | 'error'
 
@@ -41,7 +56,7 @@ function CreateCircle() {
   const [amount, setAmount] = useState(1)
   const [cadence, setCadence] = useState(CADENCES[0].seconds)
   const [seats, setSeats] = useState(4)
-  const [demoFill, setDemoFill] = useState(true)
+  const [demoFill, setDemoFill] = useState(false)
   const [status, setStatus] = useState<Status>('idle')
   const [error, setError] = useState<string | null>(null)
   const [created, setCreated] = useState<Created | null>(null)
@@ -59,11 +74,8 @@ function CreateCircle() {
       setStatus('authing')
       const user = await loginWithEmail(email)
 
-      if (demoFill) {
-        // 2a. DEMO LANE — the Rally crew's relayer is the on-chain organizer,
-        //     so it can seat the demo friends and start the rotation for a
-        //     solo walkthrough (see lib/circle-relayer.ts). Honest and labeled:
-        //     the Rally crew runs the demo; real circles take the lane below.
+      let created: Created
+      if (DEMO_LANE && demoFill) {
         setStatus('creating')
         const input: CreateCircleFnInput = {
           depositUsd: amount,
@@ -73,32 +85,36 @@ function CreateCircle() {
           demoFill: true,
         }
         const res = await createCircleServerFn({ data: input })
-        setCreated({
+        created = {
           circleId: res.circleId,
           openSeats: res.seats.filter((s) => s.member == null).map((s) => s.seat),
           started: res.started,
           selfCustodied: false,
-        })
+        }
       } else {
-        // 2b. REAL LANE — self-custodied. createCircle is sent from the
-        //     creator's own 7702 kernel (organizer = their EOA), every seat
-        //     invite is signed by THEIR key right here in the browser, and
-        //     only they can start the circle. Rally never holds a key that
-        //     could sign an invite or touch this circle.
         const res = await createSelfCustodiedCircle({
           depositUsd: amount,
           roundSeconds: cadence,
           seats,
           onPhase: setStatus,
         })
-        setCreated({
+        created = {
           circleId: res.circleId,
-          openSeats: (res.invites ?? []).map((i) => i.seat),
+          openSeats: Array.from({ length: seats - 1 }, (_, i) => i + 1),
           started: res.started,
           selfCustodied: true,
-          invites: res.invites,
-        })
+        }
       }
+      await saveCircleMetaServerFn({
+        data: {
+          circleId: created.circleId,
+          title: title.trim(),
+          organizer: organizerFromEmail(email),
+        },
+      }).catch(() => {
+        // Title store is best-effort on the success screen; the circle is live.
+      })
+      setCreated(created)
       setStatus('idle')
     } catch (e) {
       // Raw JS/SDK errors reached this form live ("Cannot read properties of
@@ -155,7 +171,7 @@ function CreateCircle() {
               className="mx-auto mt-2 max-w-[19rem] text-sm leading-relaxed text-muted"
             >
               {created.selfCustodied
-                ? 'Seat 1 is yours — and you are the organizer. Every invite below carries your signature, not ours. Whoever opens one joins with just their email.'
+                ? 'Seat 1 is yours — and you are the organizer. Share an unsigned link per seat. When a friend logs in, you’ll countersign their email wallet from the circle page.'
                 : created.started
                   ? 'Seat 1 is yours and the crew is in. Chip into round 1 and watch the pot fill.'
                   : 'Seat 1 is yours. One link per seat below — whoever opens one joins with just their email, nothing to install.'}
@@ -211,9 +227,9 @@ function CreateCircle() {
                     created.circleId,
                     seat,
                     title.trim(),
-                    // Self-custodied lane: the link carries the creator-signed
-                    // EIP-712 invite inline, so no Rally key is ever involved.
-                    created.invites?.find((i) => i.seat === seat),
+                    created.selfCustodied
+                      ? undefined
+                      : created.invites?.find((i) => i.seat === seat),
                   )}
                   label={`Copy seat ${seat + 1}’s invite`}
                 />
@@ -474,8 +490,7 @@ function CreateCircle() {
           </p>
         </div>
 
-        {/* Demo fill — selected state speaks the quiet white ring, like every
-            other chip on this form. Coral stays reserved for the one CTA. */}
+        {DEMO_LANE && (
         <button
           onClick={() => setDemoFill((v) => !v)}
           disabled={inFlight}
@@ -508,11 +523,10 @@ function CreateCircle() {
             />
           </span>
         </button>
+        )}
 
-        {/* Who organizes the circle — the custody line, stated before the tap.
-            Real create = the creator's wallet; demo = the Rally crew, plainly. */}
         <p className="-mt-3 text-[13px] leading-relaxed text-faint">
-          {demoFill ? (
+          {DEMO_LANE && demoFill ? (
             <>
               Demo circles are run by <span className="font-medium text-muted">the Rally crew</span>{' '}
               so the rotation can play out solo.
@@ -520,8 +534,8 @@ function CreateCircle() {
           ) : (
             <>
               <span className="font-medium text-muted">You’ll be the organizer</span> — the circle is
-              created from your wallet, invites carry your signature, and only you can start it.
-              Nobody holds the money, including us.
+              created from your wallet, you countersign each friend’s email, and only you can start
+              it. Nobody holds the money, including us.
             </>
           )}
         </p>

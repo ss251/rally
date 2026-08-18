@@ -3,6 +3,7 @@ import { Check, ChevronDown, Loader2 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { BottomSheet } from './BottomSheet'
 import { Confetti } from './Confetti'
+import { ChainIcon } from './ChainIcon'
 import { CHAIN_META, FOCUS_RING, formatUsd, type Chain } from '#/design/chains'
 import { loginWithEmail } from '#/lib/auth/magic'
 import { tryGaslessBackerBurn } from '#/lib/backer-gasless'
@@ -23,6 +24,10 @@ function friendlyMoneyError(e: unknown): string {
     return 'This rally already ended — nothing was sent.'
   if (m.includes('withdrawn'))
     return 'This rally already paid out — nothing was sent.'
+  if (m.includes('closed') || m.includes('refusing to burn'))
+    return 'This rally is closed — nothing was sent.'
+  if (m.includes('needs testnet usdc'))
+    return raw
   if (m.includes('timeout') || m.includes('network') || m.includes('fetch'))
     return 'The network hiccuped — nothing left your account. Try again.'
   if (m.includes('denied') || m.includes('rejected'))
@@ -79,13 +84,15 @@ function claimFailMessage(r: DispenseMessage): string {
   return 'GitHub sign-in didn’t complete — you can try again.'
 }
 
+const SOURCE_CHAINS: Chain[] = ['base', 'optimism', 'arbitrum']
+
 interface ContributeSheetProps {
   open: boolean
   onClose: () => void
-  campaignTitle?: string
+  campaignTitle: string
   /** The on-chain campaign this sheet funds — ALWAYS the one on screen. */
-  campaignId?: string
-  /** The chain the backer's money is auto-detected on (the CCTP source). */
+  campaignId: string
+  /** Default source chain; the backer can switch to any EVM testnet we support. */
   fromChain?: Chain
   /** Amount pre-selected when the sheet opens — carried from the entry CTA so
    *  "Chip in $25" opens to $25, not a silent $10 switch. */
@@ -95,51 +102,45 @@ interface ContributeSheetProps {
 }
 
 // Real contribution tiers. A FUNDED backer burns their own USDC for the full
-// selected amount, gaslessly (ZeroDev 7702). A fresh (empty) email wallet falls
-// back to the demo relayer, which caps the move to its finite testnet treasury
-// and reports the real amount moved — the UI shows what actually landed.
+// selected amount, gaslessly (ZeroDev 7702). A fresh (empty) email wallet on
+// Base can use the GitHub faucet or the relayer. Empty wallets on Optimism /
+// Arbitrum are told the truth: that chain needs USDC in the email wallet.
 const AMOUNTS = [10, 25, 100]
 type Status = 'idle' | 'authing' | 'sending' | 'needs-funds' | 'funding' | 'done' | 'error'
 
 /**
  * The money moment. Email login (real Magic OTP) + amount → REAL gasless
- * cross-chain CCTP contribution into the live GoalVault. The CCTP hop, the
- * wallet, the gas — all invisible. Never says wallet / seed / gas.
- * CTA states: "Chip in $1" → "Check your email…" → "Sending…" → "You're in ✦".
+ * contribution into the live GoalVault. CCTP from Base/Optimism; same-chain
+ * contribute on Arbitrum. Never says wallet / seed / gas.
  */
 export function ContributeSheet({
   open,
   onClose,
-  campaignTitle = 'the Tokyo fund',
-  campaignId = '1',
-  fromChain = 'base',
+  campaignTitle,
+  campaignId,
+  fromChain: initialFromChain = 'base',
   initialAmount = AMOUNTS[0],
   onContributed,
 }: ContributeSheetProps) {
   const [email, setEmail] = useState('')
   const [amount, setAmount] = useState(initialAmount)
-  // A typed custom amount. Non-empty ⇒ the preset chips deselect and `amount`
-  // is driven by this field, so a stranger who wants $42 isn't boxed into
-  // 10/25/100.
   const [customAmount, setCustomAmount] = useState('')
   const [status, setStatus] = useState<Status>('idle')
   const [movedUsd, setMovedUsd] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [fromOpen, setFromOpen] = useState(false)
+  const defaultSource: Chain =
+    initialFromChain === 'optimism' || initialFromChain === 'arbitrum' ? initialFromChain : 'base'
+  const [fromChain, setFromChain] = useState<Chain>(defaultSource)
   const chain = CHAIN_META[fromChain]
-  // The backer's embedded-wallet address, learned at login — needed to bind the
-  // GitHub faucet grant to the wallet that will spend it.
   const [walletAddr, setWalletAddr] = useState<string | null>(null)
   const [dispenser, setDispenser] = useState<DispenserStatus | null>(null)
 
-  // Learn once whether the faucet is available, so the empty-wallet path can
-  // decide instantly (offer GitHub) instead of stalling mid-flow.
   useEffect(() => {
     if (!open || dispenser) return
     dispenserStatusServerFn().then(setDispenser).catch(() => setDispenser({ enabled: false, claimUsd: 0, fallback: 'none' }))
   }, [open, dispenser])
 
-  // Reset the flow whenever the sheet closes.
   useEffect(() => {
     if (!open) {
       const t = setTimeout(() => {
@@ -150,42 +151,38 @@ export function ContributeSheet({
         setMovedUsd(null)
         setError(null)
         setWalletAddr(null)
+        setFromChain(defaultSource)
+        setFromOpen(false)
       }, 250)
       return () => clearTimeout(t)
     }
-  }, [open])
+  }, [open, defaultSource, initialAmount])
 
   const inFlight = status === 'authing' || status === 'sending' || status === 'funding'
   const emailValid = /.+@.+\..+/.test(email)
-  const canSend = emailValid && amount > 0 && (status === 'idle' || status === 'error')
+  const idOk = /^[0-9]{1,10}$/.test(campaignId)
+  const canSend = emailValid && amount > 0 && idOk && (status === 'idle' || status === 'error')
 
   const send = async () => {
     if (!canSend) return
     setError(null)
     try {
-      // 1. Real Magic email login — pops Magic's OTP overlay; a human types the
-      //    code from their inbox. Resolves to the backer's embedded-wallet EOA.
       setStatus('authing')
       const user = await loginWithEmail(email)
       setWalletAddr(user.address)
 
       setStatus('sending')
 
-      // 2. THE REAL PRODUCT PATH — backer-funded, gasless, cross-chain.
-      //    Upgrade the Magic EOA to a ZeroDev 7702 kernel and, IF the backer
-      //    holds enough USDC on Base Sepolia, burn THEIR OWN money for the full
-      //    selected amount with the ZeroDev paymaster covering gas (they pay
-      //    nothing). The server then finishes the CCTP hop (attest → mint →
-      //    record) — relaying only, not funding.
-      //
-      //    A fresh email wallet holds no USDC (the common demo case), so
-      //    tryGaslessBackerBurn returns { funded: false } and we fall back to
-      //    the honest relayer-funded server path below. The UI does NOT expose
-      //    which path ran; the difference is only in who paid — see the code +
-      //    lib/backer-gasless.ts / lib/cctp/complete-fill.ts.
-      const gasless = await tryGaslessBackerBurn({ amountUsd: amount })
+      const gasless = await tryGaslessBackerBurn({
+        amountUsd: amount,
+        fromChain,
+        campaignId,
+      })
       if (gasless.funded) {
-        // Backer burned their own USDC gaslessly — finish it server-side.
+        if (gasless.path === 'local') {
+          finish(amount)
+          return
+        }
         const res = await completeContributionServerFn({
           data: {
             backer: gasless.backer,
@@ -198,8 +195,14 @@ export function ContributeSheet({
         return
       }
 
-      // Fresh/empty wallet. The honest product path: offer the GitHub-gated
-      // testnet faucet so the backer funds THEIR OWN wallet, then spends it.
+      // Relayer + GitHub faucet only hold / grant Base Sepolia USDC. Do not
+      // silently burn the relayer's Base pot when the backer picked OP/Arb.
+      if (fromChain !== 'base') {
+        throw new Error(
+          `Your email wallet needs testnet USDC on ${chain.label} to chip in from there. Pick Base to use the starter faucet.`,
+        )
+      }
+
       const ds = dispenser ?? (await dispenserStatusServerFn())
       setDispenser(ds)
       if (ds.enabled && ds.fallback !== 'relayer') {
@@ -207,9 +210,6 @@ export function ContributeSheet({
         return
       }
 
-      // Fallback (faucet off, or kill-switch DISPENSER_FALLBACK=relayer): the
-      // old demo behavior — relayer fronts the source USDC, capped to its
-      // finite treasury, recorded under the backer's real address.
       const res = await contributeServerFn({
         data: { backer: user.address, amountUsd: amount, campaignId },
       })
@@ -226,8 +226,6 @@ export function ContributeSheet({
     onContributed?.()
   }
 
-  // The GitHub faucet round-trip: sign a wallet-bound state, pop GitHub, and on
-  // a granted claim retry the REAL gasless burn (now the wallet holds funds).
   const claimAndSend = async () => {
     if (!walletAddr) return
     setError(null)
@@ -241,17 +239,20 @@ export function ContributeSheet({
         return
       }
 
-      // Funds are landing — spend up to what the faucet granted, from the
-      // backer's own wallet, gaslessly. Retry through RPC lag.
       setStatus('sending')
+      setFromChain('base')
       const spend = Math.min(amount, claim.amountUsd ?? dispenser?.claimUsd ?? amount)
-      let gasless = await tryGaslessBackerBurn({ amountUsd: spend })
+      let gasless = await tryGaslessBackerBurn({ amountUsd: spend, fromChain: 'base', campaignId })
       for (let i = 0; i < 5 && !gasless.funded; i++) {
         await new Promise((r) => setTimeout(r, 2000))
-        gasless = await tryGaslessBackerBurn({ amountUsd: spend })
+        gasless = await tryGaslessBackerBurn({ amountUsd: spend, fromChain: 'base', campaignId })
       }
       if (!gasless.funded) throw new Error('the faucet funds are still settling — try again in a moment')
 
+      if (gasless.path === 'local') {
+        finish(spend)
+        return
+      }
       const res = await completeContributionServerFn({
         data: {
           backer: gasless.backer,
@@ -327,7 +328,6 @@ export function ContributeSheet({
             money's on. Nothing to install, nothing to set up.
           </p>
 
-          {/* Email — the nag lives on the field, not on the thesis line. */}
           <label className="flex flex-col gap-1.5">
             <span className="flex items-baseline justify-between">
               <span className="text-xs font-medium uppercase tracking-wide text-faint">Email</span>
@@ -347,12 +347,10 @@ export function ContributeSheet({
             />
           </label>
 
-          {/* Amount */}
           <div className="flex flex-col gap-2">
             <span className="text-xs font-medium uppercase tracking-wide text-faint">Amount</span>
             <div className="grid grid-cols-3 gap-2">
               {AMOUNTS.map((a) => {
-                // A preset reads as chosen only while no custom amount is typed.
                 const active = customAmount === '' && amount === a
                 return (
                   <button
@@ -382,10 +380,6 @@ export function ContributeSheet({
                 )
               })}
             </div>
-            {/* Custom amount — nobody who wants $42 should hit a 10/25/100 wall.
-                Same field grammar as the create-flow goal input ($ lead, tabular
-                figures, decimal keypad); typing here drives `amount` and quietly
-                deselects the presets above. */}
             <div className="relative">
               <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-muted">
                 $
@@ -412,7 +406,7 @@ export function ContributeSheet({
                 Paying from
                 <span className="inline-flex items-center gap-1.5 font-medium capitalize text-muted">
                   <span className="h-2 w-2 rounded-full" style={{ background: chain.to }} />
-                  {chain.label ?? fromChain}
+                  {chain.label}
                 </span>
                 <ChevronDown
                   size={13}
@@ -421,20 +415,45 @@ export function ContributeSheet({
                 />
               </button>
               {fromOpen && (
-                <p className="mt-1.5 max-w-[19rem] text-[13px] leading-relaxed text-faint">
-                  Your USDC moves as a Circle CCTP transfer and lands on Arbitrum — no network
-                  to switch, no bridge to figure out.
-                </p>
+                <div className="mt-2 flex flex-col gap-1.5">
+                  {SOURCE_CHAINS.map((id) => {
+                    const meta = CHAIN_META[id]
+                    const active = fromChain === id
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        disabled={inFlight}
+                        onClick={() => setFromChain(id)}
+                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[13px] transition-colors disabled:opacity-60"
+                        style={
+                          active
+                            ? { background: 'rgba(255,255,255,0.08)', color: 'var(--color-paper)' }
+                            : { color: 'var(--color-muted)' }
+                        }
+                      >
+                        <ChainIcon chain={id} size={18} contained />
+                        <span className="font-medium">{meta.label}</span>
+                        <span className="ml-auto text-faint">
+                          {id === 'arbitrum' ? 'lands here' : 'via Circle CCTP'}
+                        </span>
+                      </button>
+                    )
+                  })}
+                  <p className="mt-0.5 max-w-[19rem] text-[13px] leading-relaxed text-faint">
+                    {fromChain === 'arbitrum'
+                      ? 'Your USDC is already on Arbitrum — it goes straight into the vault, no hop.'
+                      : 'Your USDC moves as a Circle CCTP transfer and lands on Arbitrum — no network to switch.'}
+                  </p>
+                </div>
               )}
             </div>
           </div>
 
-          {/* Error line — honest, quiet. */}
           {status === 'error' && error && (
             <p className="-mb-1 text-[13px] font-medium leading-relaxed text-warn">{error}</p>
           )}
 
-          {/* CTA */}
           <button
             onClick={send}
             disabled={!canSend}
@@ -469,9 +488,6 @@ export function ContributeSheet({
             ) : status === 'error' ? (
               <>Try again</>
             ) : !emailValid ? (
-              // A disabled CTA should teach what's missing, not just sit gray
-              // repeating the amount — the email is the one thing between a
-              // stranger and chipping in.
               <>Enter your email to chip in</>
             ) : amount <= 0 ? (
               <>Enter an amount</>
@@ -480,10 +496,6 @@ export function ContributeSheet({
             )}
           </button>
 
-          {/* One quiet line, UNCONDITIONAL — the whole thesis, placed where a
-              stranger decides to hand over money: all-or-nothing, refunded
-              automatically if the goal misses. It never yields to a form nag;
-              this safety line is what converts someone who owes us nothing. */}
           <p className="-mt-1 text-center text-[13px] leading-relaxed text-faint">
             Hit the goal or everyone's refunded —{' '}
             <span className="text-muted">automatically</span>.
@@ -503,9 +515,6 @@ function SuccessView({
   campaignTitle: string
   onDone: () => void
 }) {
-  // One quiet haptic tick, same frame as the check appearing — the money
-  // landed. The ONLY haptic in the app: feedback reserved for the moment
-  // that earns it, fired together with its visual so the senses agree.
   useEffect(() => {
     try {
       navigator.vibrate?.(10)
@@ -514,8 +523,6 @@ function SuccessView({
     }
   }, [])
   return (
-    // The phase swap is a hard conditional — a 6px rise bridges it so success
-    // arrives instead of teleporting in (the check's spring rides on top).
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}

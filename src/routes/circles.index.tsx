@@ -7,31 +7,33 @@ import { RoundBar } from '#/components/RoundBar'
 import { RotationSchedule } from '#/components/RotationSchedule'
 import { CircleMembers } from '#/components/CircleMembers'
 import { formatUsd } from '#/design/chains'
-import { mockCircle } from '#/lib/circle'
+import { fetchLiveCircle, type CircleView } from '#/lib/circle'
 
-export const Route = createFileRoute('/circles/')({ component: CirclesHome })
-
-// —— Demo circle (real, human — the product shown live on the landing) ——
-// The roommates' savings circle: five friends, $50 a month, the pot rotates.
-const DEMO = mockCircle('demo')
+export const Route = createFileRoute('/circles/')({
+  loader: async (): Promise<{ featured: CircleView | null }> => {
+    const two = await fetchLiveCircle('2').catch(() => null)
+    const one = two ? null : await fetchLiveCircle('1').catch(() => null)
+    return { featured: two ?? one }
+  },
+  component: CirclesHome,
+})
 
 function CirclesHome() {
-  const payee = DEMO.members.find((m) => m.isPayee)
+  const { featured } = Route.useLoaderData()
+  const live = featured?.live === true
+  const payee = featured?.members.find((m) => m.isPayee)
 
   return (
     <AppShell
       header={
         <div className="flex w-full items-center justify-between">
-          {/* A peer landing, not a sub-page: same wordmark-only header as `/` —
-              the ModeSwitch below is the way between the two modes. */}
           <Brand sub="Circles" />
-          {/* Static dot + honest label — this hero is representative data. */}
           <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs font-medium text-faint">
             <span
               className="h-1.5 w-1.5 rounded-full"
               style={{ background: 'rgba(255,241,232,0.82)' }}
             />
-            Demo
+            {live ? 'Live on Arbitrum' : 'Arbitrum Sepolia'}
           </span>
         </div>
       }
@@ -60,74 +62,15 @@ function CirclesHome() {
         </div>
       }
     >
-      {/* —— The hero IS the product: a savings circle, mid-rotation —— */}
       <div className="flex flex-col gap-6 pt-4">
-        {/* The same switch as the Goals landing — one tap between the modes. */}
         <ModeSwitch active="circles" />
 
-        <div>
-          <p className="text-sm text-faint">{DEMO.organizer} is running</p>
-          <h1
-            className="mt-1.5 text-display font-semibold text-paper"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            {DEMO.title}
-          </h1>
-        </div>
+        {featured ? (
+          <LiveCircleHero c={featured} payeeName={payee?.name} />
+        ) : (
+          <EmptyCircleHero />
+        )}
 
-        {/* Hero row: the per-round liquid + a vertically-centered readout. */}
-        <div className="flex items-center gap-6">
-          <RoundBar
-            potUsd={DEMO.potUsd}
-            memberTarget={DEMO.memberTarget}
-            fundedCount={DEMO.fundedCount}
-            height={248}
-            width={52}
-          />
-          <div className="flex flex-1 flex-col justify-center gap-4">
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
-              <span
-                className="h-1.5 w-1.5 rounded-full animate-pulse-dot"
-                style={{ background: 'rgba(255,241,232,0.82)', color: 'rgba(255,241,232,0.82)' }}
-              />
-              Round {(DEMO.round ?? 0) + 1} of {DEMO.memberTarget}
-            </span>
-            <div>
-              <div className="flex items-baseline gap-2.5">
-                <span
-                  className="tnum font-display text-figure font-semibold leading-none text-paper"
-                  style={{ fontFamily: 'var(--font-display)' }}
-                >
-                  {formatUsd(DEMO.potUsd)}
-                </span>
-                <span
-                  className="tnum font-display text-2xl font-semibold leading-none"
-                  style={{ color: 'rgba(255,240,233,0.72)' }}
-                >
-                  pot
-                </span>
-              </div>
-              <p className="mt-2 text-sm text-muted">
-                {DEMO.fundedCount} of {DEMO.memberTarget} in ·{' '}
-                <span className="font-medium text-paper/90">{formatUsd(DEMO.depositUsd)}</span> each
-              </p>
-            </div>
-            {payee && (
-              <div className="mt-1 flex flex-col gap-1 text-[13px] text-muted">
-                <span>
-                  This round’s pot → <span className="font-semibold text-paper">{payee.name}</span>
-                </span>
-                <span className="text-faint">round closes in 9 days</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <RotationSchedule rounds={DEMO.rounds} />
-
-        <CircleMembers members={DEMO.members} status={DEMO.status} depositUsd={DEMO.depositUsd} />
-
-        {/* The concept, in three lines — placed after you've SEEN it work. */}
         <section className="flex flex-col gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.02] p-4">
           {[
             { Icon: Users, text: 'Everyone chips in the same amount, every round.' },
@@ -135,7 +78,6 @@ function CirclesHome() {
             { Icon: Undo2, text: 'Anyone misses a round? The circle stops and everyone’s refunded.' },
           ].map(({ Icon, text }) => (
             <div key={text} className="flex items-center gap-3">
-              {/* Same icon-chip anatomy as the Circles row on the Goals landing. */}
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.03]">
                 <Icon size={16} strokeWidth={2.25} className="text-muted" />
               </span>
@@ -143,19 +85,121 @@ function CirclesHome() {
             </div>
           ))}
         </section>
-
-        {/* This hero is a demo. The real thing is live on-chain — go see it. */}
-        <Link
-          to="/circle/$id"
-          params={{ id: '1' }}
-          className="flex items-center justify-between rounded-2xl border border-white/[0.07] bg-white/[0.02] px-4 py-3.5 text-sm transition-colors hover:border-white/15"
-        >
-          {/* No dot here — the header pill is this screen's one status lamp,
-              and the sentence already says "live on Arbitrum" in words. */}
-          <span className="text-muted">See a real circle, rotating live on Arbitrum</span>
-          <span className="font-semibold text-paper">→</span>
-        </Link>
       </div>
     </AppShell>
+  )
+}
+
+function LiveCircleHero({ c, payeeName }: { c: CircleView; payeeName?: string }) {
+  const pulse =
+    c.status === 'broken'
+      ? 'Stopped — everyone’s made whole'
+      : c.status === 'filling'
+        ? `Filling seats — ${c.joined} of ${c.memberTarget}`
+        : c.status === 'completed'
+          ? 'Every pot paid'
+          : `Round ${(c.round ?? 0) + 1} of ${c.memberTarget}`
+
+  return (
+    <>
+      <div>
+        <p className="text-sm text-faint">{c.organizer} is running</p>
+        <h1
+          className="mt-1.5 text-display font-semibold text-paper"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          {c.title}
+        </h1>
+      </div>
+
+      <div className="flex items-center gap-6">
+        <RoundBar
+          potUsd={c.potUsd}
+          memberTarget={c.memberTarget}
+          fundedCount={c.status === 'filling' ? c.joined : c.fundedCount}
+          broken={c.status === 'broken'}
+          height={248}
+          width={52}
+        />
+        <div className="flex flex-1 flex-col justify-center gap-4">
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${c.status === 'broken' ? '' : 'animate-pulse-dot'}`}
+              style={{
+                background: c.status === 'broken' ? 'rgba(168,159,180,0.85)' : 'rgba(255,241,232,0.82)',
+              }}
+            />
+            {pulse}
+          </span>
+          <div>
+            <div className="flex items-baseline gap-2.5">
+              <span
+                className="tnum font-display text-figure font-semibold leading-none text-paper"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                {formatUsd(c.potUsd)}
+              </span>
+              <span
+                className="tnum font-display text-2xl font-semibold leading-none"
+                style={{ color: 'rgba(255,240,233,0.72)' }}
+              >
+                pot
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-muted">
+              {c.status === 'filling' ? (
+                <>
+                  {c.joined} of {c.memberTarget} seats ·{' '}
+                  <span className="font-medium text-paper/90">{formatUsd(c.depositUsd)}</span> each
+                </>
+              ) : (
+                <>
+                  {c.fundedCount} of {c.memberTarget} in ·{' '}
+                  <span className="font-medium text-paper/90">{formatUsd(c.depositUsd)}</span> each
+                </>
+              )}
+            </p>
+          </div>
+          {c.status === 'active' && payeeName && (
+            <div className="mt-1 text-[13px] text-muted">
+              This round’s pot → <span className="font-semibold text-paper">{payeeName}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <RotationSchedule rounds={c.rounds} />
+      <CircleMembers members={c.members} status={c.status} depositUsd={c.depositUsd} />
+
+      <Link
+        to="/circle/$id"
+        params={{ id: c.id }}
+        className="flex items-center justify-between rounded-2xl border border-white/[0.07] bg-white/[0.02] px-4 py-3.5 text-sm transition-colors hover:border-white/15"
+      >
+        <span className="text-muted">
+          {c.status === 'broken'
+            ? 'This circle broke — see the refunds on-chain'
+            : 'Open the full circle'}
+        </span>
+        <span className="font-semibold text-paper">→</span>
+      </Link>
+    </>
+  )
+}
+
+function EmptyCircleHero() {
+  return (
+    <div className="flex flex-col items-center gap-4 pt-4 text-center">
+      <h1
+        className="text-display font-semibold text-paper"
+        style={{ fontFamily: 'var(--font-display)' }}
+      >
+        Start the next circle
+      </h1>
+      <p className="mx-auto max-w-[19rem] text-sm leading-relaxed text-muted">
+        A rotating pot your crew chips into together. Everyone gets a turn — or everyone is made
+        whole.
+      </p>
+    </div>
   )
 }

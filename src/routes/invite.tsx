@@ -8,7 +8,7 @@ import { Confetti } from '#/components/Confetti'
 import { formatUsd } from '#/design/chains'
 import { loginWithEmail } from '#/lib/auth/magic'
 import { fetchLiveCircle, friendlyCircleError, type CircleView } from '#/lib/circle'
-import { joinCircleServerFn } from '#/lib/circle-actions'
+import { joinCircleServerFn, requestJoinServerFn } from '#/lib/circle-actions'
 
 interface InviteSearch {
   /** Circle id. Kept as it parsed (number for `?c=1`) so the URL stays clean —
@@ -18,9 +18,10 @@ interface InviteSearch {
   i: number
   /** Optional human title carried from the create screen. */
   t?: string
-  /** Optional pre-signed org invite: member + nonce (hex string) + signature. */
+  /** Optional pre-signed org invite: member + nonce + expiry + signature. */
   m?: string
   n?: string | number
+  e?: string | number
   s?: string
 }
 
@@ -37,6 +38,10 @@ export const Route = createFileRoute('/invite')({
       (typeof search.n === 'string' && search.n) || typeof search.n === 'number'
         ? (search.n as string | number)
         : undefined,
+    e:
+      (typeof search.e === 'string' && search.e) || typeof search.e === 'number'
+        ? (search.e as string | number)
+        : undefined,
     s: typeof search.s === 'string' && search.s ? search.s : undefined,
   }),
   loaderDeps: ({ search }) => ({ c: search.c, t: search.t }),
@@ -52,11 +57,11 @@ export const Route = createFileRoute('/invite')({
   component: InvitePage,
 })
 
-type Status = 'idle' | 'authing' | 'joining' | 'done' | 'error'
+type Status = 'idle' | 'authing' | 'joining' | 'done' | 'requested' | 'error'
 
 function InvitePage() {
   const circle = Route.useLoaderData()
-  const { c, i: seat, t, m, n, s } = Route.useSearch()
+  const { c, i: seat, t, m, n, e, s } = Route.useSearch()
   const circleId = String(c)
   const navigate = useNavigate()
 
@@ -77,26 +82,82 @@ function InvitePage() {
       setStatus('authing')
       const user = await loginWithEmail(email)
 
-      // 2. Redeem the seat. If the link carries a pre-signed org invite
-      //    (m/n/s), it is relayed as-is; otherwise the server mints an
-      //    org-signed EIP-712 invite for this fresh address on demand and
-      //    submits it — gasless either way (anyone may submit; the signature
-      //    is the authorization).
+      // Seat rights always accrue to THIS Magic wallet — never a member
+      // address baked into someone else's signed link.
       setStatus('joining')
-      await joinCircleServerFn({
-        data: {
-          circleId,
-          payoutIndex: seat,
-          member: m ?? user.address,
-          nonce: n != null ? String(n) : undefined,
-          signature: s,
-        },
-      })
-      setStatus('done')
+      const signedForYou =
+        !!s && !!m && m.toLowerCase() === user.address.toLowerCase()
+      const signedForSomeoneElse =
+        !!s && !!m && m.toLowerCase() !== user.address.toLowerCase()
+
+      if (signedForSomeoneElse) {
+        await requestJoinServerFn({
+          data: { circleId, seat, member: user.address },
+        })
+        setStatus('requested')
+        return
+      }
+
+      try {
+        await joinCircleServerFn({
+          data: {
+            circleId,
+            payoutIndex: seat,
+            member: user.address,
+            nonce: signedForYou && n != null ? String(n) : undefined,
+            expiresAt: signedForYou && e != null ? String(e) : undefined,
+            signature: signedForYou ? s : undefined,
+          },
+        })
+        setStatus('done')
+      } catch (joinErr) {
+        const msg = joinErr instanceof Error ? joinErr.message : String(joinErr)
+        if (msg.includes('InvalidSigner') || msg.includes('NotFilling')) {
+          await requestJoinServerFn({
+            data: { circleId, seat, member: user.address },
+          })
+          setStatus('requested')
+          return
+        }
+        throw joinErr
+      }
     } catch (e) {
       setError(friendlyCircleError(e))
       setStatus('error')
     }
+  }
+
+  if (status === 'requested') {
+    return (
+      <AppShell header={<InviteHeader />}>
+        <div className="relative flex flex-col items-center gap-4 pt-16 text-center">
+          <div>
+            <h1
+              className="text-2xl font-semibold tracking-tight text-paper"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              Ask the organizer to let you in
+            </h1>
+            <p className="mx-auto mt-1.5 max-w-[19rem] text-[15px] leading-relaxed text-muted">
+              This seat is bound to a real email wallet. The organizer will countersign
+              yours from the circle page — then you’re in.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate({ to: '/circle/$id', params: { id: circleId } })}
+            className="mt-2 w-full rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
+            style={{
+              background:
+                'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
+              boxShadow:
+                'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
+            }}
+          >
+            Open the circle →
+          </button>
+        </div>
+      </AppShell>
+    )
   }
 
   if (status === 'done') {
