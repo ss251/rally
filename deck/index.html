@@ -30,10 +30,9 @@
             </div>
             <div class="row two">
               <div>
-                <h1 class="enter">A pot that fills from more than one chain.</h1>
+                <h1 class="enter">Each color on the bar is a source chain.</h1>
                 <p class="lede enter">
                   The pot is a contract. If the goal hits, it pays out. If it misses, anyone can refund.
-                  We never hold the funds.
                 </p>
                 <div class="marks enter" aria-label="Stack">
                   <img src="./assets/logos/magic.svg?v=2" alt="Magic" />
@@ -50,8 +49,8 @@
           </section>
 
           <section class="slide" data-i="1">
-            <div class="kicker"><span class="tag">[ the hole ]</span><span class="num">02 / 08</span></div>
-            <h2>Group money still needs a person who can walk off with it.</h2>
+            <div class="kicker"><span class="tag">[ problem ]</span><span class="num">02 / 08</span></div>
+            <h2>Group pots still go through a custodian.</h2>
             <div class="facts">
               <div class="fact">
                 <b>2021</b>
@@ -59,18 +58,18 @@
               </div>
               <div class="fact">
                 <b>Tanda</b>
-                <p>Rotating savings still run on a foreman. One key, one notebook, one exit.</p>
+                <p>Rotating savings still go through one person.</p>
               </div>
               <div class="fact">
-                <b>The bug</b>
-                <p>The pot always needed someone who could take the money. It needed a contract.</p>
+                <b>The gap</b>
+                <p>The pot needed someone who could take the money. It needed a contract.</p>
               </div>
             </div>
             <p class="notes">Ten seconds. Land on: the primitive is missing, not the spreadsheet.</p>
           </section>
 
           <section class="slide" data-i="2">
-            <div class="kicker"><span class="tag">[ two instruments ]</span><span class="num">03 / 08</span></div>
+            <div class="kicker"><span class="tag">[ goals and circles ]</span><span class="num">03 / 08</span></div>
             <h2>A goal pot and a rotating pot.</h2>
             <div class="split">
               <article class="pane">
@@ -94,18 +93,17 @@
           </section>
 
           <section class="slide" data-i="3">
-            <div class="kicker"><span class="tag">[ the interaction ]</span><span class="num">04 / 08</span></div>
+            <div class="kicker"><span class="tag">[ chip in ]</span><span class="num">04 / 08</span></div>
             <div class="row two">
               <div>
-                <h2>Email and an amount.</h2>
+                <h2>Email, amount, and source chain.</h2>
                 <p class="lede">
                   No wallet extension. Gas is sponsored.
-                  You pick the chain the USDC is already on.
                 </p>
                 <div class="facts tight">
-                  <div class="fact"><b>Login</b><p>Magic email OTP. The EOA is minted behind the code.</p></div>
-                  <div class="fact"><b>Gas</b><p>ZeroDev paymaster. The backer never holds ETH.</p></div>
-                  <div class="fact"><b>Rail</b><p>Circle CCTP v2 if the money isn’t on Arbitrum yet.</p></div>
+                  <div class="fact"><b>Login</b><p>Magic email OTP. That creates the EOA.</p></div>
+                  <div class="fact"><b>Gas</b><p>ZeroDev paymaster. The backer does not need ETH.</p></div>
+                  <div class="fact"><b>Rail</b><p>Circle CCTP v2 if the USDC is not on Arbitrum yet.</p></div>
                 </div>
               </div>
               <div class="phone"><img src="./assets/shots/chipin.png" alt="Chip in sheet — email, amount, paying-from Base / OP / Arb" /></div>
@@ -114,8 +112,8 @@
           </section>
 
           <section class="slide" data-i="4">
-            <div class="kicker"><span class="tag">[ what actually runs ]</span><span class="num">05 / 08</span></div>
-            <h2>The write path. The backer never sees it.</h2>
+            <div class="kicker"><span class="tag">[ write path ]</span><span class="num">05 / 08</span></div>
+            <h2>What runs after Chip in.</h2>
             <div class="graph" aria-label="Write path">
               <div class="graph-title">[ write path ]</div>
               <div class="pipe">
@@ -234,7 +232,7 @@ _credit(campaignId, backer, amount, sourceDomain);</pre>
               <span class="num">08 / 08</span>
             </div>
             <h1>The pot stays in the contract.</h1>
-            <p class="lede">A link. Email or a wallet you already have. USDC from the chain it’s already on.</p>
+            <p class="lede">App, film, repo, and the verified vaults.</p>
             <div class="links">
               <a class="link" href="https://rally-production-94cc.up.railway.app" target="_blank" rel="noreferrer">
                 <small>Live</small>

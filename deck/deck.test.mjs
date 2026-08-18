@@ -135,6 +135,11 @@ describe('deck content', () => {
       'kind people actually send',
       'email. amount. done',
       'same promise. two shapes',
+      'walk off with it',
+      'one key, one notebook',
+      'minted behind the code',
+      'the backer never sees it',
+      'a pot that fills from more than one chain',
     ]) {
       assert.equal(visible.toLowerCase().includes(phrase), false, phrase)
     }

@@ -22,11 +22,11 @@ Keyboard changes are instant (Raycast rule — never animate an action the prese
 ## Talk (≈3 minutes)
 
 0. Landing. The bar is live RPC. Each color is a source chain. (~20s)
-1. PayPal killed pools. Tandas still need a foreman. Custody was the bug. (~20s)
-2. Goals / Circles — same refund promise, two instruments. `/c/9` and `/circle/7`. (~30s)
+1. PayPal killed pools. Tandas still go through one person. The pot needed a contract. (~20s)
+2. Goals and circles. `/c/9` and `/circle/7`. (~30s)
 3. Chip in: email, amount, paying-from. Incognito if you want the OTP on camera. (~30s)
-4. Judge slide. Magic 7702 → ZeroDev UserOp → CCTP v2 domains 6/2→3 → two verified vaults. `UnattributedFunds` is the trust bound. User never sees it. (~45s)
-5. `/c/9` three domains. `/circle/2` we broke; `refundFor` already ran. (~20s)
+4. Write path: Magic 7702 → ZeroDev UserOp → CCTP v2 domains 6/2→3 → two verified vaults. `UnattributedFunds`. (~45s)
+5. `/c/9` three domains. `/circle/2` refunded after an unfunded round. (~20s)
 6. What isn’t live: mainnet, Coinbase / MoonPay, connect an existing wallet, Magic export/recover. (~20s)
 7. URL. Stop. (~10s)
 
