@@ -6,8 +6,9 @@ pragma solidity ^0.8.20;
  * @notice Interface, types, events and errors for {RotatingVault} — Rally's
  *         on-chain rotating savings circle (ROSCA / chit fund) for "Circles".
  *
- *         Lifecycle: create → invite (EIP-712) → start → [deposit* → claim]ⁿ
- *         and, on any under-funded round, → Broken → refund*.
+ *         Lifecycle: create → invite (EIP-712, expiresAt) → start →
+ *         [deposit* → claim/claimFor]ⁿ and, on any under-funded round,
+ *         → Broken → refund*.
  */
 interface IRotatingVault {
     // ---------------------------------------------------------------------
@@ -108,6 +109,8 @@ interface IRotatingVault {
     error SlotTaken(); // payout index already redeemed
     error PayoutIndexOutOfRange();
     error InviteNonceUsed();
+    error InviteExpired(); // redeem after expiresAt
+    error InvalidExpiry(); // expiresAt == 0 (must be a real unix deadline)
     error InvalidSigner(); // invite not signed by the circle's organizer
     error AlreadyDeposited(); // one exact deposit per member per round
     error CircleExpired(); // deposit after the final round's window
@@ -126,8 +129,14 @@ interface IRotatingVault {
         external
         returns (uint256 circleId);
 
-    function redeemInvite(uint256 circleId, address member, uint256 payoutIndex, uint256 nonce, bytes calldata signature)
-        external;
+    function redeemInvite(
+        uint256 circleId,
+        address member,
+        uint256 payoutIndex,
+        uint256 nonce,
+        uint256 expiresAt,
+        bytes calldata signature
+    ) external;
 
     function start(uint256 circleId) external;
 
@@ -138,6 +147,11 @@ interface IRotatingVault {
     function depositFor(uint256 circleId, address member) external;
 
     function claim(uint256 circleId) external;
+
+    /// @notice Permissionless pull of `payee`'s pot. Funds only ever go to `payee`
+    ///         (same invariant as {refundFor}). `payee` must be the designated
+    ///         member for their own payout index.
+    function claimFor(uint256 circleId, address payee) external;
 
     function markBroken(uint256 circleId) external;
 
@@ -185,7 +199,7 @@ interface IRotatingVault {
 
     function refundableAmount(uint256 circleId, address member) external view returns (uint256);
 
-    function inviteDigest(uint256 circleId, address member, uint256 payoutIndex, uint256 nonce)
+    function inviteDigest(uint256 circleId, address member, uint256 payoutIndex, uint256 nonce, uint256 expiresAt)
         external
         view
         returns (bytes32);

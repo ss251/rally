@@ -17,17 +17,13 @@
  *   4. `start` — organizer-only on-chain — also goes through the creator's
  *      kernel (see startSelfCustodiedCircle).
  *
- * SEAT BINDING (the honest fine print): an EIP-712 invite binds its `member`
- * address at signing time, but a friend's email wallet address only exists
- * once they log in. So each open seat is pre-bound to a per-seat address
- * derived from a random seed generated here (kept in the creator's
- * localStorage, never sent anywhere) — the same pre-derived-member pattern the
- * relayer demo lane uses. The link carries the org-signed invite inline
- * (`m`/`n`/`s`), so /invite redeems it unchanged and NOBODY — not the
- * organizer, not Rally — can redirect the seat. Binding the joiner's own
- * wallet as the member needs an online-organizer countersign flow; that is
- * the documented next step, not a custody regression: the organizer role
- * (invite signing + start/cancel) is fully self-custodied as of this module.
+ * SEAT BINDING: an EIP-712 invite binds its `member` address at signing time.
+ * A friend's email-wallet address only exists once they log in, so open seats
+ * are NOT pre-bound to derived localStorage keys. The share link is unsigned;
+ * the joiner logs in with Magic, then the organizer countersigns an invite
+ * bound to THAT wallet (`mintSeatInviteAsOrganizer({ member })`). Seat 0 is
+ * still redeemed for the creator at create time. The organizer role (invite
+ * signing + start/cancel) stays fully self-custodied.
  *
  * Runs entirely in the browser (Magic + ZeroDev are browser SDKs).
  * TESTNET ONLY. Chain: Arbitrum Sepolia (421614) — where RotatingVault lives.
@@ -56,6 +52,7 @@ import {
   INVITE_TYPES,
   ROTATING_VAULT,
   ROTATING_VAULT_ABI,
+  defaultInviteExpirySec,
   type SignedInvite,
 } from '#/lib/circle'
 
@@ -113,6 +110,7 @@ async function signInviteAsCreator(params: {
   member: Address
   payoutIndex: number
   organizer: Address
+  expiresAt?: bigint
 }): Promise<SignedInvite> {
   const { circleId, member, payoutIndex, organizer } = params
   const magicWallet = await getMagicWalletClient(arbitrumSepolia.id)
@@ -123,11 +121,13 @@ async function signInviteAsCreator(params: {
   }
 
   const nonceHex = randomNonceHex()
+  const expiresAt = params.expiresAt ?? defaultInviteExpirySec()
   const message = {
     circleId,
     member,
     payoutIndex: BigInt(payoutIndex),
     nonce: BigInt(nonceHex),
+    expiresAt,
   }
   const typedData = {
     domain: INVITE_DOMAIN,
@@ -145,7 +145,7 @@ async function signInviteAsCreator(params: {
     throw new Error('Invite signature did not recover to your wallet — nothing was shared.')
   }
 
-  return { seat: payoutIndex, member, nonce: nonceHex, signature }
+  return { seat: payoutIndex, member, nonce: nonceHex, expiresAt: expiresAt.toString(), signature }
 }
 
 /**
@@ -154,6 +154,7 @@ async function signInviteAsCreator(params: {
  * dead on arrival — fail loudly BEFORE shipping them).
  */
 async function assertDigestMatchesContract(invite: SignedInvite, circleId: bigint) {
+  const expiresAt = BigInt(invite.expiresAt)
   const local = hashTypedData({
     domain: INVITE_DOMAIN,
     types: INVITE_TYPES,
@@ -163,12 +164,13 @@ async function assertDigestMatchesContract(invite: SignedInvite, circleId: bigin
       member: invite.member as Address,
       payoutIndex: BigInt(invite.seat),
       nonce: BigInt(invite.nonce),
+      expiresAt,
     },
   })
   const onchain = await publicClient().readContract({
     ...vault,
     functionName: 'inviteDigest',
-    args: [circleId, invite.member as Address, BigInt(invite.seat), BigInt(invite.nonce)],
+    args: [circleId, invite.member as Address, BigInt(invite.seat), BigInt(invite.nonce), expiresAt],
   })
   if (local.toLowerCase() !== (onchain as Hex).toLowerCase()) {
     throw new Error('Invite digest mismatch between app and contract — invites not shared.')
@@ -255,10 +257,9 @@ export async function createSelfCustodiedCircle(params: {
   if (circleId == null) throw new Error('circle created but CircleCreated event not found')
   const idStr = circleId.toString()
 
-  // 3. Sign every seat invite HERE, with the creator's key. Seat 0 binds the
-  //    creator's own address; open seats bind the per-seat derived members.
+  // 3. Seat 0 binds the creator's own Magic address. Open seats stay unsigned
+  //    until a joiner logs in and the organizer countersigns that wallet.
   onPhase?.('signing')
-  const seed = seatSeedFor(idStr)
   const seatZeroInvite = await signInviteAsCreator({
     circleId,
     member: organizer,
@@ -266,18 +267,7 @@ export async function createSelfCustodiedCircle(params: {
     organizer,
   })
   await assertDigestMatchesContract(seatZeroInvite, circleId)
-
   const invites: SignedInvite[] = []
-  for (let seat = 1; seat < seats; seat++) {
-    invites.push(
-      await signInviteAsCreator({
-        circleId,
-        member: seatMemberFor(seed, seat),
-        payoutIndex: seat,
-        organizer,
-      }),
-    )
-  }
 
   // 4. The creator takes seat 0 through their own kernel (sponsored). The
   //    signature — not the submitter — is the authorization on-chain.
@@ -293,6 +283,7 @@ export async function createSelfCustodiedCircle(params: {
           organizer,
           0n,
           BigInt(seatZeroInvite.nonce),
+          BigInt(seatZeroInvite.expiresAt),
           seatZeroInvite.signature as Hex,
         ],
       }),
@@ -355,6 +346,8 @@ export async function startSelfCustodiedCircle(params: {
 export async function mintSeatInviteAsOrganizer(params: {
   circleId: string
   seat: number
+  /** The joiner's Magic wallet — required. Never a derived placeholder. */
+  member: Address
 }): Promise<SignedInvite> {
   const circleId = BigInt(params.circleId)
   const magicWallet = await getMagicWalletClient(arbitrumSepolia.id)
@@ -369,11 +362,16 @@ export async function mintSeatInviteAsOrganizer(params: {
   if (onchain.organizer.toLowerCase() !== organizer.toLowerCase()) {
     throw new Error('Only this circle’s organizer can sign invites.')
   }
+  if (!params.member || params.member.toLowerCase() === organizer.toLowerCase()) {
+    // seat 0 is the organizer; open seats bind a different wallet
+    if (params.seat !== 0) {
+      throw new Error('Countersign the joiner’s own email wallet, not a placeholder.')
+    }
+  }
 
-  const seed = seatSeedFor(params.circleId)
   const invite = await signInviteAsCreator({
     circleId,
-    member: seatMemberFor(seed, params.seat),
+    member: params.member,
     payoutIndex: params.seat,
     organizer,
   })

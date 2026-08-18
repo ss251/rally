@@ -18,12 +18,14 @@ import {IRotatingVault} from "./IRotatingVault.sol";
  *           - An organizer creates a circle: token, per-round `depositAmount`,
  *             `roundDuration` (seconds), and rotation size `memberTarget` (N).
  *           - Members are admitted with org-signed EIP-712 invites that bind
- *             (circleId, member, payoutIndex, nonce). No per-member on-chain
- *             whitelist tx by the organizer: anyone may submit the redemption
- *             (relayer-friendly for Rally's email-wallet + gasless flow); the
- *             signature itself is the authorization and the member address in
- *             it is where all rights accrue. `payoutIndex` fixes the rotation:
- *             member i is the sole payee of round i's pot.
+ *             (circleId, member, payoutIndex, nonce, expiresAt). No per-member
+ *             on-chain whitelist tx by the organizer: anyone may submit the
+ *             redemption (relayer-friendly for Rally's email-wallet + gasless
+ *             flow); the signature itself is the authorization and the member
+ *             address in it is where all rights accrue. `expiresAt` is a
+ *             unix-seconds deadline (must be non-zero and not yet elapsed).
+ *             `payoutIndex` fixes the rotation: member i is the sole payee of
+ *             round i's pot.
  *           - Once all N slots are filled the organizer calls {start}; rounds
  *             are then purely time-derived: round r spans
  *             [startTime + r*D, startTime + (r+1)*D).
@@ -120,8 +122,9 @@ contract RotatingVault is IRotatingVault, ReentrancyGuard {
     /// @dev EIP-712 typed struct for an organizer-signed invite. The domain
     ///      (name, version, chainId, verifyingContract) prevents cross-chain
     ///      and cross-contract replay; the per-circle nonce prevents reuse.
-    bytes32 private constant _INVITE_TYPEHASH =
-        keccak256("Invite(uint256 circleId,address member,uint256 payoutIndex,uint256 nonce)");
+    bytes32 private constant _INVITE_TYPEHASH = keccak256(
+        "Invite(uint256 circleId,address member,uint256 payoutIndex,uint256 nonce,uint256 expiresAt)"
+    );
 
     /// @dev Minimal, self-contained EIP-712 domain machinery. The repo pins
     ///      evm_version = paris (conservative Arbitrum target) and OZ 5.6's
@@ -130,7 +133,7 @@ contract RotatingVault is IRotatingVault, ReentrancyGuard {
     ///      live here (mirroring OZ's own cache-and-rebuild pattern) while
     ///      signature RECOVERY still uses OZ ECDSA (malleability checks etc).
     string private constant _EIP712_NAME = "RotatingVault";
-    string private constant _EIP712_VERSION = "1";
+    string private constant _EIP712_VERSION = "2";
     bytes32 private constant _DOMAIN_TYPEHASH =
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
 
@@ -220,9 +223,10 @@ contract RotatingVault is IRotatingVault, ReentrancyGuard {
      * @inheritdoc IRotatingVault
      * @dev Anyone may submit the redemption tx (gasless/relayer-friendly);
      *      the organizer's signature over (circleId, member, payoutIndex,
-     *      nonce) is the sole authorization and `member` is where every right
-     *      (deposit slot, pot, refund) accrues, so a leaked invite or a
-     *      malicious relayer can never redirect funds.
+     *      nonce, expiresAt) is the sole authorization and `member` is where
+     *      every right (deposit slot, pot, refund) accrues, so a leaked invite
+     *      or a malicious relayer can never redirect funds. A zero or elapsed
+     *      `expiresAt` is rejected so a leaked invite cannot live forever.
      *
      *      There is no invite revocation in v1: the organizer's recourse for a
      *      mis-issued invite is {cancel} + recreate (no funds are at risk
@@ -230,14 +234,21 @@ contract RotatingVault is IRotatingVault, ReentrancyGuard {
      *      (EIP-7702-delegated EOAs included, which is what Rally's email
      *      wallets are); ERC-1271 contract signers are v2.
      */
-    function redeemInvite(uint256 circleId, address member, uint256 payoutIndex, uint256 nonce, bytes calldata signature)
-        external
-    {
+    function redeemInvite(
+        uint256 circleId,
+        address member,
+        uint256 payoutIndex,
+        uint256 nonce,
+        uint256 expiresAt,
+        bytes calldata signature
+    ) external {
         Circle storage c = _circles[circleId];
         if (c.status == Status.None) revert CircleNotFound();
         if (c.status != Status.Filling) revert NotFilling();
         if (member == address(0)) revert ZeroAddress();
         if (payoutIndex >= c.memberTarget) revert PayoutIndexOutOfRange();
+        if (expiresAt == 0) revert InvalidExpiry();
+        if (block.timestamp > expiresAt) revert InviteExpired();
         if (usedNonces[circleId][nonce]) revert InviteNonceUsed();
         // Safe: payoutIndex < memberTarget <= MAX_MEMBERS (256) checked above.
         // forge-lint: disable-next-line(unsafe-typecast)
@@ -245,7 +256,7 @@ contract RotatingVault is IRotatingVault, ReentrancyGuard {
         if (memberAt[circleId][idx] != address(0)) revert SlotTaken();
         if (_memberIndexPlus1[circleId][member] != 0) revert AlreadyMember();
 
-        bytes32 digest = _hashInvite(circleId, member, payoutIndex, nonce);
+        bytes32 digest = _hashInvite(circleId, member, payoutIndex, nonce, expiresAt);
         if (ECDSA.recover(digest, signature) != c.organizer) revert InvalidSigner();
 
         usedNonces[circleId][nonce] = true;
@@ -352,12 +363,27 @@ contract RotatingVault is IRotatingVault, ReentrancyGuard {
      *      so payees should claim promptly (the Rally frontend nudges them).
      */
     function claim(uint256 circleId) external nonReentrant {
+        _claimTo(circleId, msg.sender);
+    }
+
+    /**
+     * @inheritdoc IRotatingVault
+     * @dev Callable by ANYONE — safe because the pot only ever goes to `payee`,
+     *      whose payout index is derived from their own membership. A stranger
+     *      (or Rally's relayer) can never redirect funds.
+     */
+    function claimFor(uint256 circleId, address payee) external nonReentrant {
+        _claimTo(circleId, payee);
+    }
+
+    function _claimTo(uint256 circleId, address payee) private {
         Circle storage c = _circles[circleId];
         if (c.status == Status.None) revert CircleNotFound();
         if (c.status != Status.Active) revert NotActive();
         if (_lazyBroken(circleId, c)) revert CircleIsBroken();
+        if (payee == address(0)) revert ZeroAddress();
 
-        uint16 idx1 = _memberIndexPlus1[circleId][msg.sender];
+        uint16 idx1 = _memberIndexPlus1[circleId][payee];
         if (idx1 == 0) revert NotMember();
         uint256 r = uint256(idx1) - 1;
 
@@ -371,9 +397,9 @@ contract RotatingVault is IRotatingVault, ReentrancyGuard {
         bool completed = c.claimedCount == c.memberTarget;
         if (completed) c.status = Status.Completed;
 
-        IERC20(c.token).safeTransfer(msg.sender, pot);
+        IERC20(c.token).safeTransfer(payee, pot);
 
-        emit PotClaimed(circleId, r, msg.sender, pot);
+        emit PotClaimed(circleId, r, payee, pot);
         if (completed) emit CircleCompleted(circleId);
     }
 
@@ -502,12 +528,14 @@ contract RotatingVault is IRotatingVault, ReentrancyGuard {
         return keccak256(abi.encodePacked(hex"1901", _domainSeparatorV4(), structHash));
     }
 
-    function _hashInvite(uint256 circleId, address member, uint256 payoutIndex, uint256 nonce)
+    function _hashInvite(uint256 circleId, address member, uint256 payoutIndex, uint256 nonce, uint256 expiresAt)
         private
         view
         returns (bytes32)
     {
-        return _hashTypedDataV4(keccak256(abi.encode(_INVITE_TYPEHASH, circleId, member, payoutIndex, nonce)));
+        return _hashTypedDataV4(
+            keccak256(abi.encode(_INVITE_TYPEHASH, circleId, member, payoutIndex, nonce, expiresAt))
+        );
     }
 
     /**
@@ -532,12 +560,12 @@ contract RotatingVault is IRotatingVault, ReentrancyGuard {
     }
 
     /// @inheritdoc IRotatingVault
-    function inviteDigest(uint256 circleId, address member, uint256 payoutIndex, uint256 nonce)
+    function inviteDigest(uint256 circleId, address member, uint256 payoutIndex, uint256 nonce, uint256 expiresAt)
         external
         view
         returns (bytes32)
     {
-        return _hashInvite(circleId, member, payoutIndex, nonce);
+        return _hashInvite(circleId, member, payoutIndex, nonce, expiresAt);
     }
 
     /// @inheritdoc IRotatingVault

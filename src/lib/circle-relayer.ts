@@ -48,6 +48,7 @@ import {
   INVITE_TYPES,
   ROTATING_VAULT,
   ROTATING_VAULT_ABI,
+  defaultInviteExpirySec,
 } from '#/lib/circle'
 
 const USDC_ARB = EVM_CHAINS.arbitrumSepolia.usdc
@@ -132,7 +133,7 @@ const randomNonce = () => BigInt(generatePrivateKey())
 
 async function signInviteAsOrganizer(
   relayer: ReturnType<typeof privateKeyToAccount>,
-  msg: { circleId: bigint; member: Address; payoutIndex: bigint; nonce: bigint },
+  msg: { circleId: bigint; member: Address; payoutIndex: bigint; nonce: bigint; expiresAt: bigint },
 ): Promise<Hex> {
   return relayer.signTypedData({
     domain: INVITE_DOMAIN,
@@ -245,6 +246,7 @@ export interface RedeemSeatInput {
   /** A pre-signed org invite (URL-encoded form). When present it is relayed
    *  as-is; when absent the relayer must BE the organizer and signs one now. */
   nonce?: bigint
+  expiresAt?: bigint
   signature?: Hex
 }
 
@@ -272,6 +274,7 @@ async function redeemSeatInternal(
   if (Number(circle.status) !== 1) throw new Error('NotFilling')
 
   let nonce = input.nonce
+  let expiresAt = input.expiresAt
   let signature = input.signature
   if (!signature) {
     // Mint an org-signed invite on demand — only possible for circles the
@@ -280,14 +283,16 @@ async function redeemSeatInternal(
       throw new Error('this circle’s invites must be signed by its organizer')
     }
     nonce = randomNonce()
-    signature = await signInviteAsOrganizer(relayer, { circleId, member, payoutIndex, nonce })
+    expiresAt = defaultInviteExpirySec()
+    signature = await signInviteAsOrganizer(relayer, { circleId, member, payoutIndex, nonce, expiresAt })
   }
   if (nonce == null) throw new Error('a signed invite needs its nonce')
+  if (expiresAt == null || expiresAt === 0n) throw new Error('a signed invite needs its expiry')
 
   const tx = await walletClient.writeContract({
     ...vault,
     functionName: 'redeemInvite',
-    args: [circleId, member, payoutIndex, nonce, signature],
+    args: [circleId, member, payoutIndex, nonce, expiresAt, signature],
   })
   await publicClient.waitForTransactionReceipt({ hash: tx })
 

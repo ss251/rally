@@ -54,6 +54,7 @@ import {
   INVITE_TYPES,
   ROTATING_VAULT,
   ROTATING_VAULT_ABI,
+  defaultInviteExpirySec,
 } from '#/lib/circle'
 
 const PROJECT_ID = process.env.VITE_ZERODEV_PROJECT_ID
@@ -112,7 +113,7 @@ async function sendSponsored(kernelClient: Awaited<ReturnType<typeof kernelFor>>
 /** Sign + verify an invite exactly like lib/circle-self-custody.ts does. */
 async function signInvite(
   organizer: ReturnType<typeof privateKeyToAccount>,
-  msg: { circleId: bigint; member: Address; payoutIndex: bigint; nonce: bigint },
+  msg: { circleId: bigint; member: Address; payoutIndex: bigint; nonce: bigint; expiresAt: bigint },
 ) {
   const typedData = {
     domain: INVITE_DOMAIN,
@@ -130,7 +131,7 @@ async function signInvite(
   const onchain = (await publicClient.readContract({
     ...vault,
     functionName: 'inviteDigest',
-    args: [msg.circleId, msg.member, msg.payoutIndex, msg.nonce],
+    args: [msg.circleId, msg.member, msg.payoutIndex, msg.nonce, msg.expiresAt],
   })) as Hex
   if (local.toLowerCase() !== onchain.toLowerCase()) {
     throw new Error(`digest mismatch: local ${local} vs contract ${onchain}`)
@@ -198,17 +199,20 @@ async function main() {
   console.log('\n2) organizer signs both seat invites (EIP-712, client-side shape)…')
   const nonce0 = BigInt(generatePrivateKey())
   const nonce1 = BigInt(generatePrivateKey())
+  const expiresAt = defaultInviteExpirySec()
   const sig0 = await signInvite(organizer, {
     circleId,
     member: organizer.address,
     payoutIndex: 0n,
     nonce: nonce0,
+    expiresAt,
   })
   const sig1 = await signInvite(organizer, {
     circleId,
     member: member2.address,
     payoutIndex: 1n,
     nonce: nonce1,
+    expiresAt,
   })
 
   // ── 3a. Seat 0: organizer's own kernel redeems (the app's create flow) ─────
@@ -218,7 +222,7 @@ async function main() {
     encodeFunctionData({
       abi: ROTATING_VAULT_ABI,
       functionName: 'redeemInvite',
-      args: [circleId, organizer.address, 0n, nonce0, sig0],
+      args: [circleId, organizer.address, 0n, nonce0, expiresAt, sig0],
     }),
   )
   console.log(`   seat0Tx: ${EXPLORER}/tx/${seat0Tx}`)
@@ -233,7 +237,7 @@ async function main() {
   const seat1Tx = await relayerWallet.writeContract({
     ...vault,
     functionName: 'redeemInvite',
-    args: [circleId, member2.address, 1n, nonce1, sig1],
+    args: [circleId, member2.address, 1n, nonce1, expiresAt, sig1],
   })
   await publicClient.waitForTransactionReceipt({ hash: seat1Tx })
   console.log(`   seat1Tx: ${EXPLORER}/tx/${seat1Tx}`)

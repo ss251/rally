@@ -10,18 +10,36 @@
 import { createPublicClient, http, type Address } from 'viem'
 import { arbitrumSepolia } from 'viem/chains'
 
-// ── Deployment (RotatingVault, deployed + Arbiscan-verified 2026-07-03) ─────
-export const ROTATING_VAULT: Address = '0xdd9b3e5F407B99e2C2827695608741B328F97838'
+// ── Deployment ──────────────────────────────────────────────────────────────
+// v1 (2026-07-03) is historic — /circle/1, /circle/2, /circle/6 stay here.
+// v2 (expiresAt + claimFor) is a new deploy; ROTATING_VAULT is swapped after
+// the Pashov gate + broadcast. Until then both constants match v1 so live
+// reads keep working and writes still target the verified vault.
+export const HISTORIC_ROTATING_VAULT: Address = '0xdd9b3e5F407B99e2C2827695608741B328F97838'
+export const ROTATING_VAULT: Address = HISTORIC_ROTATING_VAULT
 export const ROTATING_VAULT_SHORT = '0xdd9b…7838'
+/** Circle ids that live on the v1 vault forever (receipts, not product). */
+export const HISTORIC_CIRCLE_IDS = new Set(['1', '2', '6'])
 const ARBITRUM_SEPOLIA_RPC = 'https://sepolia-rollup.arbitrum.io/rpc'
 const USDC_DECIMALS = 6
 
-// ── EIP-712 invite (must mirror RotatingVault.sol exactly) ──────────────────
-// Domain: name "RotatingVault", version "1", chainId 421614, the vault address.
-// Struct: Invite(uint256 circleId,address member,uint256 payoutIndex,uint256 nonce)
+/** Default EIP-712 invite lifetime — long enough to share a link, not forever. */
+export const INVITE_TTL_SECONDS = 7 * 24 * 60 * 60
+
+export function defaultInviteExpirySec(): bigint {
+  return BigInt(Math.floor(Date.now() / 1000) + INVITE_TTL_SECONDS)
+}
+
+export function vaultAddressForCircleId(id: string): Address {
+  return HISTORIC_CIRCLE_IDS.has(id) ? HISTORIC_ROTATING_VAULT : ROTATING_VAULT
+}
+
+// ── EIP-712 invite (must mirror RotatingVault.sol v2 exactly) ───────────────
+// Domain: name "RotatingVault", version "2", chainId 421614, the LIVE vault.
+// Struct: Invite(uint256 circleId,address member,uint256 payoutIndex,uint256 nonce,uint256 expiresAt)
 export const INVITE_DOMAIN = {
   name: 'RotatingVault',
-  version: '1',
+  version: '2',
   chainId: arbitrumSepolia.id,
   verifyingContract: ROTATING_VAULT,
 } as const
@@ -32,6 +50,7 @@ export const INVITE_TYPES = {
     { name: 'member', type: 'address' },
     { name: 'payoutIndex', type: 'uint256' },
     { name: 'nonce', type: 'uint256' },
+    { name: 'expiresAt', type: 'uint256' },
   ],
 } as const
 
@@ -143,6 +162,7 @@ export const ROTATING_VAULT_ABI = [
       { name: 'member', type: 'address' },
       { name: 'payoutIndex', type: 'uint256' },
       { name: 'nonce', type: 'uint256' },
+      { name: 'expiresAt', type: 'uint256' },
     ],
     outputs: [{ type: 'bytes32' }],
   },
@@ -168,6 +188,7 @@ export const ROTATING_VAULT_ABI = [
       { name: 'member', type: 'address' },
       { name: 'payoutIndex', type: 'uint256' },
       { name: 'nonce', type: 'uint256' },
+      { name: 'expiresAt', type: 'uint256' },
       { name: 'signature', type: 'bytes' },
     ],
     outputs: [],
@@ -201,6 +222,16 @@ export const ROTATING_VAULT_ABI = [
     name: 'claim',
     stateMutability: 'nonpayable',
     inputs: [{ name: 'circleId', type: 'uint256' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'claimFor',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'circleId', type: 'uint256' },
+      { name: 'payee', type: 'address' },
+    ],
     outputs: [],
   },
   {
@@ -329,6 +360,8 @@ export interface SignedInvite {
   seat: number
   member: string
   nonce: string
+  /** Unix seconds; bound into the EIP-712 digest (v2). */
+  expiresAt: string
   signature: string
 }
 
@@ -348,7 +381,9 @@ export function inviteLinkFor(
 ): string {
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const t = title ? `&t=${encodeURIComponent(title)}` : ''
-  const signed = invite ? `&m=${invite.member}&n=${invite.nonce}&s=${invite.signature}` : ''
+  const signed = invite
+    ? `&m=${invite.member}&n=${invite.nonce}&e=${invite.expiresAt}&s=${invite.signature}`
+    : ''
   return `${origin}/invite?c=${circleId}&i=${seat}${t}${signed}`
 }
 
@@ -372,7 +407,7 @@ export async function fetchLiveCircle(id: string, titleHint?: string): Promise<C
     chain: arbitrumSepolia,
     transport: http(ARBITRUM_SEPOLIA_RPC),
   })
-  const vault = { address: ROTATING_VAULT, abi: ROTATING_VAULT_ABI } as const
+  const vault = { address: vaultAddressForCircleId(id), abi: ROTATING_VAULT_ABI } as const
 
   try {
     const [circle, statusRaw, membersRaw] = await client.multicall({
@@ -571,6 +606,8 @@ export function friendlyCircleError(e: unknown): string {
     ['InviteNonceUsed', 'This invite was already used.'],
     ['NotFilling', 'This circle is no longer taking new members.'],
     ['InvalidSigner', 'This invite isn’t valid for this circle.'],
+    ['InviteExpired', 'This invite expired — ask for a fresh link.'],
+    ['InvalidExpiry', 'This invite is missing a valid expiry.'],
     ['NotActive', 'This circle isn’t running right now.'],
   ]
   for (const [needle, friendly] of table) {

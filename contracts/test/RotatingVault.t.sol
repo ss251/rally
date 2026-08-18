@@ -176,18 +176,40 @@ contract RotatingVaultTest is Test {
         usdc.approve(address(vault), type(uint256).max);
     }
 
+    function _farExpiry() internal view returns (uint256) {
+        return block.timestamp + 30 days;
+    }
+
     function _signInvite(uint256 pk, uint256 circleId, address member, uint256 payoutIndex, uint256 nonce)
         internal
         view
         returns (bytes memory)
     {
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, vault.inviteDigest(circleId, member, payoutIndex, nonce));
+        return _signInviteAt(pk, circleId, member, payoutIndex, nonce, _farExpiry());
+    }
+
+    function _signInviteAt(
+        uint256 pk,
+        uint256 circleId,
+        address member,
+        uint256 payoutIndex,
+        uint256 nonce,
+        uint256 expiresAt
+    ) internal view returns (bytes memory) {
+        (uint8 v, bytes32 r, bytes32 s) =
+            vm.sign(pk, vault.inviteDigest(circleId, member, payoutIndex, nonce, expiresAt));
         return abi.encodePacked(r, s, v);
     }
 
     function _join(uint256 circleId, address member, uint256 payoutIndex) internal {
+        uint256 exp = _farExpiry();
         vault.redeemInvite(
-            circleId, member, payoutIndex, payoutIndex, _signInvite(ORGANIZER_PK, circleId, member, payoutIndex, payoutIndex)
+            circleId,
+            member,
+            payoutIndex,
+            payoutIndex,
+            exp,
+            _signInviteAt(ORGANIZER_PK, circleId, member, payoutIndex, payoutIndex, exp)
         );
     }
 
@@ -319,38 +341,41 @@ contract RotatingVaultTest is Test {
             abi.encode(
                 keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
                 keccak256(bytes("RotatingVault")),
-                keccak256(bytes("1")),
+                keccak256(bytes("2")),
                 block.chainid,
                 address(vault)
             )
         );
         assertEq(vault.domainSeparator(), domainSep, "domain separator mismatch");
 
+        uint256 expiresAt = block.timestamp + 7 days;
         bytes32 structHash = keccak256(
             abi.encode(
-                keccak256("Invite(uint256 circleId,address member,uint256 payoutIndex,uint256 nonce)"),
+                keccak256("Invite(uint256 circleId,address member,uint256 payoutIndex,uint256 nonce,uint256 expiresAt)"),
                 id,
                 alice,
                 uint256(0),
-                uint256(77)
+                uint256(77),
+                expiresAt
             )
         );
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSep, structHash));
-        assertEq(vault.inviteDigest(id, alice, 0, 77), digest, "typed data digest mismatch");
+        assertEq(vault.inviteDigest(id, alice, 0, 77, expiresAt), digest, "typed data digest mismatch");
     }
 
     function test_redeemInvite_succeeds_andAnyoneMaySubmit() public {
         vm.prank(organizer);
         uint256 id = vault.createCircle(address(usdc), AMOUNT, WEEK, 3);
 
-        bytes memory sig = _signInvite(ORGANIZER_PK, id, alice, 0, 1);
+        uint256 exp = _farExpiry();
+        bytes memory sig = _signInviteAt(ORGANIZER_PK, id, alice, 0, 1, exp);
 
         vm.expectEmit(true, true, true, true);
         emit InviteRedeemed(id, alice, 0, 1);
 
         // A relayer (stranger) submits the redemption — gasless composability.
         vm.prank(stranger);
-        vault.redeemInvite(id, alice, 0, 1, sig);
+        vault.redeemInvite(id, alice, 0, 1, exp, sig);
 
         assertTrue(vault.isMember(id, alice));
         assertEq(vault.memberIndexOf(id, alice), 0);
@@ -363,9 +388,10 @@ contract RotatingVaultTest is Test {
         vm.prank(organizer);
         uint256 id = vault.createCircle(address(usdc), AMOUNT, WEEK, 3);
 
-        bytes memory sig = _signInvite(STRANGER_PK, id, alice, 0, 1);
+        uint256 exp = _farExpiry();
+        bytes memory sig = _signInviteAt(STRANGER_PK, id, alice, 0, 1, exp);
         vm.expectRevert(IRotatingVault.InvalidSigner.selector);
-        vault.redeemInvite(id, alice, 0, 1, sig);
+        vault.redeemInvite(id, alice, 0, 1, exp, sig);
     }
 
     function test_redeemInvite_rejectsTamperedFields() public {
@@ -373,16 +399,20 @@ contract RotatingVaultTest is Test {
         uint256 id = vault.createCircle(address(usdc), AMOUNT, WEEK, 3);
 
         // Signed for alice/slot0/nonce1 — any tampered field must fail.
-        bytes memory sig = _signInvite(ORGANIZER_PK, id, alice, 0, 1);
+        uint256 exp = _farExpiry();
+        bytes memory sig = _signInviteAt(ORGANIZER_PK, id, alice, 0, 1, exp);
 
         vm.expectRevert(IRotatingVault.InvalidSigner.selector);
-        vault.redeemInvite(id, bob, 0, 1, sig); // wrong member
+        vault.redeemInvite(id, bob, 0, 1, exp, sig); // wrong member
 
         vm.expectRevert(IRotatingVault.InvalidSigner.selector);
-        vault.redeemInvite(id, alice, 1, 1, sig); // wrong slot
+        vault.redeemInvite(id, alice, 1, 1, exp, sig); // wrong slot
 
         vm.expectRevert(IRotatingVault.InvalidSigner.selector);
-        vault.redeemInvite(id, alice, 0, 2, sig); // wrong nonce
+        vault.redeemInvite(id, alice, 0, 2, exp, sig); // wrong nonce
+
+        vm.expectRevert(IRotatingVault.InvalidSigner.selector);
+        vault.redeemInvite(id, alice, 0, 1, exp + 1, sig); // wrong expiry
     }
 
     function test_redeemInvite_rejectsReplayAndCollisions() public {
@@ -391,40 +421,65 @@ contract RotatingVaultTest is Test {
 
         _join(id, alice, 0);
 
+        uint256 exp = _farExpiry();
         // same nonce replay
-        bytes memory sig = _signInvite(ORGANIZER_PK, id, bob, 1, 0);
+        bytes memory sig = _signInviteAt(ORGANIZER_PK, id, bob, 1, 0, exp);
         vm.expectRevert(IRotatingVault.InviteNonceUsed.selector);
-        vault.redeemInvite(id, bob, 1, 0, sig);
+        vault.redeemInvite(id, bob, 1, 0, exp, sig);
 
         // occupied slot
-        sig = _signInvite(ORGANIZER_PK, id, bob, 0, 9);
+        sig = _signInviteAt(ORGANIZER_PK, id, bob, 0, 9, exp);
         vm.expectRevert(IRotatingVault.SlotTaken.selector);
-        vault.redeemInvite(id, bob, 0, 9, sig);
+        vault.redeemInvite(id, bob, 0, 9, exp, sig);
 
         // duplicate member
-        sig = _signInvite(ORGANIZER_PK, id, alice, 1, 9);
+        sig = _signInviteAt(ORGANIZER_PK, id, alice, 1, 9, exp);
         vm.expectRevert(IRotatingVault.AlreadyMember.selector);
-        vault.redeemInvite(id, alice, 1, 9, sig);
+        vault.redeemInvite(id, alice, 1, 9, exp, sig);
 
         // out-of-range slot
-        sig = _signInvite(ORGANIZER_PK, id, bob, 3, 9);
+        sig = _signInviteAt(ORGANIZER_PK, id, bob, 3, 9, exp);
         vm.expectRevert(IRotatingVault.PayoutIndexOutOfRange.selector);
-        vault.redeemInvite(id, bob, 3, 9, sig);
+        vault.redeemInvite(id, bob, 3, 9, exp, sig);
     }
 
     function test_redeemInvite_rejectsAfterStartOrCancel() public {
         uint256 id = _startedCircle3();
-        bytes memory sig = _signInvite(ORGANIZER_PK, id, dave, 0, 9);
+        uint256 exp = _farExpiry();
+        bytes memory sig = _signInviteAt(ORGANIZER_PK, id, dave, 0, 9, exp);
         vm.expectRevert(IRotatingVault.NotFilling.selector);
-        vault.redeemInvite(id, dave, 0, 9, sig);
+        vault.redeemInvite(id, dave, 0, 9, exp, sig);
 
         vm.prank(organizer);
         uint256 id2 = vault.createCircle(address(usdc), AMOUNT, WEEK, 3);
         vm.prank(organizer);
         vault.cancel(id2);
-        sig = _signInvite(ORGANIZER_PK, id2, dave, 0, 9);
+        sig = _signInviteAt(ORGANIZER_PK, id2, dave, 0, 9, exp);
         vm.expectRevert(IRotatingVault.NotFilling.selector);
-        vault.redeemInvite(id2, dave, 0, 9, sig);
+        vault.redeemInvite(id2, dave, 0, 9, exp, sig);
+    }
+
+    function test_redeemInvite_rejectsZeroAndElapsedExpiry() public {
+        vm.prank(organizer);
+        uint256 id = vault.createCircle(address(usdc), AMOUNT, WEEK, 3);
+
+        bytes memory sigZero = _signInviteAt(ORGANIZER_PK, id, alice, 0, 1, 0);
+        vm.expectRevert(IRotatingVault.InvalidExpiry.selector);
+        vault.redeemInvite(id, alice, 0, 1, 0, sigZero);
+
+        uint256 past = block.timestamp; // equal is still valid; warp past it
+        bytes memory sigPast = _signInviteAt(ORGANIZER_PK, id, alice, 0, 1, past);
+        vm.warp(past + 1);
+        vm.expectRevert(IRotatingVault.InviteExpired.selector);
+        vault.redeemInvite(id, alice, 0, 1, past, sigPast);
+
+        // exactly at expiry is still valid
+        vm.prank(organizer);
+        uint256 id2 = vault.createCircle(address(usdc), AMOUNT, WEEK, 3);
+        uint256 at = block.timestamp;
+        bytes memory sigAt = _signInviteAt(ORGANIZER_PK, id2, alice, 0, 1, at);
+        vault.redeemInvite(id2, alice, 0, 1, at, sigAt);
+        assertTrue(vault.isMember(id2, alice));
     }
 
     // ------------------------------------------------------------------
@@ -659,6 +714,34 @@ contract RotatingVaultTest is Test {
         vm.prank(alice);
         vm.expectRevert(IRotatingVault.PotAlreadyClaimed.selector);
         vault.claim(id);
+    }
+
+    function test_claimFor_anyoneMaySubmit_paysPayeeOnly() public {
+        uint256 id = _startedCircle3();
+        _depositAll3(id);
+
+        uint256 aliceBefore = usdc.balanceOf(alice);
+        uint256 strangerBefore = usdc.balanceOf(stranger);
+
+        // A stranger (relayer) submits — pot still lands on alice, never the caller.
+        vm.prank(stranger);
+        vault.claimFor(id, alice);
+
+        assertEq(usdc.balanceOf(alice) - aliceBefore, 3 * AMOUNT);
+        assertEq(usdc.balanceOf(stranger), strangerBefore);
+        assertTrue(vault.potClaimed(id, 0));
+
+        // cannot redirect: claiming "for" bob while only round 0 is funded
+        // targets bob's own unpaid round, not alice's already-paid pot.
+        vm.prank(stranger);
+        vm.expectRevert(IRotatingVault.RoundNotFunded.selector);
+        vault.claimFor(id, bob);
+
+        vm.expectRevert(IRotatingVault.NotMember.selector);
+        vault.claimFor(id, stranger);
+
+        vm.expectRevert(IRotatingVault.ZeroAddress.selector);
+        vault.claimFor(id, address(0));
     }
 
     function test_claim_revertsWhileRoundUnderfunded() public {
