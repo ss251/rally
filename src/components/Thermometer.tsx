@@ -5,6 +5,7 @@ import {
   CHAIN_META,
   CHAIN_ORDER,
   formatUsd,
+  fundStatusLabel,
   pct as pctOf,
   type CampaignStatus,
   type Chain,
@@ -223,12 +224,13 @@ export function Thermometer({
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
-              {/* Warm-white heartbeat — status is never painted in the CTA color. */}
-              <span
-                className="animate-pulse-dot h-1.5 w-1.5 rounded-full"
-                style={{ background: 'rgba(255,241,232,0.82)', color: 'rgba(255,241,232,0.82)' }}
-              />
-              {skin === 'potluck' ? 'Collecting now' : 'Raising now'}
+              {status !== 'missed' && (
+                <span
+                  className="animate-pulse-dot h-1.5 w-1.5 rounded-full"
+                  style={{ background: 'rgba(255,241,232,0.82)', color: 'rgba(255,241,232,0.82)' }}
+                />
+              )}
+              {fundStatusLabel(status ?? 'live', { potluck: skin === 'potluck' })}
             </span>
           )}
         </div>

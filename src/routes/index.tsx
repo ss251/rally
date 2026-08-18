@@ -8,7 +8,7 @@ import { ModeSwitch } from '#/components/ModeSwitch'
 import { Thermometer } from '#/components/Thermometer'
 import { ContributorFeed } from '#/components/ContributorFeed'
 import { ChainIcon } from '#/components/ChainIcon'
-import { countdown, formatUsd, pct } from '#/design/chains'
+import { countdown, formatUsd, fundStatusLabel, pct } from '#/design/chains'
 import { useCountUp } from '#/design/useCountUp'
 import { loadCampaign, mockCampaign, type CampaignView } from '#/lib/campaign'
 
@@ -53,7 +53,8 @@ function Home() {
   const displayRaised = Math.round(animatedRaised * 100) / 100
   const realPct = pct(displayRaised, c.goal, 9999)
   const cd = now == null ? null : countdown(c.deadline, now)
-  const funded = c.status === 'funded'
+  const raising = c.status === 'live'
+  const canChip = raising
 
   return (
     <>
@@ -70,29 +71,59 @@ function Home() {
         }
         cta={
           <div className="flex flex-col items-center gap-3">
-            <button
-              onClick={() => setSheetOpen(true)}
-              className="relative w-full overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
-              style={{
-                background:
-                  'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
-                boxShadow:
-                  'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
-              }}
-            >
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
-                style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
-              />
-              Chip in $25
-            </button>
-            <Link
-              to="/create"
-              className="text-sm font-medium text-muted transition-colors hover:text-paper"
-            >
-              or start your own rally →
-            </Link>
+            {canChip ? (
+              <button
+                onClick={() => setSheetOpen(true)}
+                className="relative w-full overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
+                style={{
+                  background:
+                    'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
+                  boxShadow:
+                    'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
+                }}
+              >
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+                  style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
+                />
+                Chip in $25
+              </button>
+            ) : (
+              <Link
+                to="/create"
+                className="relative flex w-full items-center justify-center overflow-hidden rounded-full py-4 text-base font-semibold text-ink-950 transition-transform duration-150 ease-[var(--ease-rally)] active:scale-[0.97]"
+                style={{
+                  background:
+                    'linear-gradient(180deg, var(--color-rally-400), var(--color-rally-500) 58%, var(--color-rally-600))',
+                  boxShadow:
+                    'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,30,0,0.18), 0 8px 22px -10px rgba(0,0,0,0.8)',
+                }}
+              >
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+                  style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.28), transparent)' }}
+                />
+                Start a rally
+              </Link>
+            )}
+            {canChip ? (
+              <Link
+                to="/create"
+                className="text-sm font-medium text-muted transition-colors hover:text-paper"
+              >
+                or start your own rally →
+              </Link>
+            ) : (
+              <Link
+                to="/c/$id"
+                params={{ id: HERO_CAMPAIGN_ID }}
+                className="text-sm font-medium text-muted transition-colors hover:text-paper"
+              >
+                or see the full receipt →
+              </Link>
+            )}
           </div>
         }
       >
@@ -102,7 +133,9 @@ function Home() {
           <ModeSwitch active="goals" />
 
           <div>
-            <p className="text-sm text-faint">{c.organizer} is rallying for</p>
+            <p className="text-sm text-faint">
+              {c.organizer} {raising ? 'is rallying for' : 'rallied for'}
+            </p>
             <h1
               className="mt-1.5 text-display font-semibold text-paper"
               style={{ fontFamily: 'var(--font-display)' }}
@@ -125,11 +158,10 @@ function Home() {
             />
             <div className="flex flex-1 flex-col justify-center gap-4">
               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
-                {/* Honest state: the pulse only beats when the numbers are live. */}
-                {c.live && (
+                {c.live && raising && (
                   <span className="h-1.5 w-1.5 rounded-full animate-pulse-dot" style={{ background: 'rgba(255,241,232,0.82)' }} />
                 )}
-                {c.live ? (funded ? 'Goal met' : 'Raising now') : 'Preview — reconnecting'}
+                {fundStatusLabel(c.status, { live: c.live })}
               </span>
               <div>
                 <div className="flex items-baseline gap-2.5">
@@ -226,17 +258,17 @@ function Home() {
         </div>
       </AppShell>
 
-      <ContributeSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        campaignTitle={c.title}
-        campaignId={HERO_CAMPAIGN_ID}
-        fromChain="base"
-        initialAmount={25}
-        // The money just landed on-chain — re-run the loader so THIS bar,
-        // the one they're looking at, visibly rises.
-        onContributed={() => router.invalidate()}
-      />
+      {canChip && (
+        <ContributeSheet
+          open={sheetOpen}
+          onClose={() => setSheetOpen(false)}
+          campaignTitle={c.title}
+          campaignId={HERO_CAMPAIGN_ID}
+          fromChain="base"
+          initialAmount={25}
+          onContributed={() => router.invalidate()}
+        />
+      )}
     </>
   )
 }

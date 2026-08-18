@@ -148,6 +148,21 @@ export function timeAgo(ts: number, now: number): string {
   return `${Math.round(s / 86400)}d`
 }
 
+/**
+ * Status pill copy. Must agree with `countdown()` — a closed pot never says
+ * "Raising now" next to "Ended".
+ */
+export function fundStatusLabel(
+  status: CampaignStatus,
+  opts?: { live?: boolean; potluck?: boolean },
+): string {
+  if (opts?.potluck) return status === 'funded' ? 'Fully funded' : 'Collecting gifts'
+  if (status === 'funded') return 'Goal met'
+  if (status === 'missed') return 'Missed — refunds open'
+  if (opts?.live === false) return 'Preview — reconnecting'
+  return 'Raising now'
+}
+
 /** Countdown to a deadline. `urgent` when < 24h remain. */
 export function countdown(deadline: number, now: number): { label: string; urgent: boolean; ended: boolean } {
   const ms = deadline - now
