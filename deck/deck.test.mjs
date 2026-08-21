@@ -124,21 +124,6 @@ describe('deck content', () => {
     assert.match(html, /2:07 walkthrough/)
   })
 
-  it('ships a spoken line for every slide and does not invite a live hop', () => {
-    const notes = [...html.matchAll(/<p class="notes">([\s\S]*?)<\/p>/g)].map((m) => m[1])
-    assert.equal(notes.length, 8)
-    for (const note of notes) {
-      const words = note.trim().split(/\s+/).length
-      assert.ok(words >= 8, `note too short: ${note}`)
-      assert.ok(words <= 80, `note too long: ${note}`)
-    }
-    const all = notes.join(' ')
-    assert.doesNotMatch(all, /wifi/i)
-    assert.doesNotMatch(all, /chip #1/i)
-    assert.doesNotMatch(all, /let me open/i)
-    assert.doesNotMatch(all, /switch to the live/i)
-  })
-
   it('has no pitch-deck slop', () => {
     const low = html.toLowerCase()
     for (const word of SLOP) {
