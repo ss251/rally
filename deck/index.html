@@ -43,7 +43,7 @@
                   <span class="chip paper"><img class="sq" src="./assets/logos/optimism.svg?v=2" alt="" />Optimism</span>
                   <span class="chip paper"><img class="sq" src="./assets/logos/base.svg?v=2" alt="" />Base</span>
                 </div>
-                <p class="notes">Each color on that bar is a chain the USDC actually came from. One link. If it fills, it pays out. If it misses, anyone can refund. That's a live shot of pot nine — I'm staying on the slides.</p>
+                <p class="notes">Hey guys I'm here to present Rally — group money onchain. Lets people permissionlessly spin up group pots.</p>
               </div>
               <div class="phone enter"><img src="./assets/shots/landing.png" alt="Live Rally landing — pot #9, three source chains" /></div>
             </div>
@@ -66,7 +66,7 @@
                 <p>The pot needed someone who could take the money. It needed a contract.</p>
               </div>
             </div>
-            <p class="notes">PayPal shut Money Pools in 2021 and never replaced them. A tanda still goes through one person. The gap wasn't another app. The pot needed a contract.</p>
+            <p class="notes">Inspiration behind this was to let people manage group pots easily without having to go through the friction of setting up a crypto wallet or handling private keys. PayPal shut down Money Pools in 2021 and never replaced. Traditional savings circles still depend on a trusted organizer.</p>
           </section>
 
           <section class="slide" data-i="2">
@@ -90,7 +90,7 @@
                 <div class="shot" style="background-image:url('./assets/shots/circle.png')" role="img" aria-label="Live circle #7 — Friday dinner, mid-fill"></div>
               </article>
             </div>
-            <p class="notes">Left is a goal — all or nothing. Pot nine, eleven of twenty-five, Base, Arbitrum, Optimism. Right is a circle. Friday dinner, four seats, a dollar each, three of four this round. Miss a round and it stops and refunds.</p>
+            <p class="notes">We have 2 kinds of pools — goals and circles. Goals let people create an all-or-nothing pot to meet a shared financial goal. Circles are bringing savings circles onchain and taking the hassle out of bookkeeping.</p>
           </section>
 
           <section class="slide" data-i="3">
@@ -109,7 +109,7 @@
               </div>
               <div class="phone"><img src="./assets/shots/chipin.png" alt="Chip in sheet — email, amount, paying-from Base / OP / Arb" /></div>
             </div>
-            <p class="notes">Email, amount, paying-from. That's the whole sheet. Magic's OTP makes the account. ZeroDev sponsors gas so they don't need ETH. Circle only runs if the USDC isn't on Arbitrum yet.</p>
+            <p class="notes">Every time a user logs in with their email, Magic spins up an embedded wallet and activates 7702 authorization to enable gasless transactions. ZeroDev enables those gasless transactions.</p>
           </section>
 
           <section class="slide" data-i="4">
@@ -156,7 +156,7 @@ _credit(campaignId, backer, amount, sourceDomain);</pre>
               <span>86 / 86 Foundry · fund-conservation fuzz</span>
               <a href="https://sepolia.arbiscan.io/address/0x914e4682ad2febb3e00a21db29b93c16fc080ab4#code" target="_blank" rel="noreferrer">verify ↗</a>
             </div>
-            <p class="notes">Left to right: 7702 on the same address, a sponsored UserOp, CCTP from domain 6 or 2 onto 3, then the vault. Refund is permissionless. UnattributedFunds is the important revert — you cannot credit money that isn't there. Both vaults are verified. Eighty-six tests, including a fund-conservation fuzz.</p>
+            <p class="notes">Circle CCTP allows for cross chain deposits into the pool, currently supports Optimism and Base besides Arbitrum. The vault contracts themselves are deployed on Arbitrum testnet.</p>
           </section>
 
           <section class="slide" data-i="5">
@@ -187,7 +187,7 @@ _credit(campaignId, backer, amount, sourceDomain);</pre>
               <a href="https://rally-production-94cc.up.railway.app/circle/2" target="_blank" rel="noreferrer">/circle/2</a>
               <a href="https://sepolia.arbiscan.io/tx/0xdb9d1d5cef7e32ab9040e8f2878d9e80a634fd42d900eeb791e1a0e151729ba6" target="_blank" rel="noreferrer">refund tx</a>
             </div>
-            <p class="notes">Same pot nine, three domains. And we broke a circle on purpose. Circle two missed its round. refundFor ran. That hash is the miss, not a fill we dressed up.</p>
+            <p class="notes">What happens if a goal or circle is not met within the deadline set by the creator? All the funds go back to sender.</p>
           </section>
 
           <section class="slide" data-i="6">
@@ -218,7 +218,7 @@ _credit(campaignId, backer, amount, sourceDomain);</pre>
                 </article>
               </div>
             </div>
-            <p class="notes">Not shipped. Mainnet USDC on the same vaults. Coinbase or MoonPay so people can buy in the flow. Plug in a wallet you already have. Export the email wallet if that's how you signed in.</p>
+            <p class="notes">Future plans include going to mainnet, integrating fiat onramp using Coinbase or MoonPay, letting people bring their own wallet so that crypto native people can jump in right away, and lastly adding email wallet management for people who signed in with their email.</p>
           </section>
 
           <section class="slide" data-i="7">
@@ -256,7 +256,7 @@ _credit(campaignId, backer, amount, sourceDomain);</pre>
                 <span>Goals · Circles</span>
               </a>
             </div>
-            <p class="notes">App, two-minute film, repo, verified vaults. I'll leave this up.</p>
+            <p class="notes">App, film, repo, vaults. I'll leave this up.</p>
           </section>
 
         </div>
