@@ -12,6 +12,20 @@ export function parseChipInSource(v: unknown): ChipInSource {
   return v === 'optimism' || v === 'arbitrum' ? v : 'base'
 }
 
+const CCTP_SOURCE_DOMAINS = new Set<number>([
+  CctpDomain.OP_SEPOLIA,
+  CctpDomain.ARBITRUM_SEPOLIA,
+  CctpDomain.BASE_SEPOLIA,
+  CctpDomain.SOLANA_DEVNET,
+])
+
+/** Server-fn payloads sometimes rehydrate `2` as `"2"`. Never default here —
+ *  a wrong domain makes Iris miss the burn. */
+export function parseCctpSourceDomain(v: unknown): CctpDomainId | undefined {
+  const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN
+  return CCTP_SOURCE_DOMAINS.has(n) ? (n as CctpDomainId) : undefined
+}
+
 export interface ChipInSourceMeta {
   id: ChipInSource
   chain: ViemChain

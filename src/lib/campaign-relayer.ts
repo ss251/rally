@@ -90,6 +90,8 @@ export interface CampaignMeta {
   organizer: string
   createTx?: Hex
   createdAt?: number
+  /** Address (lowercase) → label the backer typed (usually their email). */
+  knownBackers?: Record<string, string>
 }
 
 function metaFilePath(): string {
@@ -119,12 +121,32 @@ async function readMetaStore(): Promise<Record<string, CampaignMeta>> {
   }
 }
 
-/** Look up the human title for an on-chain campaign (null when unlabeled). */
+/** Look up off-chain labels for an on-chain campaign (null when unlabeled). */
 export async function getCampaignMeta(id: string): Promise<CampaignMeta | null> {
   const store = await readMetaStore()
   const meta = store[id]
-  if (!meta || typeof meta.title !== 'string' || !meta.title.trim()) return null
+  if (!meta) return null
+  const hasTitle = typeof meta.title === 'string' && meta.title.trim().length > 0
+  const hasBackers = Boolean(meta.knownBackers && Object.keys(meta.knownBackers).length)
+  if (!hasTitle && !hasBackers) return null
   return meta
+}
+
+function cleanBackerLabel(label: string): string {
+  return label.replace(/\p{Cc}/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 80)
+}
+
+/** Persist the name a backer typed (email) so the live feed is not "A friend". */
+export async function rememberBacker(id: string, wallet: Address, label: string): Promise<void> {
+  const clean = cleanBackerLabel(label)
+  if (!id || !clean) return
+  const store = await readMetaStore()
+  const prev = store[id] ?? { title: '', organizer: '' }
+  const key = wallet.toLowerCase()
+  await writeCampaignMeta(id, {
+    ...prev,
+    knownBackers: { ...prev.knownBackers, [key]: clean },
+  })
 }
 
 async function writeCampaignMeta(id: string, meta: CampaignMeta): Promise<void> {

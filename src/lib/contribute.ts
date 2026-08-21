@@ -19,6 +19,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import type { Address } from 'viem'
 import type { FillContributionResult } from '#/lib/cctp/contribute-fill'
+import { parseCctpSourceDomain } from '#/lib/chip-in-source'
 
 /** Digits-only campaign id (matches route params); parsed server-side.
  *  Accepts string OR number — server-fn payload serialization re-parses
@@ -42,6 +43,7 @@ export interface ContributeInput {
   amountUsd?: number
   /** The campaign being funded — the one on screen (defaults to #1). */
   campaignId?: string
+  backerLabel?: string
 }
 
 export const contributeServerFn = createServerFn({ method: 'POST' })
@@ -54,7 +56,9 @@ export const contributeServerFn = createServerFn({ method: 'POST' })
         ? data.amountUsd
         : undefined
     parseCampaignId(data.campaignId)
-    return { backer: data.backer, amountUsd, campaignId: data.campaignId }
+    const backerLabel =
+      typeof data.backerLabel === 'string' && data.backerLabel.trim() ? data.backerLabel.trim() : undefined
+    return { backer: data.backer, amountUsd, campaignId: data.campaignId, backerLabel }
   })
   .handler(async ({ data }): Promise<FillContributionResult> => {
     const { fillContribution } = await import('#/lib/cctp/contribute-fill')
@@ -62,6 +66,7 @@ export const contributeServerFn = createServerFn({ method: 'POST' })
       backer: data.backer as Address,
       amountUsd: data.amountUsd,
       campaignId: parseCampaignId(data.campaignId),
+      backerLabel: data.backerLabel,
     })
   })
 
@@ -76,10 +81,12 @@ export interface CompleteInput {
   backer: string
   /** The gasless burn tx hash from the backer's kernel account (0x…64 hex). */
   burnTxHash: string
-  /** CCTP source domain of the burn (defaults to Base Sepolia = 6). */
-  sourceDomain?: number
+  /** CCTP source domain of the burn. Number or digit-string (server-fn wire). */
+  sourceDomain?: number | string
   /** The campaign being funded — the one on screen (defaults to #1). */
   campaignId?: string
+  /** The email the backer typed — stored off-chain so the feed is not "A friend". */
+  backerLabel?: string
 }
 
 export const completeContributionServerFn = createServerFn({ method: 'POST' })
@@ -90,16 +97,16 @@ export const completeContributionServerFn = createServerFn({ method: 'POST' })
     if (typeof data.burnTxHash !== 'string' || !/^0x[0-9a-fA-F]{64}$/.test(data.burnTxHash)) {
       throw new Error('a valid burn tx hash is required')
     }
-    const sourceDomain =
-      typeof data.sourceDomain === 'number' && Number.isFinite(data.sourceDomain)
-        ? data.sourceDomain
-        : undefined
+    const sourceDomain = parseCctpSourceDomain(data.sourceDomain)
     parseCampaignId(data.campaignId)
+    const backerLabel =
+      typeof data.backerLabel === 'string' && data.backerLabel.trim() ? data.backerLabel.trim() : undefined
     return {
       backer: data.backer,
       burnTxHash: data.burnTxHash,
       sourceDomain,
       campaignId: data.campaignId,
+      backerLabel,
     }
   })
   .handler(async ({ data }): Promise<FillContributionResult> => {
@@ -107,7 +114,8 @@ export const completeContributionServerFn = createServerFn({ method: 'POST' })
     return completeContribution({
       backer: data.backer as Address,
       burnTxHash: data.burnTxHash as `0x${string}`,
-      sourceDomain: data.sourceDomain,
+      sourceDomain: parseCctpSourceDomain(data.sourceDomain),
       campaignId: parseCampaignId(data.campaignId),
+      backerLabel: data.backerLabel,
     })
   })

@@ -29,6 +29,19 @@ function alchemyRpc(id: ChipInSource): string {
   return key ? `https://${meta.alchemySub}.g.alchemy.com/v2/${key}` : meta.rpc
 }
 
+async function rpcOn(id: ChipInSource): Promise<string> {
+  const meta = CHIP_IN_META[id]
+  const primary = alchemyRpc(id)
+  if (primary === meta.rpc) return primary
+  try {
+    const pub = createPublicClient({ chain: meta.chain, transport: http(primary) })
+    await pub.getChainId()
+    return primary
+  } catch {
+    return meta.rpc
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
@@ -196,7 +209,7 @@ export async function treasuryUsd(chain: ChipInSource = 'base'): Promise<number>
   if (!pk) return 0
   const treasury = privateKeyToAccount(pk)
   const meta = CHIP_IN_META[chain]
-  const pub = createPublicClient({ chain: meta.chain, transport: http(alchemyRpc(chain)) })
+  const pub = createPublicClient({ chain: meta.chain, transport: http(await rpcOn(chain)) })
   const bal = (await pub.readContract({
     address: meta.usdc,
     abi: ERC20,
@@ -239,7 +252,7 @@ export async function claimForCode(code: string, state: string): Promise<Dispens
   if (!pk) return { ok: false, reason: 'error', message: 'dispenser not configured' }
   const treasury = privateKeyToAccount(pk)
   const meta = CHIP_IN_META[chain]
-  const rpc = alchemyRpc(chain)
+  const rpc = await rpcOn(chain)
   const pub = createPublicClient({ chain: meta.chain, transport: http(rpc) })
   const walletClient = createWalletClient({
     account: treasury,

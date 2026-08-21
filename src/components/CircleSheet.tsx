@@ -4,7 +4,7 @@ import { motion } from 'motion/react'
 import { BottomSheet } from './BottomSheet'
 import { Confetti } from './Confetti'
 import { formatUsd } from '#/design/chains'
-import { isLoggedIn, loginWithEmail, getMagicUser } from '#/lib/auth/magic'
+import { ensureMagicUser } from '#/lib/auth/magic'
 import { friendlyCircleError } from '#/lib/circle'
 import { gaslessCircleClaim, tryGaslessCircleDeposit } from '#/lib/circle-gasless'
 import { chipInCircleServerFn, refundCircleServerFn } from '#/lib/circle-actions'
@@ -106,11 +106,10 @@ export function CircleSheet({
     if (!canSend) return
     setError(null)
     try {
-      // 1. Real Magic email login (OTP overlay). If a session is already live
-      //    for this browser, reuse it without a fresh code.
+      // 1. Magic email login. Skip OTP only when this browser's session email
+      //    matches what was typed — not "any live session".
       setStatus('authing')
-      let address = (await isLoggedIn()) ? (await getMagicUser())?.address : undefined
-      if (!address) address = (await loginWithEmail(email)).address
+      const { address } = await ensureMagicUser(email)
 
       setStatus('sending')
 

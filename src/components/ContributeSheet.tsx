@@ -5,7 +5,7 @@ import { BottomSheet } from './BottomSheet'
 import { Confetti } from './Confetti'
 import { ChainIcon } from './ChainIcon'
 import { CHAIN_META, FOCUS_RING, formatUsd, type Chain } from '#/design/chains'
-import { loginWithEmail } from '#/lib/auth/magic'
+import { ensureMagicUser } from '#/lib/auth/magic'
 import { tryGaslessBackerBurn } from '#/lib/backer-gasless'
 import { CHIP_IN_SOURCES, asChipInSource } from '#/lib/chip-in-source'
 
@@ -29,6 +29,8 @@ function friendlyMoneyError(e: unknown): string {
     return 'The network hiccuped — nothing left your account. Try again.'
   if (m.includes('denied') || m.includes('rejected'))
     return 'The request was cancelled — nothing was sent.'
+  if (m.includes('needs testnet usdc') || m.includes("couldn't switch"))
+    return raw
   return 'Something went wrong on our side — nothing left your account. Try again.'
 }
 import { contributeServerFn, completeContributionServerFn } from '#/lib/contribute'
@@ -37,6 +39,7 @@ import {
   beginClaimServerFn,
   type DispenserStatus,
 } from '#/lib/dispense-actions'
+import { rememberBackerServerFn } from '#/lib/campaign-actions'
 
 interface DispenseMessage {
   source?: string
@@ -134,6 +137,7 @@ export function ContributeSheet({
   // The backer's embedded-wallet address, learned at login — needed to bind the
   // GitHub faucet grant to the wallet that will spend it.
   const [walletAddr, setWalletAddr] = useState<string | null>(null)
+  const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null)
   const [dispenser, setDispenser] = useState<DispenserStatus | null>(null)
 
   // Learn once whether the faucet is available, so the empty-wallet path can
@@ -163,6 +167,7 @@ export function ContributeSheet({
         setMovedUsd(null)
         setError(null)
         setWalletAddr(null)
+        setVerifiedEmail(null)
         setFromChain(defaultSource)
         setFromOpen(false)
       }, 250)
@@ -178,11 +183,17 @@ export function ContributeSheet({
     if (!canSend) return
     setError(null)
     try {
-      // 1. Real Magic email login — pops Magic's OTP overlay; a human types the
-      //    code from their inbox. Resolves to the backer's embedded-wallet EOA.
+      // 1. Magic email login. Skip OTP only when this browser's session email
+      //    matches — calling loginWithEmailOTP again does not send a second
+      //    code, so a mismatched or missing session email logs out first.
       setStatus('authing')
-      const user = await loginWithEmail(email)
+      const user = await ensureMagicUser(email)
+      if (!user.email) throw new Error('Magic login returned no verified email.')
       setWalletAddr(user.address)
+      setVerifiedEmail(user.email)
+      void rememberBackerServerFn({
+        data: { campaignId, wallet: user.address, label: user.email },
+      }).catch(() => {})
 
       setStatus('sending')
 
@@ -214,6 +225,7 @@ export function ContributeSheet({
             burnTxHash: gasless.burnTx,
             sourceDomain: gasless.sourceDomain,
             campaignId,
+            backerLabel: user.email,
           },
         })
         finish(res.movedUsd)
@@ -243,7 +255,7 @@ export function ContributeSheet({
       }
 
       const res = await contributeServerFn({
-        data: { backer: user.address, amountUsd: amount, campaignId },
+        data: { backer: user.address, amountUsd: amount, campaignId, backerLabel: user.email },
       })
       finish(res.movedUsd)
     } catch (e) {
@@ -300,6 +312,7 @@ export function ContributeSheet({
           burnTxHash: gasless.burnTx,
           sourceDomain: gasless.sourceDomain,
           campaignId,
+          backerLabel: verifiedEmail ?? undefined,
         },
       })
       finish(res.movedUsd)
@@ -530,7 +543,7 @@ export function ContributeSheet({
             )}
             {status === 'authing' ? (
               <>
-                <Loader2 size={18} className="animate-spin [animation-duration:0.6s]" /> Check your email…
+                <Loader2 size={18} className="animate-spin [animation-duration:0.6s]" /> Signing in…
               </>
             ) : status === 'sending' ? (
               <>
