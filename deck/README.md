@@ -4,11 +4,11 @@
 
 **Present:** open `index.html`, or `python3 -m http.server` in `deck/`.
 
+Live deck (does not replace the app): `https://rally-deck-production.up.railway.app`
+
 After this branch is on the live app: `https://rally-production-94cc.up.railway.app/pitch`
 
-GitHub Pages: `https://ss251.github.io/rally/`
-
-The workflow publishes `deck/` to the `gh-pages` branch. Official `deploy-pages` cannot create the site (`Resource not accessible by integration` — needs repo admin). After the first `gh-pages` push: Settings → Pages → Deploy from a branch → `gh-pages` / `/(root)`.
+GitHub Pages: `https://ss251.github.io/rally/` — `gh-pages` is already published. Official `deploy-pages` cannot create the site (`Resource not accessible by integration` — needs repo admin). One click: Settings → Pages → Deploy from a branch → `gh-pages` / `/(root)`.
 
 | Key | |
 |---|---|
