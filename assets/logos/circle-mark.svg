@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="56 68 65 64" fill="none">
+<!-- Circle official C / USDC isotype · circle.com pressroom lockup -->
+<circle cx="88.502" cy="100" r="32" fill="url(#g)"/>
+<path d="M94.2637 76.6971V80.8153C102.484 83.2977 108.501 90.9339 108.501 99.9922C108.501 109.051 102.484 116.695 94.2637 119.169V123.287C104.744 120.731 112.504 111.27 112.504 99.984C112.504 88.6981 104.744 79.2453 94.2637 76.6807V76.6971Z" fill="white"/>
+<path d="M68.5031 99.9999C68.5031 90.9415 74.52 83.2971 82.7399 80.8229V76.7047C72.2596 79.2611 64.5 88.7222 64.5 100.008C64.5 111.294 72.2596 120.747 82.7399 123.311V119.193C74.52 116.736 68.5031 109.075 68.5031 100.016V99.9999Z" fill="white"/>
+<defs><linearGradient id="g" x1="64.5" y1="68" x2="120.5" y2="132" gradientUnits="userSpaceOnUse">
+<stop stop-color="#2B2B2B"/><stop offset="1" stop-color="#4E4E4E"/>
+</linearGradient></defs>
+</svg>
