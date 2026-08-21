@@ -19,18 +19,18 @@ GitHub Pages: `https://ss251.github.io/rally/` — `gh-pages` is already publish
 
 Keyboard changes are instant (Raycast rule — never animate an action the presenter fires tens of times). First paint only: a 220ms ease-out stagger on the title slide (`translateY(8px) scale(0.97)`, 40ms delays). Pressable chrome scales to `0.97`. Dots grow with `scaleX`, not width. Visual language is Emil’s markdown-graph chrome: `#050505`, Geist + Geist Mono, one accent (`#ff6b4a`), dashed frames, no grain / glow / Clash Display.
 
-## Talk
+## Talk (≈2:30, no product demo)
 
-Press `N` on the live deck for the same lines.
+Press `N` on the live deck for the same lines. Do not open the app unless they ask.
 
-0. Hey guys I'm here to present Rally — group money onchain. Lets people permissionlessly spin up group pots.
-1. Inspiration behind this was to let people manage group pots easily without having to go through the friction of setting up a crypto wallet or handling private keys. PayPal shut down Money Pools in 2021 and never replaced. Traditional savings circles still depend on a trusted organizer.
-2. We have 2 kinds of pools — goals and circles. Goals let people create an all-or-nothing pot to meet a shared financial goal. Circles are bringing savings circles onchain and taking the hassle out of bookkeeping.
-3. Every time a user logs in with their email, Magic spins up an embedded wallet and activates 7702 authorization to enable gasless transactions. ZeroDev enables those gasless transactions.
-4. Circle CCTP allows for cross chain deposits into the pool, currently supports Optimism and Base besides Arbitrum. The vault contracts themselves are deployed on Arbitrum testnet.
-5. What happens if a goal or circle is not met within the deadline set by the creator? All the funds go back to sender.
-6. Future plans include going to mainnet, integrating fiat onramp using Coinbase or MoonPay, letting people bring their own wallet so that crypto native people can jump in right away, and lastly adding email wallet management for people who signed in with their email.
-7. App, film, repo, vaults. I'll leave this up.
+0. Each color on that bar is a chain the USDC actually came from. One link. If it fills, it pays out. If it misses, anyone can refund. That's a live shot of pot nine — I'm staying on the slides. (~20s)
+1. PayPal shut Money Pools in 2021 and never replaced them. A tanda still goes through one person. The gap wasn't another app. The pot needed a contract. (~18s)
+2. Left is a goal — all or nothing. Pot nine, eleven of twenty-five, Base, Arbitrum, Optimism. Right is a circle. Friday dinner, four seats, a dollar each, three of four this round. Miss a round and it stops and refunds. (~22s)
+3. Email, amount, paying-from. That's the whole sheet. Magic's OTP makes the account. ZeroDev sponsors gas so they don't need ETH. Circle only runs if the USDC isn't on Arbitrum yet. (~20s)
+4. Left to right: 7702 on the same address, a sponsored UserOp, CCTP from domain 6 or 2 onto 3, then the vault. Refund is permissionless. UnattributedFunds is the important revert — you cannot credit money that isn't there. Both vaults are verified. Eighty-six tests, including a fund-conservation fuzz. (~32s)
+5. Same pot nine, three domains. And we broke a circle on purpose. Circle two missed its round. refundFor ran. That hash is the miss, not a fill we dressed up. (~20s)
+6. Not shipped. Mainnet USDC on the same vaults. Coinbase or MoonPay so people can buy in the flow. Plug in a wallet you already have. Export the email wallet if that's how you signed in. (~18s)
+7. App, two-minute film, repo, verified vaults. I'll leave this up. (~10s)
 
 Do not chip `/c/1`. Hero pot is `/c/9`. Live circle for the mid-fill shot is `/circle/7` (Friday dinner, 3 of 4). `/circle/2` is the refund receipt.
 
