@@ -149,11 +149,12 @@ describe('deck content', () => {
 })
 
 describe('pages workflow', () => {
-  it('enables Pages when the site has never existed', () => {
+  it('publishes the deck to the gh-pages branch', () => {
     const yml = readFileSync(join(root, '..', '.github/workflows/pages.yml'), 'utf8')
-    assert.match(yml, /enablement:\s*true/)
-    assert.match(yml, /pages:\s*write/)
-    assert.match(yml, /path:\s*deck/)
+    assert.match(yml, /publish_dir:\s*\.\/deck/)
+    assert.match(yml, /publish_branch:\s*gh-pages/)
+    assert.match(yml, /contents:\s*write/)
+    assert.doesNotMatch(yml, /enablement:\s*true/)
   })
 })
 
